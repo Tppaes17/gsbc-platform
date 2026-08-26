@@ -40,6 +40,7 @@ export type NivelConfianca =
   | "conflitante"
   | "desatualizado";
 export type ScoreClassificacao = "excelente" | "alta" | "media" | "baixa" | "insuficiente";
+export type DossieOrigem = "consulta_api" | "importacao_planilha";
 export type DossieEvidenciaTipo =
   | "cnpj"
   | "razao_social"
@@ -47,6 +48,11 @@ export type DossieEvidenciaTipo =
   | "endereco"
   | "cnae"
   | "qsa"
+  | "site"
+  | "email"
+  | "telefone"
+  | "redes_sociais"
+  | "decisor"
   | "outro";
 export type SiteLeadOrigem = "diagnostico" | "contato";
 export type SiteLeadStatus = "novo" | "em_contato" | "convertido" | "descartado";
@@ -704,11 +710,14 @@ export interface Database {
       dossies_cadastrais: {
         Row: {
           id: string;
-          tenant_id: string;
-          empresa_id: string;
+          tenant_id: string | null;
+          empresa_id: string | null;
           status: DossieStatus;
           cnpj_consultado: string | null;
+          razao_social: string | null;
+          origem: DossieOrigem;
           dados_oficiais: Record<string, unknown> | null;
+          dados_enriquecimento: Record<string, unknown> | null;
           qsa: Record<string, unknown>[] | null;
           score_confiabilidade: number | null;
           score_classificacao: ScoreClassificacao | null;
@@ -719,11 +728,14 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          tenant_id: string;
-          empresa_id: string;
+          tenant_id?: string | null;
+          empresa_id?: string | null;
           status?: DossieStatus;
           cnpj_consultado?: string | null;
+          razao_social?: string | null;
+          origem?: DossieOrigem;
           dados_oficiais?: Record<string, unknown> | null;
+          dados_enriquecimento?: Record<string, unknown> | null;
           qsa?: Record<string, unknown>[] | null;
           score_confiabilidade?: number | null;
           score_classificacao?: ScoreClassificacao | null;
@@ -796,6 +808,40 @@ export interface Database {
           {
             foreignKeyName: "dossie_evidencias_consultado_por_fkey";
             columns: ["consultado_por"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      dossie_importacoes: {
+        Row: {
+          id: string;
+          nome_arquivo: string;
+          total_linhas: number;
+          linhas_importadas: number;
+          linhas_atualizadas: number;
+          linhas_com_erro: number;
+          erros: Record<string, unknown> | null;
+          importado_por: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          nome_arquivo: string;
+          total_linhas: number;
+          linhas_importadas: number;
+          linhas_atualizadas: number;
+          linhas_com_erro: number;
+          erros?: Record<string, unknown> | null;
+          importado_por?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "dossie_importacoes_importado_por_fkey";
+            columns: ["importado_por"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];

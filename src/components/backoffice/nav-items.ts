@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Receipt,
   ScrollText,
+  Search,
   Users,
   Wallet,
 } from "lucide-react";
@@ -16,6 +17,7 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   requiresPlatformStaff?: boolean;
+  ownerOnly?: boolean;
 }
 
 /**
@@ -27,6 +29,14 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/backoffice", label: "Visão Geral", icon: LayoutDashboard },
   { href: "/backoffice/sindicatos", label: "Sindicatos", icon: Building2 },
   { href: "/backoffice/empresas", label: "Empresas", icon: Building },
+  {
+    // Owner apenas (mapeado a gsbc_super_admin) — regra explícita do
+    // usuário para o módulo de inteligência cadastral (Rodada 14).
+    href: "/backoffice/prospectos",
+    label: "Prospectos",
+    icon: Search,
+    ownerOnly: true,
+  },
   {
     href: "/backoffice/instrumentos",
     label: "Instrumentos",

@@ -5,11 +5,18 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "./nav-items";
 
-export function SidebarNav({ isPlatformStaff }: { isPlatformStaff: boolean }) {
+export function SidebarNav({
+  isPlatformStaff,
+  isOwner,
+}: {
+  isPlatformStaff: boolean;
+  isOwner: boolean;
+}) {
   const pathname = usePathname();
 
   const items = NAV_ITEMS.filter(
-    (item) => !item.requiresPlatformStaff || isPlatformStaff,
+    (item) =>
+      (!item.requiresPlatformStaff || isPlatformStaff) && (!item.ownerOnly || isOwner),
   );
 
   return (

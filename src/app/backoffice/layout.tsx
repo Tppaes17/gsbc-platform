@@ -41,7 +41,7 @@ export default async function BackofficeLayout({
               : (user.memberships[0]?.tenantName ?? "Portal do Sindicato")}
           </p>
         </div>
-        <SidebarNav isPlatformStaff={user.isPlatformStaff} />
+        <SidebarNav isPlatformStaff={user.isPlatformStaff} isOwner={user.isOwner} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

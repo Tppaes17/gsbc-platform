@@ -13,7 +13,7 @@ import {
   nivelConfiancaOptions,
   scoreClassificacaoOptions,
 } from "@/lib/validation/dossie-cadastral";
-import { consultarDossieCadastralAction } from "./dossie-actions";
+import { consultarProspectoAction } from "../actions";
 
 const STATUS_LABEL = Object.fromEntries(dossieStatusOptions.map((o) => [o.value, o.label]));
 const SCORE_LABEL = Object.fromEntries(
@@ -37,14 +37,6 @@ const SCORE_TONE: Record<string, "positive" | "neutral" | "warning" | "negative"
   insuficiente: "negative",
 };
 
-const NIVEL_TONE: Record<string, "positive" | "neutral" | "warning" | "negative" | "info"> = {
-  confirmado: "positive",
-  provavel: "info",
-  nao_confirmado: "neutral",
-  conflitante: "negative",
-  desatualizado: "warning",
-};
-
 interface EvidenciaItem {
   id: string;
   tipo: string;
@@ -61,15 +53,15 @@ type DossieData = {
   score_confiabilidade: number | null;
   score_classificacao: string | null;
   ultima_consulta_em: string | null;
-} | null;
+};
 
-export function DossieCadastralSection({
-  empresaId,
+export function ProspectoDossieSection({
+  dossieId,
   dossie,
   evidencias,
   enriquecimentoWebConfigurado,
 }: {
-  empresaId: string;
+  dossieId: string;
   dossie: DossieData;
   evidencias: EvidenciaItem[];
   enriquecimentoWebConfigurado: boolean;
@@ -78,7 +70,7 @@ export function DossieCadastralSection({
 
   function handleConsultar() {
     startTransition(async () => {
-      const result = await consultarDossieCadastralAction(empresaId);
+      const result = await consultarProspectoAction(dossieId);
       if (result.success) {
         toast.success("Consulta cadastral concluída.");
       } else {
@@ -119,66 +111,47 @@ export function DossieCadastralSection({
           </p>
         ) : null}
 
-        {!dossie ? (
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Status:</span>
+            <StatusBadge
+              label={STATUS_LABEL[dossie.status] ?? dossie.status}
+              tone={STATUS_TONE[dossie.status] ?? "neutral"}
+            />
+          </div>
+          {dossie.score_classificacao ? (
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Score cadastral:</span>
+              <StatusBadge
+                label={`${dossie.score_confiabilidade ?? 0}/100 — ${SCORE_LABEL[dossie.score_classificacao] ?? dossie.score_classificacao}`}
+                tone={SCORE_TONE[dossie.score_classificacao] ?? "neutral"}
+              />
+            </div>
+          ) : (
+            <span className="text-muted-foreground">
+              Sem score — dado importado, ainda não confirmado contra a Receita Federal.
+            </span>
+          )}
+          {dossie.ultima_consulta_em ? (
+            <span className="text-muted-foreground">
+              Última consulta oficial: {new Date(dossie.ultima_consulta_em).toLocaleString("pt-BR")}
+            </span>
+          ) : null}
+        </div>
+
+        {evidencias.length === 0 ? (
           <EmptyState
             icon={ShieldCheck}
-            title="Nenhuma consulta realizada ainda"
-            description="Consulte a Receita Federal (via BrasilAPI/Minha Receita) e, se configurado, o enriquecimento web (LeadCNPJ) para validar o cadastro desta empresa."
+            title="Nenhuma evidência registrada ainda"
+            description="Consulte a Receita Federal (via BrasilAPI/Minha Receita) e, se configurado, o enriquecimento web (LeadCNPJ) para validar este prospecto."
           />
         ) : (
-          <>
-            <div className="flex flex-wrap items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Status:</span>
-                <StatusBadge
-                  label={STATUS_LABEL[dossie.status] ?? dossie.status}
-                  tone={STATUS_TONE[dossie.status] ?? "neutral"}
-                />
-              </div>
-              {dossie.score_classificacao ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Score cadastral:</span>
-                  <StatusBadge
-                    label={`${dossie.score_confiabilidade ?? 0}/100 — ${SCORE_LABEL[dossie.score_classificacao] ?? dossie.score_classificacao}`}
-                    tone={SCORE_TONE[dossie.score_classificacao] ?? "neutral"}
-                  />
-                </div>
-              ) : null}
-              {dossie.ultima_consulta_em ? (
-                <span className="text-muted-foreground">
-                  Última consulta: {new Date(dossie.ultima_consulta_em).toLocaleString("pt-BR")}
-                </span>
-              ) : null}
-            </div>
-
-            {evidencias.some((e) => e.nivel_confianca === "conflitante") ? (
-              <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                <h3 className="text-xs font-medium text-destructive">
-                  Conflitos identificados — cadastro GSBC diverge da Receita Federal
-                </h3>
-                <ul className="flex flex-col gap-1.5">
-                  {evidencias
-                    .filter((e) => e.nivel_confianca === "conflitante")
-                    .map((e) => (
-                      <li key={e.id} className="flex items-center gap-2 text-sm">
-                        <StatusBadge
-                          label={NIVEL_LABEL[e.nivel_confianca] ?? e.nivel_confianca}
-                          tone={NIVEL_TONE[e.nivel_confianca] ?? "neutral"}
-                        />
-                        <span className="text-muted-foreground">{e.observacao}</span>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <div>
-              <h3 className="mb-2 text-xs font-medium text-muted-foreground">
-                Evidências e timeline da pesquisa
-              </h3>
-              <Timeline items={timelineItems} />
-            </div>
-          </>
+          <div>
+            <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+              Evidências e timeline da pesquisa
+            </h3>
+            <Timeline items={timelineItems} />
+          </div>
         )}
       </CardContent>
     </Card>

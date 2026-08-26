@@ -138,10 +138,12 @@ export default async function EmpresaDetailPage({
     tipo: string;
     campo: string | null;
     valor: string | null;
+    fonte: string;
     nivel_confianca: string;
     observacao: string | null;
     consultado_em: string;
   }> = [];
+  const enriquecimentoWebConfigurado = !!process.env.LEADCNPJ_API_KEY;
 
   if (user.isOwner) {
     const { data: dossieRaw } = await supabase
@@ -162,7 +164,7 @@ export default async function EmpresaDetailPage({
     if (dossieRaw) {
       const { data: evidenciasRaw } = await supabase
         .from("dossie_evidencias")
-        .select("id, tipo, campo, valor, nivel_confianca, observacao, consultado_em")
+        .select("id, tipo, campo, valor, fonte, nivel_confianca, observacao, consultado_em")
         .eq("dossie_id", dossieRaw.id)
         .order("consultado_em", { ascending: false });
       dossieEvidencias = evidenciasRaw ?? [];
@@ -359,6 +361,7 @@ export default async function EmpresaDetailPage({
           empresaId={empresa.id}
           dossie={dossie}
           evidencias={dossieEvidencias}
+          enriquecimentoWebConfigurado={enriquecimentoWebConfigurado}
         />
       ) : null}
 

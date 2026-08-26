@@ -3,9 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { logAuditEvent } from "@/lib/audit/log";
 import { requireCurrentUser } from "@/lib/auth/session";
-import { consultarCnpjOficial } from "@/lib/cnpj/brasil-api";
+import {
+  avaliarCnpj,
+  FONTE_BRASIL_API,
+  normalizar,
+  type EvidenciaInput,
+} from "@/lib/cnpj/avaliacao";
 import { createClient } from "@/lib/supabase/server";
-import { classificarScore } from "@/lib/validation/dossie-cadastral";
 import type { NivelConfianca } from "@/types/database.types";
 
 export interface ConsultarDossieState {
@@ -13,22 +17,28 @@ export interface ConsultarDossieState {
   success: boolean;
 }
 
-interface EvidenciaInput {
-  tipo: "cnpj" | "razao_social" | "situacao_cadastral" | "endereco" | "cnae" | "qsa" | "outro";
-  campo: string | null;
-  valor: string | null;
-  nivel_confianca: NivelConfianca;
-  observacao: string | null;
-}
-
-const FONTE_BRASIL_API = "BrasilAPI / Receita Federal (Minha Receita)";
-
-function normalizar(valor: string | null | undefined) {
-  return (valor ?? "")
-    .trim()
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
+async function salvarEvidenciasEDossie({
+  dossieId,
+  evidencias,
+  userId,
+}: {
+  dossieId: string;
+  evidencias: EvidenciaInput[];
+  userId: string;
+}) {
+  const supabase = await createClient();
+  return supabase.from("dossie_evidencias").insert(
+    evidencias.map((e) => ({
+      dossie_id: dossieId,
+      tipo: e.tipo,
+      campo: e.campo,
+      valor: e.valor,
+      fonte: e.fonte,
+      nivel_confianca: e.nivel_confianca,
+      observacao: e.observacao,
+      consultado_por: userId,
+    })),
+  );
 }
 
 export async function consultarDossieCadastralAction(
@@ -54,7 +64,7 @@ export async function consultarDossieCadastralAction(
     return { error: "Empresa não encontrada.", success: false };
   }
 
-  const resultado = await consultarCnpjOficial(empresa.cnpj);
+  const resultado = await avaliarCnpj(empresa.cnpj);
 
   if (resultado.status === "erro") {
     return { error: resultado.mensagem, success: false };
@@ -70,6 +80,7 @@ export async function consultarDossieCadastralAction(
           status: "revisao_cadastral",
           cnpj_consultado: empresa.cnpj,
           dados_oficiais: null,
+          dados_enriquecimento: null,
           qsa: null,
           score_confiabilidade: 0,
           score_classificacao: "insuficiente",
@@ -85,15 +96,20 @@ export async function consultarDossieCadastralAction(
       return { error: "Não foi possível salvar o dossiê.", success: false };
     }
 
-    await supabase.from("dossie_evidencias").insert({
-      dossie_id: dossie.id,
-      tipo: "cnpj",
-      campo: "cnpj",
-      valor: empresa.cnpj,
-      fonte: FONTE_BRASIL_API,
-      nivel_confianca: "nao_confirmado",
-      observacao: "CNPJ não localizado na Receita Federal — não conclua irregularidade automaticamente; encaminhar para revisão cadastral.",
-      consultado_por: user.id,
+    await salvarEvidenciasEDossie({
+      dossieId: dossie.id,
+      userId: user.id,
+      evidencias: [
+        {
+          tipo: "cnpj",
+          campo: "cnpj",
+          valor: empresa.cnpj,
+          fonte: FONTE_BRASIL_API,
+          nivel_confianca: "nao_confirmado",
+          observacao:
+            "CNPJ não localizado na Receita Federal — não conclua irregularidade automaticamente; encaminhar para revisão cadastral.",
+        },
+      ],
     });
 
     await logAuditEvent({
@@ -108,36 +124,24 @@ export async function consultarDossieCadastralAction(
     return { error: null, success: true };
   }
 
-  const dados = resultado.dados;
-  const evidencias: EvidenciaInput[] = [];
-  let score = 0;
+  const dados = resultado.dadosOficiais;
+  const ativa = resultado.ativa;
+  // Evidências vindas do avaliador compartilhado (identidade oficial +
+  // enriquecimento web + score) — as evidências de conflito abaixo, que
+  // dependem do cadastro GSBC desta empresa, são adicionadas aqui.
+  const evidencias: EvidenciaInput[] = [...resultado.evidencias];
 
-  evidencias.push({
-    tipo: "cnpj",
-    campo: "cnpj",
-    valor: dados.cnpj,
-    nivel_confianca: "confirmado",
-    observacao: null,
-  });
-
-  const ativa = normalizar(dados.situacaoCadastral) === "ATIVA";
-  score += ativa ? 40 : 0;
-  evidencias.push({
-    tipo: "situacao_cadastral",
-    campo: "situacao_cadastral",
-    valor: dados.situacaoCadastral,
-    nivel_confianca: "confirmado",
-    observacao: ativa
-      ? null
-      : "CNPJ não está ativo na Receita Federal — indício identificado, não conclui irregularidade automaticamente (regra 23 do prompt-mestre).",
-  });
-
+  // --- Conflitos entre o cadastro GSBC e a Receita Federal (regra 4 do
+  // prompt-mestre: destacar, nunca escolher silenciosamente uma versão).
+  // Não pontuam no score de confiabilidade — são uma checagem à parte
+  // ("nosso cadastro está certo?"), diferente do score ("dá pra achar e
+  // contatar essa empresa?").
   const razaoBate = normalizar(empresa.razao_social) === normalizar(dados.razaoSocial);
-  score += razaoBate ? 20 : 0;
   evidencias.push({
     tipo: "razao_social",
     campo: "razao_social",
     valor: dados.razaoSocial,
+    fonte: FONTE_BRASIL_API,
     nivel_confianca: razaoBate ? "confirmado" : "conflitante",
     observacao: razaoBate
       ? null
@@ -154,7 +158,6 @@ export async function consultarDossieCadastralAction(
     if (ufBate && cidadeBate) {
       enderecoNivel = "confirmado";
       enderecoObs = null;
-      score += 15;
     } else {
       enderecoNivel = "conflitante";
       enderecoObs = `Cadastro GSBC: ${enderecoLocal.cidade ?? "—"}/${enderecoLocal.uf ?? "—"}. Receita Federal: ${dados.municipio ?? "—"}/${dados.uf ?? "—"}.`;
@@ -164,6 +167,7 @@ export async function consultarDossieCadastralAction(
     tipo: "endereco",
     campo: "municipio_uf",
     valor: `${dados.municipio ?? "—"}/${dados.uf ?? "—"}`,
+    fonte: FONTE_BRASIL_API,
     nivel_confianca: enderecoNivel,
     observacao: enderecoObs,
   });
@@ -176,7 +180,6 @@ export async function consultarDossieCadastralAction(
     if (cnaeLocalDigits === cnaeOficialDigits) {
       cnaeNivel = "confirmado";
       cnaeObs = null;
-      score += 10;
     } else {
       cnaeNivel = "conflitante";
       cnaeObs = `Cadastro GSBC: ${empresa.cnae}. Receita Federal: ${dados.cnaePrincipalCodigo ?? "—"} (${dados.cnaePrincipalDescricao ?? "—"}).`;
@@ -186,31 +189,16 @@ export async function consultarDossieCadastralAction(
     tipo: "cnae",
     campo: "cnae_principal",
     valor: `${dados.cnaePrincipalCodigo ?? "—"} — ${dados.cnaePrincipalDescricao ?? "—"}`,
+    fonte: FONTE_BRASIL_API,
     nivel_confianca: cnaeNivel,
     observacao: cnaeObs,
   });
 
-  if (dados.qsa.length > 0) {
-    score += 15;
-    evidencias.push({
-      tipo: "qsa",
-      campo: "quadro_societario",
-      valor: dados.qsa.map((s) => s.nome).join("; "),
-      nivel_confianca: "confirmado",
-      observacao: `${dados.qsa.length} sócio(s)/administrador(es) identificado(s) na Receita Federal.`,
-    });
-  } else {
-    evidencias.push({
-      tipo: "qsa",
-      campo: "quadro_societario",
-      valor: null,
-      nivel_confianca: "nao_confirmado",
-      observacao: "QSA não disponível na Receita Federal para este CNPJ.",
-    });
-  }
+  const dadosEnriquecimento = resultado.dadosEnriquecimento;
+  const enriquecimentoStatus = resultado.enriquecimentoStatus;
 
-  const scoreFinal = Math.min(score, 100);
-  const classificacao = classificarScore(scoreFinal);
+  const scoreFinal = resultado.score;
+  const classificacao = resultado.classificacao;
   const temConflito = evidencias.some((e) => e.nivel_confianca === "conflitante");
   const status = !ativa ? "revisao_cadastral" : temConflito ? "conflito_identificado" : "cadastro_validado";
 
@@ -223,6 +211,7 @@ export async function consultarDossieCadastralAction(
         status,
         cnpj_consultado: empresa.cnpj,
         dados_oficiais: dados as unknown as Record<string, unknown>,
+        dados_enriquecimento: dadosEnriquecimento,
         qsa: dados.qsa as unknown as Record<string, unknown>[],
         score_confiabilidade: scoreFinal,
         score_classificacao: classificacao,
@@ -238,18 +227,11 @@ export async function consultarDossieCadastralAction(
     return { error: "Não foi possível salvar o dossiê.", success: false };
   }
 
-  const { error: evidenciasError } = await supabase.from("dossie_evidencias").insert(
-    evidencias.map((e) => ({
-      dossie_id: dossie.id,
-      tipo: e.tipo,
-      campo: e.campo,
-      valor: e.valor,
-      fonte: FONTE_BRASIL_API,
-      nivel_confianca: e.nivel_confianca,
-      observacao: e.observacao,
-      consultado_por: user.id,
-    })),
-  );
+  const { error: evidenciasError } = await salvarEvidenciasEDossie({
+    dossieId: dossie.id,
+    userId: user.id,
+    evidencias,
+  });
 
   if (evidenciasError) {
     return { error: "Dossiê salvo, mas houve falha ao registrar as evidências.", success: false };
@@ -260,7 +242,12 @@ export async function consultarDossieCadastralAction(
     action: "dossie_cadastral.consultado",
     entityType: "empresa",
     entityId: empresaId,
-    newData: { resultado: "encontrado", score: scoreFinal, status },
+    newData: {
+      resultado: "encontrado",
+      score: scoreFinal,
+      status,
+      enriquecimento_web: enriquecimentoStatus,
+    },
   });
 
   revalidatePath(`/backoffice/empresas/${empresaId}`);
