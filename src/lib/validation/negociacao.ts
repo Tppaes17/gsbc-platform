@@ -4,6 +4,7 @@ export const negociacaoStatusOptions = [
   { value: "aberta", label: "Aberta" },
   { value: "em_negociacao", label: "Em negociação" },
   { value: "aceita", label: "Aceita" },
+  { value: "aguardando_aprovacao", label: "Aguardando aprovação (desconto)" },
   { value: "recusada", label: "Recusada" },
   { value: "encerrada", label: "Encerrada" },
 ] as const;

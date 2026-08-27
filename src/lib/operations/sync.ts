@@ -1,6 +1,7 @@
 import "server-only";
 import { formatCurrencyBRL, formatDateBR } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { registrarDecisaoPolicy } from "@/lib/policies/log";
 import type { WorkItemTipo } from "@/types/database.types";
 import { criarWorkItemSeNaoExiste } from "./work-items";
 
@@ -25,6 +26,8 @@ export interface SyncResultado {
   negociacoesParadasResolvidas: number;
   contestacoesPendentesAbertas: number;
   contestacoesPendentesResolvidas: number;
+  acordosInadimplentesAbertos: number;
+  acordosInadimplentesResolvidos: number;
 }
 
 /**
@@ -44,11 +47,14 @@ export async function syncWorkItemsFromState(): Promise<SyncResultado> {
     negociacoesParadasResolvidas: 0,
     contestacoesPendentesAbertas: 0,
     contestacoesPendentesResolvidas: 0,
+    acordosInadimplentesAbertos: 0,
+    acordosInadimplentesResolvidos: 0,
   };
 
   await syncPagamentosVencidos(supabase, resultado);
   await syncNegociacoesParadas(supabase, resultado);
   await syncContestacoesPendentes(supabase, resultado);
+  await syncAcordosInadimplentes(supabase, resultado);
 
   return resultado;
 }
@@ -58,7 +64,11 @@ async function fecharItensQueNaoValemMais(
   tipo: WorkItemTipo,
   idsAindaValidos: Set<string>,
   resultado: SyncResultado,
-  contador: "pagamentosVencidosResolvidos" | "negociacoesParadasResolvidas" | "contestacoesPendentesResolvidas",
+  contador:
+    | "pagamentosVencidosResolvidos"
+    | "negociacoesParadasResolvidas"
+    | "contestacoesPendentesResolvidas"
+    | "acordosInadimplentesResolvidos",
 ) {
   const { data: abertos } = await supabase
     .from("work_items")
@@ -215,5 +225,92 @@ async function syncContestacoesPendentes(supabase: AdminClient, resultado: SyncR
     idsAbertas,
     resultado,
     "contestacoesPendentesResolvidas",
+  );
+}
+
+/**
+ * Política "Acordo inadimplente cria item de trabalho" (STG-11) —
+ * diferente de negociacao_parada (estagnação ANTES de um acordo, dias
+ * sem atividade), esta olha DEPOIS do acordo firmado: cobrança em
+ * 'agreement_reached' há mais de dias_limite dias, ainda sem quitação
+ * total. `ativa=false` desliga a varredura inteira, inclusive o
+ * fechamento de itens que deixaram de valer — mesmo racional de
+ * "automação interrompível" (regra 6): desligar a política pausa o
+ * efeito dela por completo, não só a criação de itens novos.
+ */
+async function syncAcordosInadimplentes(supabase: AdminClient, resultado: SyncResultado) {
+  const { data: policy } = await supabase
+    .from("policies")
+    .select("ativa, versao, parametros")
+    .eq("id", "acordo_inadimplente_work_item")
+    .maybeSingle();
+
+  if (!policy?.ativa) return;
+
+  const diasLimite = Number((policy.parametros as { dias_limite?: number })?.dias_limite ?? 15);
+  const cutoff = new Date(Date.now() - diasLimite * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: cobrancas } = await supabase
+    .from("cobrancas")
+    .select("id, tenant_id, valor_cobranca, empresas(razao_social, nome_fantasia)")
+    .eq("status", "agreement_reached");
+
+  const idsInadimplentes = new Set<string>();
+
+  for (const c of cobrancas ?? []) {
+    const { data: eventoAcordo } = await supabase
+      .from("cobranca_eventos")
+      .select("created_at")
+      .eq("cobranca_id", c.id)
+      .eq("to_status", "agreement_reached")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const desde = eventoAcordo?.created_at;
+    if (!desde || desde > cutoff) continue;
+
+    const { data: pagamentosRows } = await supabase
+      .from("pagamentos")
+      .select("valor")
+      .eq("cobranca_id", c.id);
+
+    const totalPago = (pagamentosRows ?? []).reduce((acc, p) => acc + p.valor, 0);
+    if (totalPago >= (c.valor_cobranca ?? 0)) continue;
+
+    idsInadimplentes.add(c.id);
+    const empresa = Array.isArray(c.empresas) ? c.empresas[0] : c.empresas;
+    const nome = empresa?.nome_fantasia ?? empresa?.razao_social ?? "empresa";
+    const saldo = (c.valor_cobranca ?? 0) - totalPago;
+
+    await criarWorkItemSeNaoExiste(supabase, {
+      tenantId: c.tenant_id,
+      tipo: "acordo_inadimplente",
+      entityType: "cobranca",
+      entityId: c.id,
+      titulo: `Acordo inadimplente — ${nome}`,
+      descricao: `Acordo firmado há mais de ${diasLimite} dias sem quitação total. Saldo pendente: ${formatCurrencyBRL(saldo)}.`,
+      prioridade: "high",
+    });
+
+    await registrarDecisaoPolicy(supabase, {
+      policyId: "acordo_inadimplente_work_item",
+      tenantId: c.tenant_id,
+      entityType: "cobranca",
+      entityId: c.id,
+      inputs: { dias_limite: diasLimite, total_pago: totalPago, valor_cobranca: c.valor_cobranca },
+      resultado: "work_item_criado",
+      motivo: `Acordo firmado há mais de ${diasLimite} dias sem quitação total — saldo pendente ${formatCurrencyBRL(saldo)}.`,
+    });
+
+    resultado.acordosInadimplentesAbertos++;
+  }
+
+  await fecharItensQueNaoValemMais(
+    supabase,
+    "acordo_inadimplente",
+    idsInadimplentes,
+    resultado,
+    "acordosInadimplentesResolvidos",
   );
 }

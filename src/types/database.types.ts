@@ -22,7 +22,13 @@ export type ObrigacaoStatus =
   | "fulfilled"
   | "cancelled";
 export type CobrancaPrioridade = "low" | "medium" | "high";
-export type NegociacaoStatus = "aberta" | "em_negociacao" | "aceita" | "recusada" | "encerrada";
+export type NegociacaoStatus =
+  | "aberta"
+  | "em_negociacao"
+  | "aceita"
+  | "aguardando_aprovacao"
+  | "recusada"
+  | "encerrada";
 export type NegociacaoEventoTipo = "proposta_gsbc" | "contraproposta_empresa" | "aceite" | "recusa" | "observacao";
 export type PagamentoFormaPagamento = "pix" | "boleto" | "transferencia" | "outro";
 export type DocumentoCategoria = "instrumento" | "notificacao" | "acordo" | "comprovante" | "contestacao" | "outro";
@@ -93,7 +99,8 @@ export type WorkItemTipo =
   | "escalonamento"
   | "pagamento_vencido"
   | "negociacao_parada"
-  | "contestacao_pendente";
+  | "contestacao_pendente"
+  | "acordo_inadimplente";
 export type WorkItemEntityType = "cobranca" | "negociacao" | "collection_enrollment";
 export type WorkItemPrioridade = "low" | "medium" | "high";
 export type WorkItemStatus = "aberto" | "concluido" | "adiado" | "cancelado";
@@ -158,6 +165,8 @@ export type OportunidadeFatorDimensao =
   | "recencia"
   | "qualidade_contato";
 export type OportunidadeEventoTipo = "avaliacao" | "em_analise" | "validada" | "descartada" | "observacao";
+export type PolicyCategoria = "negociacao" | "cobranca" | "automacao";
+export type PolicyEnforcement = "aplicada" | "registrada";
 
 export interface Database {
   __InternalSupabase: {
@@ -633,7 +642,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["negociacoes"]["Insert"]>;
+        Update: never;
         Relationships: [
           {
             foreignKeyName: "negociacoes_tenant_id_fkey";
@@ -2089,6 +2098,77 @@ export interface Database {
           },
         ];
       };
+      policies: {
+        Row: {
+          id: string;
+          nome: string;
+          descricao: string;
+          categoria: PolicyCategoria;
+          enforcement: PolicyEnforcement;
+          versao: number;
+          ativa: boolean;
+          parametros: Record<string, unknown>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          nome: string;
+          descricao: string;
+          categoria: PolicyCategoria;
+          enforcement: PolicyEnforcement;
+          versao?: number;
+          ativa?: boolean;
+          parametros?: Record<string, unknown>;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      policy_decisoes: {
+        Row: {
+          id: string;
+          policy_id: string;
+          policy_versao: number;
+          tenant_id: string | null;
+          entity_type: string;
+          entity_id: string;
+          inputs: Record<string, unknown>;
+          resultado: string;
+          motivo: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          policy_id: string;
+          policy_versao: number;
+          tenant_id?: string | null;
+          entity_type: string;
+          entity_id: string;
+          inputs?: Record<string, unknown>;
+          resultado: string;
+          motivo: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "policy_decisoes_policy_id_fkey";
+            columns: ["policy_id"];
+            isOneToOne: false;
+            referencedRelation: "policies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "policy_decisoes_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2225,6 +2305,14 @@ export interface Database {
       };
       registrar_resultado: {
         Args: { p_escalonamento_id: string; p_descricao: string };
+        Returns: undefined;
+      };
+      alternar_policy_ativa: {
+        Args: { p_policy_id: string; p_ativa: boolean; p_motivo: string };
+        Returns: undefined;
+      };
+      decidir_aprovacao_desconto: {
+        Args: { p_negociacao_id: string; p_aprovado: boolean; p_motivo: string };
         Returns: undefined;
       };
     };

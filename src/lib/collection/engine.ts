@@ -2,6 +2,7 @@ import "server-only";
 import { sendEmail } from "@/lib/email/send";
 import { formatCurrencyBRL, formatDateBR } from "@/lib/format";
 import { criarWorkItemSeNaoExiste } from "@/lib/operations/work-items";
+import { registrarDecisaoPolicy } from "@/lib/policies/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database.types";
 import { avaliarElegibilidade } from "./eligibility";
@@ -220,6 +221,19 @@ async function processarEnrollment(
     .from("collection_enrollments")
     .update({ current_step_ordem: enrollment.current_step_ordem + 1 })
     .eq("id", enrollment.id);
+
+  // STG-11: política "Régua avança por agendamento" já é comportamento
+  // real desde a Rodada 19 — aqui só ganha um registro de decisão
+  // auditável, sem mudar o comportamento em si.
+  await registrarDecisaoPolicy(supabase, {
+    policyId: "regua_avanca_por_agendamento",
+    tenantId: enrollment.tenant_id,
+    entityType: "cobranca",
+    entityId: enrollment.cobranca_id,
+    inputs: { step_ordem: step.ordem, dias_apos_inscricao: step.dias_apos_inscricao, canal: step.canal },
+    resultado: "avancada",
+    motivo: `Step ${step.ordem} (${step.canal}) executado — D+${step.dias_apos_inscricao} desde a inscrição.`,
+  });
 }
 
 async function executarStepEmail({

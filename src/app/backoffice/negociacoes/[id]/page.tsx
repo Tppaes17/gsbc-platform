@@ -10,6 +10,7 @@ import {
   negociacaoEventoTipoOptions,
   negociacaoStatusOptions,
 } from "@/lib/validation/negociacao";
+import { DecidirDescontoDialog } from "./decidir-desconto-dialog";
 import { EventoForm } from "./evento-form";
 
 const STATUS_LABEL = Object.fromEntries(
@@ -23,6 +24,7 @@ const STATUS_TONE: Record<string, "positive" | "neutral" | "warning" | "negative
   aberta: "info",
   em_negociacao: "warning",
   aceita: "positive",
+  aguardando_aprovacao: "warning",
   recusada: "negative",
   encerrada: "neutral",
 };
@@ -95,9 +97,31 @@ export default async function NegociacaoDetailPage({
         title={empresa?.nome_fantasia ?? empresa?.razao_social ?? "Negociação"}
         description={`${obrigacao?.descricao ?? "—"} · ${negociacao.tenants?.name ?? "—"}`}
         actions={
-          user.isPlatformStaff ? <EventoForm negociacaoId={negociacao.id} /> : undefined
+          user.isPlatformStaff && negociacao.status !== "aguardando_aprovacao" ? (
+            <EventoForm negociacaoId={negociacao.id} />
+          ) : undefined
         }
       />
+
+      {negociacao.status === "aguardando_aprovacao" ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed p-3 text-sm">
+          <div>
+            <p className="font-medium">Aguardando aprovação de desconto (STG-11 — Policy Engine)</p>
+            <p className="text-xs text-muted-foreground">
+              O valor aceito é menor que o valor original da cobrança — a política &quot;Desconto
+              exige aprovação&quot; exige que o Owner decida antes de virar acordo firmado.
+            </p>
+          </div>
+          {user.isOwner ? (
+            <div className="flex gap-2">
+              <DecidirDescontoDialog negociacaoId={negociacao.id} aprovado={true} />
+              <DecidirDescontoDialog negociacaoId={negociacao.id} aprovado={false} />
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">Aguardando decisão do Owner.</span>
+          )}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">

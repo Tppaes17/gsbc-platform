@@ -248,6 +248,12 @@ export async function responderPropostaPortalAction(
   });
 
   if (error) {
+    if (error.message.includes("aguardando aprovação de desconto")) {
+      return {
+        error: "Esta negociação está aguardando aprovação interna da GSBC — aguarde antes de enviar uma nova resposta.",
+        success: false,
+      };
+    }
     return { error: "Não foi possível registrar sua resposta.", success: false };
   }
 

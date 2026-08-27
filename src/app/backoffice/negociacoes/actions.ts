@@ -147,16 +147,19 @@ export async function registerNegociacaoEventoAction(
   });
 
   if (error) {
+    if (error.message.includes("aguardando aprovação de desconto")) {
+      return {
+        error: "Esta negociação está aguardando aprovação de desconto — decida isso antes de novos movimentos.",
+        success: false,
+      };
+    }
     return { error: "Não foi possível registrar o movimento.", success: false };
   }
 
-  if (input.tipo === "aceite") {
-    await supabase.rpc("change_cobranca_status", {
-      p_cobranca_id: negociacao.cobranca_id,
-      p_new_status: "agreement_reached",
-      p_reason: "Acordo firmado na negociação.",
-    });
-  }
+  // A cascata pra 'agreement_reached' (aceite sem desconto, ou dentro do
+  // limite da política) e a transição pra 'aguardando_aprovacao' (STG-11
+  // — desconto acima do limite) já acontecem dentro de
+  // register_negociacao_evento() — nada a fazer aqui.
 
   await logAuditEvent({
     tenantId: negociacao.tenant_id,
@@ -167,6 +170,73 @@ export async function registerNegociacaoEventoAction(
   });
 
   revalidatePath(`/backoffice/negociacoes/${input.negociacaoId}`);
+  revalidatePath("/backoffice/negociacoes");
+  revalidatePath(`/backoffice/cobrancas/${negociacao.cobranca_id}`);
+  revalidatePath(`/backoffice/empresas/${negociacao.empresa_id}`);
+  return { error: null, success: true };
+}
+
+export interface DecidirDescontoState {
+  error: string | null;
+  success: boolean;
+}
+
+export async function decidirDescontoNegociacaoAction(
+  _prevState: DecidirDescontoState,
+  formData: FormData,
+): Promise<DecidirDescontoState> {
+  const user = await requireCurrentUser();
+  if (!user.isOwner) {
+    return { error: "Apenas o Owner pode aprovar ou rejeitar um desconto.", success: false };
+  }
+
+  const negociacaoId = formData.get("negociacaoId");
+  const aprovado = formData.get("aprovado");
+  const motivo = formData.get("motivo");
+
+  if (typeof negociacaoId !== "string" || !negociacaoId) {
+    return { error: "Negociação inválida.", success: false };
+  }
+  if (aprovado !== "true" && aprovado !== "false") {
+    return { error: "Decisão inválida.", success: false };
+  }
+  if (typeof motivo !== "string" || motivo.trim().length < 5) {
+    return { error: "Justifique a decisão (mínimo 5 caracteres).", success: false };
+  }
+
+  const supabase = await createClient();
+
+  const { data: negociacao } = await supabase
+    .from("negociacoes")
+    .select("tenant_id, empresa_id, cobranca_id")
+    .eq("id", negociacaoId)
+    .single();
+
+  if (!negociacao) {
+    return { error: "Negociação não encontrada.", success: false };
+  }
+
+  const isAprovado = aprovado === "true";
+
+  const { error } = await supabase.rpc("decidir_aprovacao_desconto", {
+    p_negociacao_id: negociacaoId,
+    p_aprovado: isAprovado,
+    p_motivo: motivo,
+  });
+
+  if (error) {
+    return { error: "Não foi possível registrar a decisão.", success: false };
+  }
+
+  await logAuditEvent({
+    tenantId: negociacao.tenant_id,
+    action: isAprovado ? "negociacao.desconto_aprovado" : "negociacao.desconto_rejeitado",
+    entityType: "negociacao",
+    entityId: negociacaoId,
+    newData: { motivo },
+  });
+
+  revalidatePath(`/backoffice/negociacoes/${negociacaoId}`);
   revalidatePath("/backoffice/negociacoes");
   revalidatePath(`/backoffice/cobrancas/${negociacao.cobranca_id}`);
   revalidatePath(`/backoffice/empresas/${negociacao.empresa_id}`);

@@ -11,6 +11,7 @@ import {
   ScaleIcon,
   ScrollText,
   Search,
+  Settings2,
   TrendingUp,
   Users,
   Wallet,
@@ -72,6 +73,15 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Gavel,
   },
   { href: "/backoffice/financeiro", label: "Financeiro", icon: Wallet },
+  {
+    // Staff GSBC apenas — governança de políticas de decisão/automação
+    // (STG-11), mesmo nível de acesso de Central Operacional; ativar/
+    // desativar em si é restrito a Owner via RPC (alternar_policy_ativa).
+    href: "/backoffice/politicas",
+    label: "Políticas",
+    icon: Settings2,
+    requiresPlatformStaff: true,
+  },
   { href: "/backoffice/usuarios", label: "Usuários", icon: Users },
   {
     // Visível a todos: a auditoria é o mecanismo de transparência da GSBC

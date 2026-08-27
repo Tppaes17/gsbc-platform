@@ -20,6 +20,7 @@ const STATUS_TONE: Record<string, "positive" | "neutral" | "warning" | "negative
   aberta: "info",
   em_negociacao: "warning",
   aceita: "positive",
+  aguardando_aprovacao: "warning",
   recusada: "negative",
   encerrada: "neutral",
 };
