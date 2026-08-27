@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit/log";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email/send";
+import { formatCurrencyBRL, formatDateBR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import {
   changeStatusSchema,
@@ -231,15 +232,6 @@ export async function changeCobrancaStatusAction(
 export interface SendNotificacaoState {
   error: string | null;
   success: boolean;
-}
-
-function formatCurrencyBRL(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function formatDateBR(value: string | null) {
-  if (!value) return "a definir";
-  return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
 }
 
 export async function sendNotificacaoAction(

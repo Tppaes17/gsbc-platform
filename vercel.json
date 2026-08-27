@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/collection-engine",
+      "schedule": "0 12 * * *"
+    }
+  ]
+}

@@ -71,6 +71,21 @@ export type CobrancaStatus =
   | "cancelled"
   | "legal_escalation"
   | "closed";
+export type CollectionStepCanal = "email" | "tarefa_humana" | "wait" | "escalonamento";
+export type CollectionEnrollmentStatus =
+  | "active"
+  | "paused"
+  | "completed"
+  | "cancelled"
+  | "escalated";
+export type CollectionExecutionStatus =
+  | "scheduled"
+  | "processing"
+  | "sent"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "cancelled";
 
 export interface Database {
   __InternalSupabase: {
@@ -912,6 +927,203 @@ export interface Database {
             columns: ["uploaded_by"];
             isOneToOne: false;
             referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      collection_strategies: {
+        Row: {
+          id: string;
+          nome: string;
+          descricao: string | null;
+          ativa: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          descricao?: string | null;
+          ativa?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["collection_strategies"]["Insert"]>;
+        Relationships: [];
+      };
+      collection_templates: {
+        Row: {
+          id: string;
+          canal: "email";
+          nome: string;
+          versao: number;
+          assunto: string | null;
+          corpo_texto: string;
+          corpo_html: string;
+          ativo: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          canal: "email";
+          nome: string;
+          versao?: number;
+          assunto?: string | null;
+          corpo_texto: string;
+          corpo_html: string;
+          ativo?: boolean;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      collection_strategy_steps: {
+        Row: {
+          id: string;
+          strategy_id: string;
+          ordem: number;
+          dias_apos_inscricao: number;
+          canal: CollectionStepCanal;
+          template_id: string | null;
+          descricao: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          strategy_id: string;
+          ordem: number;
+          dias_apos_inscricao: number;
+          canal: CollectionStepCanal;
+          template_id?: string | null;
+          descricao: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "collection_strategy_steps_strategy_id_fkey";
+            columns: ["strategy_id"];
+            isOneToOne: false;
+            referencedRelation: "collection_strategies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collection_strategy_steps_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "collection_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      collection_enrollments: {
+        Row: {
+          id: string;
+          cobranca_id: string;
+          strategy_id: string;
+          tenant_id: string;
+          empresa_id: string;
+          status: CollectionEnrollmentStatus;
+          current_step_ordem: number;
+          enrolled_at: string;
+          enrolled_by: string | null;
+          paused_at: string | null;
+          paused_by: string | null;
+          paused_reason: string | null;
+          completed_at: string | null;
+          cancelled_at: string | null;
+          cancelled_reason: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          cobranca_id: string;
+          strategy_id: string;
+          tenant_id: string;
+          empresa_id: string;
+          status?: CollectionEnrollmentStatus;
+          current_step_ordem?: number;
+          enrolled_at?: string;
+          enrolled_by?: string | null;
+          paused_at?: string | null;
+          paused_by?: string | null;
+          paused_reason?: string | null;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
+          cancelled_reason?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["collection_enrollments"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "collection_enrollments_cobranca_id_fkey";
+            columns: ["cobranca_id"];
+            isOneToOne: false;
+            referencedRelation: "cobrancas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collection_enrollments_strategy_id_fkey";
+            columns: ["strategy_id"];
+            isOneToOne: false;
+            referencedRelation: "collection_strategies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collection_enrollments_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collection_enrollments_empresa_id_fkey";
+            columns: ["empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "empresas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      collection_executions: {
+        Row: {
+          id: string;
+          enrollment_id: string;
+          step_id: string;
+          scheduled_for: string;
+          status: CollectionExecutionStatus;
+          attempt_count: number;
+          last_error: string | null;
+          resultado: Record<string, unknown> | null;
+          executed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          enrollment_id: string;
+          step_id: string;
+          scheduled_for: string;
+          status?: CollectionExecutionStatus;
+          attempt_count?: number;
+          last_error?: string | null;
+          resultado?: Record<string, unknown> | null;
+          executed_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["collection_executions"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "collection_executions_enrollment_id_fkey";
+            columns: ["enrollment_id"];
+            isOneToOne: false;
+            referencedRelation: "collection_enrollments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collection_executions_step_id_fkey";
+            columns: ["step_id"];
+            isOneToOne: false;
+            referencedRelation: "collection_strategy_steps";
             referencedColumns: ["id"];
           },
         ];

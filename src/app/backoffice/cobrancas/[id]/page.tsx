@@ -14,6 +14,7 @@ import { EditCobrancaForm } from "./edit-cobranca-form";
 import { IniciarNegociacaoAction } from "./negociacao-action";
 import { NotificacaoAction } from "./notificacao-action";
 import { NotificacoesList } from "./notificacoes-list";
+import { ReguaCobrancaSection } from "./regua-cobranca-section";
 import { StatusAction } from "./status-action";
 
 const STATUS_LABEL = Object.fromEntries(
@@ -111,6 +112,48 @@ export default async function CobrancaDetailPage({
       .eq("cobranca_id", id)
       .order("created_at", { ascending: false }),
   ]);
+
+  const { data: enrollmentRows } = await supabase
+    .from("collection_enrollments")
+    .select("id, status, current_step_ordem, enrolled_at, paused_reason, strategy_id")
+    .eq("cobranca_id", id)
+    .order("enrolled_at", { ascending: false })
+    .limit(1);
+
+  const enrollment = enrollmentRows?.[0] ?? null;
+
+  const [{ data: enrollmentSteps }, { data: execucoesRaw }] = await Promise.all([
+    enrollment
+      ? supabase
+          .from("collection_strategy_steps")
+          .select("ordem, dias_apos_inscricao, canal, descricao")
+          .eq("strategy_id", enrollment.strategy_id)
+          .order("ordem")
+      : Promise.resolve({ data: [] as { ordem: number; dias_apos_inscricao: number; canal: string; descricao: string }[] }),
+    enrollment
+      ? supabase
+          .from("collection_executions")
+          .select(
+            "id, status, scheduled_for, executed_at, last_error, collection_strategy_steps(ordem, dias_apos_inscricao, canal, descricao)",
+          )
+          .eq("enrollment_id", enrollment.id)
+          .order("scheduled_for", { ascending: false })
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
+
+  const execucoes = (execucoesRaw ?? []).map((e) => {
+    const step = Array.isArray(e.collection_strategy_steps)
+      ? e.collection_strategy_steps[0]
+      : e.collection_strategy_steps;
+    return {
+      id: e.id,
+      status: e.status,
+      scheduled_for: e.scheduled_for,
+      executed_at: e.executed_at,
+      last_error: e.last_error,
+      step: step ?? null,
+    };
+  });
 
   const pagamentos = (pagamentosRaw ?? []).map((p) => {
     const registrador = Array.isArray(p.users) ? p.users[0] : p.users;
@@ -258,6 +301,15 @@ export default async function CobrancaDetailPage({
         ) : null}
       </div>
       <PagamentosList pagamentos={pagamentos} valorReferencia={valorReferencia} />
+
+      {user.isPlatformStaff ? (
+        <ReguaCobrancaSection
+          cobrancaId={cobranca.id}
+          enrollment={enrollment}
+          steps={enrollmentSteps ?? []}
+          execucoes={execucoes}
+        />
+      ) : null}
 
       <NotificacoesList notificacoes={notificacoes ?? []} />
 
