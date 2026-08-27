@@ -22,7 +22,12 @@ type ProspectoRow = Pick<
   | "score_classificacao"
   | "ultima_consulta_em"
   | "created_at"
->;
+> & {
+  oportunidades:
+    | Pick<Database["public"]["Tables"]["oportunidades"]["Row"], "status" | "prioridade" | "score">[]
+    | Pick<Database["public"]["Tables"]["oportunidades"]["Row"], "status" | "prioridade" | "score">
+    | null;
+};
 
 const STATUS_LABEL = Object.fromEntries(dossieStatusOptions.map((o) => [o.value, o.label]));
 const SCORE_LABEL = Object.fromEntries(
@@ -43,6 +48,13 @@ const SCORE_TONE: Record<string, "positive" | "neutral" | "warning" | "negative"
   media: "warning",
   baixa: "negative",
   insuficiente: "negative",
+};
+
+const PRIORIDADE_LABEL: Record<string, string> = { alta: "Alta", media: "Média", baixa: "Baixa" };
+const PRIORIDADE_TONE: Record<string, "positive" | "neutral" | "warning" | "negative" | "info"> = {
+  alta: "positive",
+  media: "warning",
+  baixa: "negative",
 };
 
 function formatCnpj(cnpj: string | null) {
@@ -104,6 +116,24 @@ export function ProspectosTable({ data }: { data: ProspectoRow[] }) {
         ) : (
           <span className="text-xs text-muted-foreground">Não consultado ainda</span>
         ),
+    },
+    {
+      id: "oportunidade",
+      header: "Prioridade (oportunidade)",
+      cell: ({ row }) => {
+        const op = Array.isArray(row.original.oportunidades)
+          ? row.original.oportunidades[0]
+          : row.original.oportunidades;
+        if (!op) {
+          return <span className="text-xs text-muted-foreground">Não avaliado</span>;
+        }
+        return (
+          <StatusBadge
+            label={`${PRIORIDADE_LABEL[op.prioridade] ?? op.prioridade} — ${op.score}/100`}
+            tone={PRIORIDADE_TONE[op.prioridade] ?? "neutral"}
+          />
+        );
+      },
     },
   ];
 

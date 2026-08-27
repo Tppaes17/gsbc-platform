@@ -147,6 +147,17 @@ export type EscalonamentoEventoTipo =
   | "observacao";
 export type EscalonamentoEnvioCanal = "email" | "correio_ar" | "cartorio" | "outro";
 export type EscalonamentoEnvioDeliveryStatus = "pendente" | "entregue" | "falha" | "desconhecido";
+export type OportunidadeStatus = "potencial" | "em_analise" | "validada" | "descartada";
+export type OportunidadeFaixa = "alta" | "media" | "baixa";
+export type OportunidadeFatorDimensao =
+  | "fit_territorial"
+  | "fit_atividade"
+  | "qualidade_evidencias"
+  | "completude"
+  | "potencial_economico"
+  | "recencia"
+  | "qualidade_contato";
+export type OportunidadeEventoTipo = "avaliacao" | "em_analise" | "validada" | "descartada" | "observacao";
 
 export interface Database {
   __InternalSupabase: {
@@ -1038,6 +1049,138 @@ export interface Database {
           {
             foreignKeyName: "dossie_evidencias_consultado_por_fkey";
             columns: ["consultado_por"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      oportunidades: {
+        Row: {
+          id: string;
+          dossie_cadastral_id: string;
+          tenant_candidato_id: string | null;
+          status: OportunidadeStatus;
+          score: number;
+          prioridade: OportunidadeFaixa;
+          confianca: OportunidadeFaixa;
+          estimativa_valor: number | null;
+          estimativa_metodologia: string | null;
+          candidatos_avaliados: Record<string, unknown>[] | null;
+          instrumentos_potenciais: Record<string, unknown>[] | null;
+          avaliado_em: string;
+          avaliado_por: string | null;
+          analise_iniciada_em: string | null;
+          validado_em: string | null;
+          validado_por: string | null;
+          descartado_em: string | null;
+          descartado_por: string | null;
+          motivo_decisao: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          dossie_cadastral_id: string;
+          tenant_candidato_id?: string | null;
+          status?: OportunidadeStatus;
+          score: number;
+          prioridade: OportunidadeFaixa;
+          confianca: OportunidadeFaixa;
+          estimativa_valor?: number | null;
+          estimativa_metodologia?: string | null;
+          candidatos_avaliados?: Record<string, unknown>[] | null;
+          instrumentos_potenciais?: Record<string, unknown>[] | null;
+          avaliado_em?: string;
+          avaliado_por?: string | null;
+          analise_iniciada_em?: string | null;
+          validado_em?: string | null;
+          validado_por?: string | null;
+          descartado_em?: string | null;
+          descartado_por?: string | null;
+          motivo_decisao?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["oportunidades"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "oportunidades_dossie_cadastral_id_fkey";
+            columns: ["dossie_cadastral_id"];
+            isOneToOne: true;
+            referencedRelation: "dossies_cadastrais";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "oportunidades_tenant_candidato_id_fkey";
+            columns: ["tenant_candidato_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      oportunidade_fatores: {
+        Row: {
+          id: string;
+          oportunidade_id: string;
+          dimensao: OportunidadeFatorDimensao;
+          pontos: number;
+          peso_maximo: number;
+          explicacao: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          oportunidade_id: string;
+          dimensao: OportunidadeFatorDimensao;
+          pontos: number;
+          peso_maximo: number;
+          explicacao: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "oportunidade_fatores_oportunidade_id_fkey";
+            columns: ["oportunidade_id"];
+            isOneToOne: false;
+            referencedRelation: "oportunidades";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      oportunidade_eventos: {
+        Row: {
+          id: string;
+          oportunidade_id: string;
+          tipo: OportunidadeEventoTipo;
+          descricao: string | null;
+          score: number | null;
+          user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          oportunidade_id: string;
+          tipo: OportunidadeEventoTipo;
+          descricao?: string | null;
+          score?: number | null;
+          user_id?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "oportunidade_eventos_oportunidade_id_fkey";
+            columns: ["oportunidade_id"];
+            isOneToOne: false;
+            referencedRelation: "oportunidades";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "oportunidade_eventos_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];

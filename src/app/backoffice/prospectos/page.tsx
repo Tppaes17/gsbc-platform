@@ -14,7 +14,9 @@ export default async function ProspectosPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("dossies_cadastrais")
-    .select("id, cnpj_consultado, razao_social, origem, status, score_confiabilidade, score_classificacao, ultima_consulta_em, created_at")
+    .select(
+      "id, cnpj_consultado, razao_social, origem, status, score_confiabilidade, score_classificacao, ultima_consulta_em, created_at, oportunidades(status, prioridade, score)",
+    )
     .is("empresa_id", null)
     .is("promoted_at", null)
     .order("created_at", { ascending: false });
