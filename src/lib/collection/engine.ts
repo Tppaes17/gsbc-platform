@@ -1,6 +1,7 @@
 import "server-only";
 import { sendEmail } from "@/lib/email/send";
 import { formatCurrencyBRL, formatDateBR } from "@/lib/format";
+import { criarWorkItemSeNaoExiste } from "@/lib/operations/work-items";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database.types";
 import { avaliarElegibilidade } from "./eligibility";
@@ -173,6 +174,18 @@ async function processarEnrollment(
         resultado: { tipo: "tarefa_humana", descricao: step.descricao },
       })
       .eq("id", execucao.id);
+
+    // STG-03: sem isso, a tarefa fica só na timeline da cobrança
+    // individual — ninguém vê "o que fazer hoje" agregado.
+    await criarWorkItemSeNaoExiste(supabase, {
+      tenantId: enrollment.tenant_id,
+      tipo: "tarefa_regua_cobranca",
+      entityType: "cobranca",
+      entityId: enrollment.cobranca_id,
+      titulo: step.descricao,
+      descricao: `Step ${step.ordem} da régua de cobrança (D+${step.dias_apos_inscricao}).`,
+      prioridade: "medium",
+    });
   } else if (step.canal === "wait") {
     await supabase
       .from("collection_executions")
@@ -189,6 +202,17 @@ async function processarEnrollment(
       .eq("id", execucao.id);
     await supabase.from("collection_enrollments").update({ status: "escalated" }).eq("id", enrollment.id);
     resultado.enrollmentsConcluidos++;
+
+    await criarWorkItemSeNaoExiste(supabase, {
+      tenantId: enrollment.tenant_id,
+      tipo: "escalonamento",
+      entityType: "cobranca",
+      entityId: enrollment.cobranca_id,
+      titulo: "Cobrança elegível para escalonamento",
+      descricao:
+        "A régua de cobrança esgotou os steps automáticos. Decida: notificação extrajudicial (STG-09, exige aprovação humana), nova negociação, ou outra ação.",
+      prioridade: "high",
+    });
     return;
   }
 
@@ -216,7 +240,12 @@ async function executarStepEmail({
   resultado: SweepResultado;
 }): Promise<boolean> {
   if (!step.template_id) {
-    await marcarFalhaTerminal(supabase, execucao.id, "Template ausente para step de e-mail.");
+    await marcarFalhaTerminal(
+      supabase,
+      enrollment,
+      execucao.id,
+      "Template ausente para step de e-mail.",
+    );
     resultado.falhas++;
     return false;
   }
@@ -228,7 +257,7 @@ async function executarStepEmail({
     .single();
 
   if (!template) {
-    await marcarFalhaTerminal(supabase, execucao.id, "Template não encontrado.");
+    await marcarFalhaTerminal(supabase, enrollment, execucao.id, "Template não encontrado.");
     resultado.falhas++;
     return false;
   }
@@ -244,7 +273,12 @@ async function executarStepEmail({
   const destinatario = contatos?.[0]?.email;
 
   if (!destinatario) {
-    await marcarFalhaTerminal(supabase, execucao.id, "Empresa sem contato com e-mail cadastrado.");
+    await marcarFalhaTerminal(
+      supabase,
+      enrollment,
+      execucao.id,
+      "Empresa sem contato com e-mail cadastrado.",
+    );
     resultado.falhas++;
     return false;
   }
@@ -319,6 +353,17 @@ async function executarStepEmail({
           paused_reason: `Falha no envio após ${tentativas} tentativas: ${mensagemErro}`,
         })
         .eq("id", enrollment.id);
+
+      await criarWorkItemSeNaoExiste(supabase, {
+        tenantId: enrollment.tenant_id,
+        tipo: "falha_automacao",
+        entityType: "cobranca",
+        entityId: enrollment.cobranca_id,
+        titulo: "Falha no envio automático da régua de cobrança",
+        descricao: `${tentativas} tentativas de e-mail falharam. Régua pausada automaticamente.`,
+        prioridade: "high",
+        motivo: mensagemErro,
+      });
     } else {
       const novoAgendamento = new Date(Date.now() + RETRY_DELAY_MINUTOS * 60_000);
       await supabase
@@ -336,11 +381,39 @@ async function executarStepEmail({
   }
 }
 
-async function marcarFalhaTerminal(supabase: AdminClient, execucaoId: string, mensagem: string) {
+/**
+ * Erro que não tem retry (config ausente, não uma falha transitória de
+ * rede) — pausa o enrollment na hora, senão o step fica travado pra
+ * sempre sem nunca avançar nem aparecer em lugar nenhum (bug real
+ * encontrado nesta rodada: STG-03 existe justamente pra essas falhas
+ * não ficarem invisíveis).
+ */
+async function marcarFalhaTerminal(
+  supabase: AdminClient,
+  enrollment: EnrollmentRow,
+  execucaoId: string,
+  mensagem: string,
+) {
   await supabase
     .from("collection_executions")
     .update({ status: "failed", last_error: mensagem, executed_at: new Date().toISOString() })
     .eq("id", execucaoId);
+
+  await supabase
+    .from("collection_enrollments")
+    .update({ status: "paused", paused_at: new Date().toISOString(), paused_reason: mensagem })
+    .eq("id", enrollment.id);
+
+  await criarWorkItemSeNaoExiste(supabase, {
+    tenantId: enrollment.tenant_id,
+    tipo: "falha_automacao",
+    entityType: "cobranca",
+    entityId: enrollment.cobranca_id,
+    titulo: "Falha na régua de cobrança — configuração",
+    descricao: "Régua pausada automaticamente.",
+    prioridade: "high",
+    motivo: mensagem,
+  });
 }
 
 /**

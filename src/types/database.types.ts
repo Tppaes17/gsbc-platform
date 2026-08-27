@@ -86,6 +86,15 @@ export type CollectionExecutionStatus =
   | "failed"
   | "skipped"
   | "cancelled";
+export type WorkItemTipo =
+  | "tarefa_regua_cobranca"
+  | "falha_automacao"
+  | "escalonamento"
+  | "pagamento_vencido"
+  | "negociacao_parada";
+export type WorkItemEntityType = "cobranca" | "negociacao" | "collection_enrollment";
+export type WorkItemPrioridade = "low" | "medium" | "high";
+export type WorkItemStatus = "aberto" | "concluido" | "adiado" | "cancelado";
 
 export interface Database {
   __InternalSupabase: {
@@ -1124,6 +1133,70 @@ export interface Database {
             columns: ["step_id"];
             isOneToOne: false;
             referencedRelation: "collection_strategy_steps";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      work_items: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          tipo: WorkItemTipo;
+          entity_type: WorkItemEntityType;
+          entity_id: string;
+          titulo: string;
+          descricao: string | null;
+          prioridade: WorkItemPrioridade;
+          due_at: string | null;
+          status: WorkItemStatus;
+          assigned_to: string | null;
+          motivo: string | null;
+          metadata: Record<string, unknown> | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          tipo: WorkItemTipo;
+          entity_type: WorkItemEntityType;
+          entity_id: string;
+          titulo: string;
+          descricao?: string | null;
+          prioridade?: WorkItemPrioridade;
+          due_at?: string | null;
+          status?: WorkItemStatus;
+          assigned_to?: string | null;
+          motivo?: string | null;
+          metadata?: Record<string, unknown> | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["work_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "work_items_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "work_items_assigned_to_fkey";
+            columns: ["assigned_to"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "work_items_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
             referencedColumns: ["id"];
           },
         ];

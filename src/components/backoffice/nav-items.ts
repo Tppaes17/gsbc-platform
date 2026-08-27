@@ -5,6 +5,7 @@ import {
   FileText,
   Handshake,
   LayoutDashboard,
+  ListTodo,
   Receipt,
   ScrollText,
   Search,
@@ -27,6 +28,14 @@ export interface NavItem {
  */
 export const NAV_ITEMS: NavItem[] = [
   { href: "/backoffice", label: "Visão Geral", icon: LayoutDashboard },
+  {
+    // Staff GSBC apenas — fila operacional interna (STG-03), não é sobre
+    // transparência pro sindicato como Auditoria; é ferramenta de execução.
+    href: "/backoffice/operacoes",
+    label: "Central Operacional",
+    icon: ListTodo,
+    requiresPlatformStaff: true,
+  },
   { href: "/backoffice/sindicatos", label: "Sindicatos", icon: Building2 },
   { href: "/backoffice/empresas", label: "Empresas", icon: Building },
   {
