@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/design-system/status-badge";
 import { Timeline, type TimelineItem } from "@/components/design-system/timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCurrentUser } from "@/lib/auth/session";
+import { isEscalationApprover } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { cobrancaStatusOptions } from "@/lib/validation/cobranca";
 import { valorReferenciaCobranca } from "@/lib/finance/referencia";
@@ -12,6 +13,7 @@ import { PagamentosList } from "../../financeiro/pagamentos-list";
 import { RegistrarPagamentoAction } from "../../financeiro/pagamento-action";
 import { PaymentChargesSection } from "./payment-charges-section";
 import { ContestacaoSection } from "./contestacao-section";
+import { EscalonamentoSection } from "./escalonamento-section";
 import { EditCobrancaForm } from "./edit-cobranca-form";
 import { IniciarNegociacaoAction } from "./negociacao-action";
 import { NotificacaoAction } from "./notificacao-action";
@@ -28,6 +30,17 @@ const CONTESTACAO_EVENTO_LABEL: Record<string, string> = {
   parcialmente_procedente: "Parcialmente procedente",
   improcedente: "Improcedente",
   inconclusiva: "Inconclusiva",
+  observacao: "Observação",
+};
+
+const ESCALONAMENTO_EVENTO_LABEL: Record<string, string> = {
+  criacao: "Escalonamento iniciado",
+  submissao_aprovacao: "Submetido para aprovação",
+  aprovacao: "Aprovado pelo Jurídico",
+  rejeicao: "Rejeitado pelo Jurídico",
+  documento_emitido: "Documento emitido",
+  envio: "Envio registrado",
+  resultado: "Resultado registrado",
   observacao: "Observação",
 };
 
@@ -209,6 +222,100 @@ export default async function CobrancaDetailPage({
         userNome: autor?.full_name ?? null,
         documentoNome: documento?.nome_arquivo ?? null,
         documentoUrl,
+      };
+    }),
+  );
+
+  const { data: escalonamentoRows } = await supabase
+    .from("escalonamentos")
+    .select("id, status, motivo, motivo_decisao, iniciado_em, aprovado_em, concluido_em")
+    .eq("cobranca_id", id)
+    .order("iniciado_em", { ascending: false })
+    .limit(1);
+
+  const escalonamento = escalonamentoRows?.[0] ?? null;
+
+  const [
+    { data: escalonamentoEventosRaw },
+    { data: escalonamentoDocumentosRaw },
+    { data: escalonamentoEnviosRaw },
+  ] = await Promise.all([
+    escalonamento
+      ? supabase
+          .from("escalonamento_eventos")
+          .select("id, tipo, descricao, created_at, users(full_name)")
+          .eq("escalonamento_id", escalonamento.id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] as never[] }),
+    escalonamento
+      ? supabase
+          .from("escalonamento_documentos")
+          .select("id, template_versao, created_at, documentos(nome_arquivo, storage_path)")
+          .eq("escalonamento_id", escalonamento.id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] as never[] }),
+    escalonamento
+      ? supabase
+          .from("escalonamento_envios")
+          .select(
+            "id, canal, destinatario, delivery_status, erro, enviado_em, documentos(storage_path)",
+          )
+          .eq("escalonamento_id", escalonamento.id)
+          .order("enviado_em", { ascending: false })
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
+
+  const escalonamentoEventos: TimelineItem[] = (escalonamentoEventosRaw ?? []).map((ev) => {
+    const author = Array.isArray(ev.users) ? ev.users[0] : ev.users;
+    const descricaoPartes = [ev.descricao, author ? `por ${author.full_name}` : null].filter(
+      Boolean,
+    );
+    return {
+      id: ev.id,
+      label: ESCALONAMENTO_EVENTO_LABEL[ev.tipo] ?? ev.tipo,
+      description: descricaoPartes.join(" · ") || undefined,
+      timestamp: ev.created_at,
+    };
+  });
+
+  const escalonamentoDocumentos = await Promise.all(
+    (escalonamentoDocumentosRaw ?? []).map(async (doc) => {
+      const documento = Array.isArray(doc.documentos) ? doc.documentos[0] : doc.documentos;
+      let url: string | null = null;
+      if (documento) {
+        const { data: signed } = await supabase.storage
+          .from(DOCUMENTOS_BUCKET)
+          .createSignedUrl(documento.storage_path, 300);
+        url = signed?.signedUrl ?? null;
+      }
+      return {
+        id: doc.id,
+        nomeArquivo: documento?.nome_arquivo ?? "Notificação extrajudicial.pdf",
+        url,
+        templateVersao: doc.template_versao,
+        createdAt: doc.created_at,
+      };
+    }),
+  );
+
+  const escalonamentoEnvios = await Promise.all(
+    (escalonamentoEnviosRaw ?? []).map(async (envio) => {
+      const comprovante = Array.isArray(envio.documentos) ? envio.documentos[0] : envio.documentos;
+      let comprovanteUrl: string | null = null;
+      if (comprovante) {
+        const { data: signed } = await supabase.storage
+          .from(DOCUMENTOS_BUCKET)
+          .createSignedUrl(comprovante.storage_path, 300);
+        comprovanteUrl = signed?.signedUrl ?? null;
+      }
+      return {
+        id: envio.id,
+        canal: envio.canal,
+        destinatario: envio.destinatario,
+        deliveryStatus: envio.delivery_status,
+        erro: envio.erro,
+        enviadoEm: envio.enviado_em,
+        comprovanteUrl,
       };
     }),
   );
@@ -412,6 +519,28 @@ export default async function CobrancaDetailPage({
         eventos={contestacaoEventos}
         evidencias={contestacaoEvidencias}
         canManage={user.isPlatformStaff}
+      />
+
+      <EscalonamentoSection
+        cobrancaId={cobranca.id}
+        escalonamento={
+          escalonamento
+            ? {
+                id: escalonamento.id,
+                status: escalonamento.status,
+                motivo: escalonamento.motivo,
+                motivoDecisao: escalonamento.motivo_decisao,
+                iniciadoEm: escalonamento.iniciado_em,
+                aprovadoEm: escalonamento.aprovado_em,
+                concluidoEm: escalonamento.concluido_em,
+              }
+            : null
+        }
+        eventos={escalonamentoEventos}
+        documentos={escalonamentoDocumentos}
+        envios={escalonamentoEnvios}
+        canManage={user.isPlatformStaff}
+        canApprove={isEscalationApprover(user)}
       />
 
       <NotificacoesList notificacoes={notificacoes ?? []} />

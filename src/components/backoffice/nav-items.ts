@@ -3,6 +3,7 @@ import {
   Building,
   Building2,
   FileText,
+  Gavel,
   Handshake,
   LayoutDashboard,
   ListTodo,
@@ -63,6 +64,13 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/backoffice/cobrancas", label: "Cobranças", icon: Receipt },
   { href: "/backoffice/negociacoes", label: "Negociações", icon: Handshake },
   { href: "/backoffice/contestacoes", label: "Contestações", icon: ScaleIcon },
+  {
+    // Visível a todos (regra 6, transparência) — aprovação em si é
+    // restrita ao papel Jurídico via RPC/RLS (STG-09), não na navegação.
+    href: "/backoffice/escalonamentos",
+    label: "Escalonamentos",
+    icon: Gavel,
+  },
   { href: "/backoffice/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/backoffice/usuarios", label: "Usuários", icon: Users },
   {

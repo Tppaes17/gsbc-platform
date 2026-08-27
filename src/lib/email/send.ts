@@ -27,11 +27,13 @@ export async function sendEmail({
   subject,
   text,
   html,
+  attachments,
 }: {
   to: string;
   subject: string;
   text: string;
   html: string;
+  attachments?: { filename: string; content: Buffer; contentType?: string }[];
 }) {
   const transporter = getTransporter();
   await transporter.sendMail({
@@ -40,5 +42,6 @@ export async function sendEmail({
     subject,
     text,
     html,
+    attachments,
   });
 }

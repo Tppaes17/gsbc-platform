@@ -128,6 +128,25 @@ export type PaymentProviderName = "mock";
 export type PaymentChargeTipo = "pix" | "boleto";
 export type PaymentChargeStatus = "pending" | "paid" | "expired" | "cancelled" | "refunded" | "failed";
 export type PaymentWebhookProcessingStatus = "pending" | "processed" | "ignored" | "error" | "manual_review";
+export type EscalonamentoStatus =
+  | "em_revisao"
+  | "aguardando_aprovacao"
+  | "rejeitada"
+  | "aprovada"
+  | "documento_emitido"
+  | "enviada"
+  | "concluida";
+export type EscalonamentoEventoTipo =
+  | "criacao"
+  | "submissao_aprovacao"
+  | "aprovacao"
+  | "rejeicao"
+  | "documento_emitido"
+  | "envio"
+  | "resultado"
+  | "observacao";
+export type EscalonamentoEnvioCanal = "email" | "correio_ar" | "cartorio" | "outro";
+export type EscalonamentoEnvioDeliveryStatus = "pendente" | "entregue" | "falha" | "desconhecido";
 
 export interface Database {
   __InternalSupabase: {
@@ -1726,6 +1745,207 @@ export interface Database {
           },
         ];
       };
+      escalonamentos: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          empresa_id: string;
+          cobranca_id: string;
+          status: EscalonamentoStatus;
+          motivo: string;
+          iniciado_por: string | null;
+          iniciado_em: string;
+          aprovado_por: string | null;
+          aprovado_em: string | null;
+          motivo_decisao: string | null;
+          concluido_em: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          empresa_id: string;
+          cobranca_id: string;
+          status?: EscalonamentoStatus;
+          motivo: string;
+          iniciado_por?: string | null;
+          iniciado_em?: string;
+          aprovado_por?: string | null;
+          aprovado_em?: string | null;
+          motivo_decisao?: string | null;
+          concluido_em?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "escalonamentos_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "escalonamentos_empresa_id_fkey";
+            columns: ["empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "empresas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "escalonamentos_cobranca_id_fkey";
+            columns: ["cobranca_id"];
+            isOneToOne: false;
+            referencedRelation: "cobrancas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "escalonamentos_iniciado_por_fkey";
+            columns: ["iniciado_por"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "escalonamentos_aprovado_por_fkey";
+            columns: ["aprovado_por"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      escalonamento_eventos: {
+        Row: {
+          id: string;
+          escalonamento_id: string;
+          tipo: EscalonamentoEventoTipo;
+          descricao: string | null;
+          user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          escalonamento_id: string;
+          tipo: EscalonamentoEventoTipo;
+          descricao?: string | null;
+          user_id?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "escalonamento_eventos_escalonamento_id_fkey";
+            columns: ["escalonamento_id"];
+            isOneToOne: false;
+            referencedRelation: "escalonamentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "escalonamento_eventos_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      escalonamento_documentos: {
+        Row: {
+          id: string;
+          escalonamento_id: string;
+          documento_id: string;
+          template_versao: number;
+          dados_geracao: Record<string, unknown>;
+          emitido_por: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          escalonamento_id: string;
+          documento_id: string;
+          template_versao: number;
+          dados_geracao: Record<string, unknown>;
+          emitido_por?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "escalonamento_documentos_escalonamento_id_fkey";
+            columns: ["escalonamento_id"];
+            isOneToOne: false;
+            referencedRelation: "escalonamentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "escalonamento_documentos_documento_id_fkey";
+            columns: ["documento_id"];
+            isOneToOne: false;
+            referencedRelation: "documentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "escalonamento_documentos_emitido_por_fkey";
+            columns: ["emitido_por"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      escalonamento_envios: {
+        Row: {
+          id: string;
+          escalonamento_id: string;
+          canal: EscalonamentoEnvioCanal;
+          destinatario: string;
+          delivery_status: EscalonamentoEnvioDeliveryStatus;
+          erro: string | null;
+          comprovante_documento_id: string | null;
+          registrado_por: string | null;
+          enviado_em: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          escalonamento_id: string;
+          canal: EscalonamentoEnvioCanal;
+          destinatario: string;
+          delivery_status?: EscalonamentoEnvioDeliveryStatus;
+          erro?: string | null;
+          comprovante_documento_id?: string | null;
+          registrado_por?: string | null;
+          enviado_em?: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "escalonamento_envios_escalonamento_id_fkey";
+            columns: ["escalonamento_id"];
+            isOneToOne: false;
+            referencedRelation: "escalonamentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "escalonamento_envios_comprovante_documento_id_fkey";
+            columns: ["comprovante_documento_id"];
+            isOneToOne: false;
+            referencedRelation: "documentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "escalonamento_envios_registrado_por_fkey";
+            columns: ["registrado_por"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1823,6 +2043,46 @@ export interface Database {
           p_metadata?: Record<string, unknown> | null;
         };
         Returns: string;
+      };
+      is_escalation_approver: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
+      iniciar_escalonamento: {
+        Args: { p_cobranca_id: string; p_motivo: string };
+        Returns: string;
+      };
+      submeter_para_aprovacao: {
+        Args: { p_escalonamento_id: string };
+        Returns: undefined;
+      };
+      decidir_aprovacao: {
+        Args: { p_escalonamento_id: string; p_aprovado: boolean; p_motivo: string };
+        Returns: undefined;
+      };
+      registrar_documento_emitido: {
+        Args: {
+          p_escalonamento_id: string;
+          p_documento_id: string;
+          p_template_versao: number;
+          p_dados_geracao: Record<string, unknown>;
+        };
+        Returns: string;
+      };
+      registrar_envio: {
+        Args: {
+          p_escalonamento_id: string;
+          p_canal: string;
+          p_destinatario: string;
+          p_delivery_status: string;
+          p_erro?: string | null;
+          p_comprovante_documento_id?: string | null;
+        };
+        Returns: string;
+      };
+      registrar_resultado: {
+        Args: { p_escalonamento_id: string; p_descricao: string };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;
