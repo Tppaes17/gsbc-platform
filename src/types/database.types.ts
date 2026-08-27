@@ -124,6 +124,10 @@ export type ContestacaoEventoTipo =
   | "observacao";
 export type ContestacaoEvidenciaTipo = "documento" | "comentario";
 export type PortalAccessStatus = "none" | "invited" | "active";
+export type PaymentProviderName = "mock";
+export type PaymentChargeTipo = "pix" | "boleto";
+export type PaymentChargeStatus = "pending" | "paid" | "expired" | "cancelled" | "refunded" | "failed";
+export type PaymentWebhookProcessingStatus = "pending" | "processed" | "ignored" | "error" | "manual_review";
 
 export interface Database {
   __InternalSupabase: {
@@ -724,6 +728,118 @@ export interface Database {
             referencedColumns: ["id"];
           },
         ];
+      };
+      payment_charges: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          empresa_id: string;
+          cobranca_id: string;
+          provider: PaymentProviderName;
+          tipo: PaymentChargeTipo;
+          valor: number;
+          status: PaymentChargeStatus;
+          external_id: string | null;
+          external_status: string | null;
+          qr_code: string | null;
+          linha_digitavel: string | null;
+          boleto_url: string | null;
+          expires_at: string | null;
+          paid_at: string | null;
+          cancelled_at: string | null;
+          pagamento_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          empresa_id: string;
+          cobranca_id: string;
+          provider: PaymentProviderName;
+          tipo: PaymentChargeTipo;
+          valor: number;
+          status?: PaymentChargeStatus;
+          external_id?: string | null;
+          external_status?: string | null;
+          qr_code?: string | null;
+          linha_digitavel?: string | null;
+          boleto_url?: string | null;
+          expires_at?: string | null;
+          paid_at?: string | null;
+          cancelled_at?: string | null;
+          pagamento_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["payment_charges"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "payment_charges_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payment_charges_empresa_id_fkey";
+            columns: ["empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "empresas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payment_charges_cobranca_id_fkey";
+            columns: ["cobranca_id"];
+            isOneToOne: false;
+            referencedRelation: "cobrancas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payment_charges_pagamento_id_fkey";
+            columns: ["pagamento_id"];
+            isOneToOne: false;
+            referencedRelation: "pagamentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payment_charges_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payment_webhook_events: {
+        Row: {
+          id: string;
+          provider: string;
+          external_event_id: string;
+          charge_external_id: string | null;
+          payload: Record<string, unknown>;
+          signature_valid: boolean;
+          processing_status: PaymentWebhookProcessingStatus;
+          processing_error: string | null;
+          received_at: string;
+          processed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          provider: string;
+          external_event_id: string;
+          charge_external_id?: string | null;
+          payload: Record<string, unknown>;
+          signature_valid: boolean;
+          processing_status?: PaymentWebhookProcessingStatus;
+          processing_error?: string | null;
+          received_at?: string;
+          processed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["payment_webhook_events"]["Insert"]>;
+        Relationships: [];
       };
       notificacoes: {
         Row: {

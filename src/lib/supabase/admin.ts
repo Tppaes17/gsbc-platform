@@ -15,11 +15,14 @@ import { supabaseEnv } from "./env";
  * do sistema rodando", não um usuário; (3) checagem pré-autenticação no
  * login do Portal de Regularização Empresarial (STG-05,
  * `src/app/portal/login/actions.ts`) — precisa saber se um e-mail tem
- * convite de portal antes de existir qualquer sessão pra RLS avaliar.
- * Fora desses três casos, toda leitura/escrita de tabela de negócio deve
- * passar pelo cliente autenticado (`lib/supabase/server.ts`), que
- * respeita RLS. Nunca importar este módulo em código que possa rodar no
- * cliente.
+ * convite de portal antes de existir qualquer sessão pra RLS avaliar;
+ * (4) processamento de webhook de pagamento (STG-06,
+ * `src/lib/payments/webhook-processor.ts`) — a requisição vem do
+ * provider de pagamento, nunca de um usuário logado; a autorização real
+ * é a verificação de assinatura do payload, não RLS. Fora desses casos,
+ * toda leitura/escrita de tabela de negócio deve passar pelo cliente
+ * autenticado (`lib/supabase/server.ts`), que respeita RLS. Nunca
+ * importar este módulo em código que possa rodar no cliente.
  */
 export function createAdminClient() {
   return createSupabaseClient<Database>(

@@ -10,6 +10,7 @@ import { cobrancaStatusOptions } from "@/lib/validation/cobranca";
 import { valorReferenciaCobranca } from "@/lib/finance/referencia";
 import { PagamentosList } from "../../financeiro/pagamentos-list";
 import { RegistrarPagamentoAction } from "../../financeiro/pagamento-action";
+import { PaymentChargesSection } from "./payment-charges-section";
 import { ContestacaoSection } from "./contestacao-section";
 import { EditCobrancaForm } from "./edit-cobranca-form";
 import { IniciarNegociacaoAction } from "./negociacao-action";
@@ -96,6 +97,7 @@ export default async function CobrancaDetailPage({
     { data: pagamentosRaw },
     { data: contatoPrincipal },
     { data: notificacoes },
+    { data: paymentCharges },
   ] = await Promise.all([
     supabase
       .from("cobranca_eventos")
@@ -128,6 +130,11 @@ export default async function CobrancaDetailPage({
     supabase
       .from("notificacoes")
       .select("id, destinatario_email, assunto, status, erro, created_at")
+      .eq("cobranca_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("payment_charges")
+      .select("id, tipo, status, external_id, qr_code, linha_digitavel, expires_at, created_at")
       .eq("cobranca_id", id)
       .order("created_at", { ascending: false }),
   ]);
@@ -385,6 +392,10 @@ export default async function CobrancaDetailPage({
         ) : null}
       </div>
       <PagamentosList pagamentos={pagamentos} valorReferencia={valorReferencia} />
+
+      {user.isPlatformStaff ? (
+        <PaymentChargesSection cobrancaId={cobranca.id} charges={paymentCharges ?? []} />
+      ) : null}
 
       {user.isPlatformStaff ? (
         <ReguaCobrancaSection
