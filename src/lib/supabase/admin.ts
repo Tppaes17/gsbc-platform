@@ -12,10 +12,14 @@ import { supabaseEnv } from "./env";
  * usuário, como o cron do motor de cobrança
  * (`src/lib/collection/engine.ts`, STG-02) — nesses casos não existe
  * `auth.uid()` pra RLS avaliar, então a autorização é "é o próprio job
- * do sistema rodando", não um usuário. Fora desses dois casos, toda
- * leitura/escrita de tabela de negócio deve passar pelo cliente
- * autenticado (`lib/supabase/server.ts`), que respeita RLS. Nunca
- * importar este módulo em código que possa rodar no cliente.
+ * do sistema rodando", não um usuário; (3) checagem pré-autenticação no
+ * login do Portal de Regularização Empresarial (STG-05,
+ * `src/app/portal/login/actions.ts`) — precisa saber se um e-mail tem
+ * convite de portal antes de existir qualquer sessão pra RLS avaliar.
+ * Fora desses três casos, toda leitura/escrita de tabela de negócio deve
+ * passar pelo cliente autenticado (`lib/supabase/server.ts`), que
+ * respeita RLS. Nunca importar este módulo em código que possa rodar no
+ * cliente.
  */
 export function createAdminClient() {
   return createSupabaseClient<Database>(

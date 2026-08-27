@@ -123,6 +123,7 @@ export type ContestacaoEventoTipo =
   | "inconclusiva"
   | "observacao";
 export type ContestacaoEvidenciaTipo = "documento" | "comentario";
+export type PortalAccessStatus = "none" | "invited" | "active";
 
 export interface Database {
   __InternalSupabase: {
@@ -279,6 +280,10 @@ export interface Database {
           email: string | null;
           telefone: string | null;
           principal: boolean;
+          user_id: string | null;
+          portal_access_status: PortalAccessStatus;
+          portal_invited_at: string | null;
+          portal_invited_by: string | null;
           created_at: string;
         };
         Insert: {
@@ -289,6 +294,10 @@ export interface Database {
           email?: string | null;
           telefone?: string | null;
           principal?: boolean;
+          user_id?: string | null;
+          portal_access_status?: PortalAccessStatus;
+          portal_invited_at?: string | null;
+          portal_invited_by?: string | null;
           created_at?: string;
         };
         Update: Partial<
@@ -300,6 +309,20 @@ export interface Database {
             columns: ["empresa_id"];
             isOneToOne: false;
             referencedRelation: "empresas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "empresa_contatos_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "empresa_contatos_portal_invited_by_fkey";
+            columns: ["portal_invited_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
             referencedColumns: ["id"];
           },
         ];

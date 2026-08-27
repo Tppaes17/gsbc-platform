@@ -51,5 +51,27 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL("/backoffice", request.url));
   }
 
+  // Portal de Regularização Empresarial (STG-05) — shell separado do
+  // backoffice, para o terceiro tipo de principal (contato de empresa,
+  // sem membership). Gate aqui é só "está autenticado" — a checagem de
+  // "é mesmo um contato de portal ativo" fica com
+  // requireCurrentPortalContato() em cada página (mesma autoridade final:
+  // RLS), evitando duplicar a consulta a empresa_contatos a cada request.
+  if (!user && pathname.startsWith("/portal") && pathname !== "/portal/login") {
+    const loginUrl = new URL("/portal/login", request.url);
+    loginUrl.searchParams.set("redirectTo", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Sem redirect automático de /portal/login pra /portal aqui: "está
+  // autenticado" (único dado que o proxy tem sem consultar
+  // empresa_contatos) não é o mesmo que "é um contato de portal" — um
+  // staff/sindicato logado (sessão válida em /backoffice) também
+  // passaria nesse teste, e ao cair em /portal seria imediatamente
+  // rejeitado por requireCurrentPortalContato() e mandado de volta pra
+  // /portal/login por getCurrentPortalContato() no layout — loop
+  // infinito. A própria página de login trata sozinha o caso de alguém
+  // já autenticado que reabre /portal/login.
+
   return response;
 }

@@ -78,7 +78,7 @@ export default async function EmpresaDetailPage({
   ] = await Promise.all([
     supabase
       .from("empresa_contatos")
-      .select("id, nome, cargo, email, telefone, principal")
+      .select("id, nome, cargo, email, telefone, principal, portal_access_status")
       .eq("empresa_id", id)
       .order("principal", { ascending: false }),
     supabase

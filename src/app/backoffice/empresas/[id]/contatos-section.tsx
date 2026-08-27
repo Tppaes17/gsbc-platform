@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { Plus, User } from "lucide-react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { KeyRound, Plus, User } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,8 +17,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/design-system/empty-state";
+import { StatusBadge } from "@/components/design-system/status-badge";
 import {
   addEmpresaContatoAction,
+  concederAcessoPortalAction,
   type AddContatoState,
 } from "../actions";
 
@@ -29,7 +31,20 @@ interface Contato {
   email: string | null;
   telefone: string | null;
   principal: boolean;
+  portal_access_status: string;
 }
+
+const PORTAL_STATUS_LABEL: Record<string, string> = {
+  none: "Sem acesso ao portal",
+  invited: "Convite pendente",
+  active: "Acesso ativo ao portal",
+};
+
+const PORTAL_STATUS_TONE: Record<string, "positive" | "neutral" | "warning"> = {
+  none: "neutral",
+  invited: "warning",
+  active: "positive",
+};
 
 const initialState: AddContatoState = { error: null, success: false };
 
@@ -47,6 +62,7 @@ export function ContatosSection({
     addEmpresaContatoAction,
     initialState,
   );
+  const [isGranting, startGrantTransition] = useTransition();
 
   useEffect(() => {
     if (state.success) {
@@ -55,6 +71,14 @@ export function ContatosSection({
       setOpen(false);
     }
   }, [state.success]);
+
+  function handleConcederAcesso(contatoId: string) {
+    startGrantTransition(async () => {
+      const result = await concederAcessoPortalAction(contatoId);
+      if (!result.error) toast.success("Convite enviado.");
+      else toast.error(result.error);
+    });
+  }
 
   return (
     <Card>
@@ -123,20 +147,42 @@ export function ContatosSection({
         ) : (
           <ul className="flex flex-col gap-3">
             {contatos.map((contato) => (
-              <li key={contato.id} className="flex flex-col text-sm">
-                <span className="font-medium">
-                  {contato.nome}
-                  {contato.principal ? (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      (principal)
-                    </span>
+              <li
+                key={contato.id}
+                className="flex flex-col gap-2 border-b pb-3 text-sm last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex flex-col">
+                  <span className="font-medium">
+                    {contato.nome}
+                    {contato.principal ? (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (principal)
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {[contato.cargo, contato.email, contato.telefone]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge
+                    label={PORTAL_STATUS_LABEL[contato.portal_access_status] ?? contato.portal_access_status}
+                    tone={PORTAL_STATUS_TONE[contato.portal_access_status] ?? "neutral"}
+                  />
+                  {canManage && contato.portal_access_status === "none" && contato.email ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isGranting}
+                      onClick={() => handleConcederAcesso(contato.id)}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                      Conceder acesso ao portal
+                    </Button>
                   ) : null}
-                </span>
-                <span className="text-muted-foreground">
-                  {[contato.cargo, contato.email, contato.telefone]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
+                </div>
               </li>
             ))}
           </ul>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit/log";
 import { requireCurrentUser } from "@/lib/auth/session";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   addEmpresaContatoSchema,
@@ -198,5 +199,107 @@ export async function addEmpresaContatoAction(
   });
 
   revalidatePath(`/backoffice/empresas/${input.empresaId}`);
+  return { error: null, success: true };
+}
+
+export interface PortalAccessState {
+  error: string | null;
+  success: boolean;
+}
+
+/**
+ * Concede acesso ao Portal de Regularização Empresarial (STG-05) a um
+ * contato específico — nunca automático (decisão confirmada com o
+ * usuário). Mesmo padrão de inviteUserByEmail() já usado para membership
+ * (src/app/backoffice/usuarios/actions.ts): cria (ou reaproveita) o
+ * auth.users via convite por e-mail do próprio Supabase Auth — RLS
+ * continua sendo a autoridade final (is_empresa_contato(), migration
+ * 0023), nunca um token bespoke fora do Supabase Auth.
+ */
+export async function concederAcessoPortalAction(contatoId: string): Promise<PortalAccessState> {
+  const user = await requireCurrentUser();
+  if (!user.isPlatformStaff) {
+    return { error: "Apenas a equipe GSBC pode conceder acesso ao portal.", success: false };
+  }
+
+  const supabase = await createClient();
+
+  const { data: contato } = await supabase
+    .from("empresa_contatos")
+    .select("empresa_id, nome, email, portal_access_status, empresas(tenant_id)")
+    .eq("id", contatoId)
+    .single();
+
+  if (!contato) {
+    return { error: "Contato não encontrado.", success: false };
+  }
+  if (!contato.email) {
+    return { error: "Este contato não tem e-mail cadastrado.", success: false };
+  }
+  if (contato.portal_access_status !== "none") {
+    return { error: "Este contato já tem acesso ao portal (ou convite pendente).", success: false };
+  }
+
+  const admin = createAdminClient();
+
+  const { data: existingUser } = await admin
+    .from("users")
+    .select("id")
+    .eq("email", contato.email)
+    .maybeSingle();
+
+  let userId = existingUser?.id;
+  // Email já tinha conta confirmada (ex.: também é staff/membro de
+  // sindicato) — não há link de convite pra clicar, então o gatilho de
+  // "invited -> active" (email_confirmed_at) nunca dispararia; ativa direto.
+  let jaConfirmado = false;
+
+  if (!userId) {
+    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+      contato.email,
+      {
+        data: { full_name: contato.nome },
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?next=/portal`,
+      },
+    );
+
+    if (inviteError || !invited.user) {
+      return {
+        error: "Não foi possível enviar o convite. Verifique o e-mail informado.",
+        success: false,
+      };
+    }
+
+    userId = invited.user.id;
+  } else {
+    const { data: authUser } = await admin.auth.admin.getUserById(userId);
+    jaConfirmado = Boolean(authUser?.user?.email_confirmed_at);
+  }
+
+  const empresa = Array.isArray(contato.empresas) ? contato.empresas[0] : contato.empresas;
+
+  const { error } = await supabase
+    .from("empresa_contatos")
+    .update({
+      user_id: userId,
+      portal_access_status: jaConfirmado ? "active" : "invited",
+      portal_invited_at: new Date().toISOString(),
+      portal_invited_by: user.id,
+    })
+    .eq("id", contatoId);
+
+  if (error) {
+    return { error: "Convite enviado, mas não foi possível vincular o acesso.", success: false };
+  }
+
+  await logAuditEvent({
+    tenantId: empresa?.tenant_id ?? null,
+    action: "portal.acesso_concedido",
+    entityType: "empresa_contato",
+    entityId: contatoId,
+    newData: { email: contato.email },
+  });
+
+  revalidatePath(`/backoffice/empresas/${contato.empresa_id}`);
   return { error: null, success: true };
 }

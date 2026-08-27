@@ -53,3 +53,19 @@ export interface CurrentUser {
   isOwner: boolean;
   memberships: CurrentMembership[];
 }
+
+/**
+ * Terceiro tipo de principal na plataforma (STG-05, Portal de
+ * Regularização Empresarial) — não tem membership/tenant, só um vínculo
+ * 1:1 com um contato de uma empresa específica. Nunca combinar com
+ * CurrentUser: são sessões e contextos de autorização distintos.
+ */
+export interface CurrentPortalContato {
+  contatoId: string;
+  userId: string;
+  nome: string;
+  email: string;
+  empresaId: string;
+  empresaNome: string;
+  tenantId: string;
+}
