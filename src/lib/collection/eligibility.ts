@@ -15,7 +15,14 @@ const STATUS_ENCERRAM_REGUA = new Set([
   "legal_escalation",
 ]);
 
-const STATUS_PAUSAM_REGUA = new Set(["suspended"]);
+/**
+ * 'contestada' entra aqui em vez de virar um novo parâmetro/consulta
+ * própria de contestação — abrir_contestacao() (STG-04) já transiciona a
+ * cobrança para este status via change_cobranca_status(), então checar o
+ * status da cobrança já basta: fecha a pendência registrada nas Rodadas
+ * 19/20 ("elegibilidade não considera contestação") sem duplicar consulta.
+ */
+const STATUS_PAUSAM_REGUA = new Set(["suspended", "contestada"]);
 
 const NEGOCIACAO_STATUS_ABERTOS = new Set(["aberta", "em_negociacao"]);
 

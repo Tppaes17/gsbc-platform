@@ -21,6 +21,7 @@ const TIPO_LABEL: Record<string, string> = {
   escalonamento: "Escalonamento",
   pagamento_vencido: "Pagamento vencido",
   negociacao_parada: "Negociação parada",
+  contestacao_pendente: "Contestação pendente",
 };
 
 const PRIORIDADE_TONE: Record<string, "positive" | "neutral" | "warning" | "negative" | "info"> = {

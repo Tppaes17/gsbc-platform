@@ -5,6 +5,7 @@ export const documentoCategoriaOptions = [
   { value: "notificacao", label: "Notificação" },
   { value: "acordo", label: "Acordo" },
   { value: "comprovante", label: "Comprovante" },
+  { value: "contestacao", label: "Contestação" },
   { value: "outro", label: "Outro" },
 ] as const;
 
@@ -13,6 +14,7 @@ const categoriaValues = [
   "notificacao",
   "acordo",
   "comprovante",
+  "contestacao",
   "outro",
 ] as const;
 

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Receipt,
+  ScaleIcon,
   ScrollText,
   Search,
   Users,
@@ -53,6 +54,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { href: "/backoffice/cobrancas", label: "Cobranças", icon: Receipt },
   { href: "/backoffice/negociacoes", label: "Negociações", icon: Handshake },
+  { href: "/backoffice/contestacoes", label: "Contestações", icon: ScaleIcon },
   { href: "/backoffice/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/backoffice/usuarios", label: "Usuários", icon: Users },
   {

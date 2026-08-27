@@ -13,6 +13,7 @@ const STATUS_COBRANCA_NAO_GERA_PENDENCIA = new Set([
   "closed",
   "legal_escalation",
   "suspended",
+  "contestada",
 ]);
 
 const DIAS_NEGOCIACAO_PARADA = 7;
@@ -22,6 +23,8 @@ export interface SyncResultado {
   pagamentosVencidosResolvidos: number;
   negociacoesParadasAbertas: number;
   negociacoesParadasResolvidas: number;
+  contestacoesPendentesAbertas: number;
+  contestacoesPendentesResolvidas: number;
 }
 
 /**
@@ -39,10 +42,13 @@ export async function syncWorkItemsFromState(): Promise<SyncResultado> {
     pagamentosVencidosResolvidos: 0,
     negociacoesParadasAbertas: 0,
     negociacoesParadasResolvidas: 0,
+    contestacoesPendentesAbertas: 0,
+    contestacoesPendentesResolvidas: 0,
   };
 
   await syncPagamentosVencidos(supabase, resultado);
   await syncNegociacoesParadas(supabase, resultado);
+  await syncContestacoesPendentes(supabase, resultado);
 
   return resultado;
 }
@@ -52,7 +58,7 @@ async function fecharItensQueNaoValemMais(
   tipo: WorkItemTipo,
   idsAindaValidos: Set<string>,
   resultado: SyncResultado,
-  contador: "pagamentosVencidosResolvidos" | "negociacoesParadasResolvidas",
+  contador: "pagamentosVencidosResolvidos" | "negociacoesParadasResolvidas" | "contestacoesPendentesResolvidas",
 ) {
   const { data: abertos } = await supabase
     .from("work_items")
@@ -156,5 +162,58 @@ async function syncNegociacoesParadas(supabase: AdminClient, resultado: SyncResu
     idsParadas,
     resultado,
     "negociacoesParadasResolvidas",
+  );
+}
+
+const CONTESTACAO_TIPO_LABEL: Record<string, string> = {
+  enquadramento: "Enquadramento",
+  aplicabilidade: "Aplicabilidade",
+  pagamento_ja_realizado: "Pagamento já realizado",
+  base_calculo: "Base de cálculo",
+  quantidade_empregados: "Quantidade de empregados",
+  valor: "Valor",
+  periodo: "Período",
+  dados_cadastrais: "Dados cadastrais",
+  outros: "Outros",
+};
+
+/**
+ * Destrava o bloco "Contestações pendentes" (Rodada 20, pendência aberta
+ * por a entidade não existir ainda). entity_id aqui é a cobrança, não a
+ * contestação — mesma convenção de pagamento_vencido, porque a ação
+ * humana acontece na ficha da cobrança (ver contestacao-section.tsx),
+ * não em uma página própria de contestações.
+ */
+async function syncContestacoesPendentes(supabase: AdminClient, resultado: SyncResultado) {
+  const { data: contestacoes } = await supabase
+    .from("contestacoes")
+    .select("id, tenant_id, cobranca_id, tipo, aberta_em, empresas(razao_social, nome_fantasia)")
+    .in("status", ["aberta", "em_analise"]);
+
+  const idsAbertas = new Set<string>();
+
+  for (const c of contestacoes ?? []) {
+    idsAbertas.add(c.cobranca_id);
+    const empresa = Array.isArray(c.empresas) ? c.empresas[0] : c.empresas;
+    const nome = empresa?.nome_fantasia ?? empresa?.razao_social ?? "empresa";
+
+    await criarWorkItemSeNaoExiste(supabase, {
+      tenantId: c.tenant_id,
+      tipo: "contestacao_pendente",
+      entityType: "cobranca",
+      entityId: c.cobranca_id,
+      titulo: `Contestação pendente — ${nome}`,
+      descricao: `Motivo: ${CONTESTACAO_TIPO_LABEL[c.tipo] ?? c.tipo}. Aberta em ${new Date(c.aberta_em).toLocaleDateString("pt-BR")}.`,
+      prioridade: "high",
+    });
+    resultado.contestacoesPendentesAbertas++;
+  }
+
+  await fecharItensQueNaoValemMais(
+    supabase,
+    "contestacao_pendente",
+    idsAbertas,
+    resultado,
+    "contestacoesPendentesResolvidas",
   );
 }

@@ -25,7 +25,7 @@ export type CobrancaPrioridade = "low" | "medium" | "high";
 export type NegociacaoStatus = "aberta" | "em_negociacao" | "aceita" | "recusada" | "encerrada";
 export type NegociacaoEventoTipo = "proposta_gsbc" | "contraproposta_empresa" | "aceite" | "recusa" | "observacao";
 export type PagamentoFormaPagamento = "pix" | "boleto" | "transferencia" | "outro";
-export type DocumentoCategoria = "instrumento" | "notificacao" | "acordo" | "comprovante" | "outro";
+export type DocumentoCategoria = "instrumento" | "notificacao" | "acordo" | "comprovante" | "contestacao" | "outro";
 export type NotificacaoStatus = "enviada" | "falha";
 export type DossieStatus =
   | "novo"
@@ -70,7 +70,8 @@ export type CobrancaStatus =
   | "suspended"
   | "cancelled"
   | "legal_escalation"
-  | "closed";
+  | "closed"
+  | "contestada";
 export type CollectionStepCanal = "email" | "tarefa_humana" | "wait" | "escalonamento";
 export type CollectionEnrollmentStatus =
   | "active"
@@ -91,10 +92,37 @@ export type WorkItemTipo =
   | "falha_automacao"
   | "escalonamento"
   | "pagamento_vencido"
-  | "negociacao_parada";
+  | "negociacao_parada"
+  | "contestacao_pendente";
 export type WorkItemEntityType = "cobranca" | "negociacao" | "collection_enrollment";
 export type WorkItemPrioridade = "low" | "medium" | "high";
 export type WorkItemStatus = "aberto" | "concluido" | "adiado" | "cancelado";
+export type ContestacaoTipo =
+  | "enquadramento"
+  | "aplicabilidade"
+  | "pagamento_ja_realizado"
+  | "base_calculo"
+  | "quantidade_empregados"
+  | "valor"
+  | "periodo"
+  | "dados_cadastrais"
+  | "outros";
+export type ContestacaoStatus =
+  | "aberta"
+  | "em_analise"
+  | "procedente"
+  | "parcialmente_procedente"
+  | "improcedente"
+  | "inconclusiva";
+export type ContestacaoEventoTipo =
+  | "abertura"
+  | "em_analise"
+  | "procedente"
+  | "parcialmente_procedente"
+  | "improcedente"
+  | "inconclusiva"
+  | "observacao";
+export type ContestacaoEvidenciaTipo = "documento" | "comentario";
 
 export interface Database {
   __InternalSupabase: {
@@ -940,6 +968,163 @@ export interface Database {
           },
         ];
       };
+      contestacoes: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          empresa_id: string;
+          cobranca_id: string;
+          tipo: ContestacaoTipo;
+          status: ContestacaoStatus;
+          motivo: string;
+          valor_alegado: number | null;
+          aberta_por: string | null;
+          aberta_em: string;
+          resolvida_em: string | null;
+          resolvida_por: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          empresa_id: string;
+          cobranca_id: string;
+          tipo: ContestacaoTipo;
+          status?: ContestacaoStatus;
+          motivo: string;
+          valor_alegado?: number | null;
+          aberta_por?: string | null;
+          aberta_em?: string;
+          resolvida_em?: string | null;
+          resolvida_por?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["contestacoes"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "contestacoes_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contestacoes_empresa_id_fkey";
+            columns: ["empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "empresas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contestacoes_cobranca_id_fkey";
+            columns: ["cobranca_id"];
+            isOneToOne: false;
+            referencedRelation: "cobrancas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contestacoes_aberta_por_fkey";
+            columns: ["aberta_por"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contestacoes_resolvida_por_fkey";
+            columns: ["resolvida_por"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      contestacao_evidencias: {
+        Row: {
+          id: string;
+          contestacao_id: string;
+          tipo: ContestacaoEvidenciaTipo;
+          documento_id: string | null;
+          comentario: string | null;
+          valor_alegado: number | null;
+          fundamento: string | null;
+          user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          contestacao_id: string;
+          tipo: ContestacaoEvidenciaTipo;
+          documento_id?: string | null;
+          comentario?: string | null;
+          valor_alegado?: number | null;
+          fundamento?: string | null;
+          user_id?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "contestacao_evidencias_contestacao_id_fkey";
+            columns: ["contestacao_id"];
+            isOneToOne: false;
+            referencedRelation: "contestacoes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contestacao_evidencias_documento_id_fkey";
+            columns: ["documento_id"];
+            isOneToOne: false;
+            referencedRelation: "documentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contestacao_evidencias_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      contestacao_eventos: {
+        Row: {
+          id: string;
+          contestacao_id: string;
+          tipo: ContestacaoEventoTipo;
+          descricao: string | null;
+          valor: number | null;
+          user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          contestacao_id: string;
+          tipo: ContestacaoEventoTipo;
+          descricao?: string | null;
+          valor?: number | null;
+          user_id?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "contestacao_eventos_contestacao_id_fkey";
+            columns: ["contestacao_id"];
+            isOneToOne: false;
+            referencedRelation: "contestacoes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contestacao_eventos_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       collection_strategies: {
         Row: {
           id: string;
@@ -1467,6 +1652,24 @@ export interface Database {
           p_data_pagamento: string;
           p_forma_pagamento: string;
           p_observacao?: string | null;
+        };
+        Returns: string;
+      };
+      abrir_contestacao: {
+        Args: {
+          p_cobranca_id: string;
+          p_tipo: string;
+          p_motivo: string;
+          p_valor_alegado?: number | null;
+        };
+        Returns: string;
+      };
+      register_contestacao_evento: {
+        Args: {
+          p_contestacao_id: string;
+          p_tipo: string;
+          p_descricao?: string | null;
+          p_valor?: number | null;
         };
         Returns: string;
       };

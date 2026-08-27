@@ -10,6 +10,7 @@ import { cobrancaStatusOptions } from "@/lib/validation/cobranca";
 import { valorReferenciaCobranca } from "@/lib/finance/referencia";
 import { PagamentosList } from "../../financeiro/pagamentos-list";
 import { RegistrarPagamentoAction } from "../../financeiro/pagamento-action";
+import { ContestacaoSection } from "./contestacao-section";
 import { EditCobrancaForm } from "./edit-cobranca-form";
 import { IniciarNegociacaoAction } from "./negociacao-action";
 import { NotificacaoAction } from "./notificacao-action";
@@ -17,9 +18,26 @@ import { NotificacoesList } from "./notificacoes-list";
 import { ReguaCobrancaSection } from "./regua-cobranca-section";
 import { StatusAction } from "./status-action";
 
-const STATUS_LABEL = Object.fromEntries(
-  cobrancaStatusOptions.map((o) => [o.value, o.label]),
-);
+const DOCUMENTOS_BUCKET = "documentos-empresas";
+
+const CONTESTACAO_EVENTO_LABEL: Record<string, string> = {
+  abertura: "Contestação aberta",
+  em_analise: "Em análise",
+  procedente: "Procedente",
+  parcialmente_procedente: "Parcialmente procedente",
+  improcedente: "Improcedente",
+  inconclusiva: "Inconclusiva",
+  observacao: "Observação",
+};
+
+// 'contestada' não entra em cobrancaStatusOptions de propósito — só é
+// alcançável via abrir_contestacao() (garante que sempre existe uma
+// contestação/evidência por trás, nunca uma mudança de status "solta").
+// Aqui é só pra exibir o rótulo quando a cobrança já estiver nesse status.
+const STATUS_LABEL: Record<string, string> = {
+  ...Object.fromEntries(cobrancaStatusOptions.map((o) => [o.value, o.label])),
+  contestada: "Contestada",
+};
 
 const STATUS_TONE: Record<string, "positive" | "neutral" | "warning" | "negative" | "info"> = {
   draft: "neutral",
@@ -36,6 +54,7 @@ const STATUS_TONE: Record<string, "positive" | "neutral" | "warning" | "negative
   cancelled: "neutral",
   legal_escalation: "negative",
   closed: "neutral",
+  contestada: "negative",
 };
 
 function statusLabel(status: string) {
@@ -121,6 +140,71 @@ export default async function CobrancaDetailPage({
     .limit(1);
 
   const enrollment = enrollmentRows?.[0] ?? null;
+
+  const { data: contestacaoRows } = await supabase
+    .from("contestacoes")
+    .select("id, tipo, status, motivo, valor_alegado, aberta_em")
+    .eq("cobranca_id", id)
+    .order("aberta_em", { ascending: false })
+    .limit(1);
+
+  const contestacao = contestacaoRows?.[0] ?? null;
+
+  const [{ data: contestacaoEventosRaw }, { data: contestacaoEvidenciasRaw }] = await Promise.all([
+    contestacao
+      ? supabase
+          .from("contestacao_eventos")
+          .select("id, tipo, descricao, valor, created_at, users(full_name)")
+          .eq("contestacao_id", contestacao.id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] as never[] }),
+    contestacao
+      ? supabase
+          .from("contestacao_evidencias")
+          .select(
+            "id, tipo, comentario, fundamento, created_at, users(full_name), documentos(nome_arquivo, storage_path)",
+          )
+          .eq("contestacao_id", contestacao.id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
+
+  const contestacaoEventos: TimelineItem[] = (contestacaoEventosRaw ?? []).map((ev) => {
+    const author = Array.isArray(ev.users) ? ev.users[0] : ev.users;
+    const descricaoPartes = [ev.descricao, author ? `por ${author.full_name}` : null].filter(
+      Boolean,
+    );
+    return {
+      id: ev.id,
+      label: CONTESTACAO_EVENTO_LABEL[ev.tipo] ?? ev.tipo,
+      description: descricaoPartes.join(" · ") || undefined,
+      timestamp: ev.created_at,
+    };
+  });
+
+  const contestacaoEvidencias = await Promise.all(
+    (contestacaoEvidenciasRaw ?? []).map(async (ev) => {
+      const autor = Array.isArray(ev.users) ? ev.users[0] : ev.users;
+      const documento = Array.isArray(ev.documentos) ? ev.documentos[0] : ev.documentos;
+      let documentoUrl: string | null = null;
+      if (documento) {
+        const { data: signed } = await supabase.storage
+          .from(DOCUMENTOS_BUCKET)
+          .createSignedUrl(documento.storage_path, 300);
+        documentoUrl = signed?.signedUrl ?? null;
+      }
+      return {
+        id: ev.id,
+        tipo: ev.tipo,
+        comentario: ev.comentario,
+        fundamento: ev.fundamento,
+        created_at: ev.created_at,
+        userNome: autor?.full_name ?? null,
+        documentoNome: documento?.nome_arquivo ?? null,
+        documentoUrl,
+      };
+    }),
+  );
 
   const [{ data: enrollmentSteps }, { data: execucoesRaw }] = await Promise.all([
     enrollment
@@ -310,6 +394,14 @@ export default async function CobrancaDetailPage({
           execucoes={execucoes}
         />
       ) : null}
+
+      <ContestacaoSection
+        cobrancaId={cobranca.id}
+        contestacao={contestacao}
+        eventos={contestacaoEventos}
+        evidencias={contestacaoEvidencias}
+        canManage={user.isPlatformStaff}
+      />
 
       <NotificacoesList notificacoes={notificacoes ?? []} />
 
