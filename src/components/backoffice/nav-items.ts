@@ -10,6 +10,7 @@ import {
   ScaleIcon,
   ScrollText,
   Search,
+  TrendingUp,
   Users,
   Wallet,
 } from "lucide-react";
@@ -29,6 +30,13 @@ export interface NavItem {
  */
 export const NAV_ITEMS: NavItem[] = [
   { href: "/backoffice", label: "Visão Geral", icon: LayoutDashboard },
+  {
+    // Visível a todos (regra 6, "o sindicato acompanha") — dashboard de
+    // receita do próprio sindicato, RLS escopa por tenant (STG-08).
+    href: "/backoffice/receita",
+    label: "Receita",
+    icon: TrendingUp,
+  },
   {
     // Staff GSBC apenas — fila operacional interna (STG-03), não é sobre
     // transparência pro sindicato como Auditoria; é ferramenta de execução.
