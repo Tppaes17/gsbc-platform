@@ -1,8 +1,18 @@
 # GSBC — Plataforma
 
 Plataforma SaaS de inteligência, gestão, recuperação de receitas e compliance
-para entidades sindicais. Ver `docs/rodadas/` para o histórico de decisões e
-`docs/architecture/` para os ADRs.
+para entidades sindicais. Ver `docs/rodadas/` para o histórico de decisões,
+`docs/architecture/` para os ADRs, e `docs/roadmap-stagings.md` para o
+roadmap de evolução (STG-00 a STG-12).
+
+## Ambientes
+
+- **Local**: `npm run dev` + Supabase via Docker (`supabase start`) — ver
+  Configuração abaixo.
+- **Staging**: https://gsbc-platform.vercel.app (Vercel + Supabase Cloud,
+  projeto `GBSC`/`zjtuvsgigymgludplghd`, região `eu-west-1`) — provisionado
+  na Rodada 17 (`docs/rodadas/rodada-17-cloud-staging.md`). Mesmo seed de
+  demonstração do ambiente local.
 
 ## Stack
 
