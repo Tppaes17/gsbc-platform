@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import * as XLSX from "xlsx";
 import { logAuditEvent } from "@/lib/audit/log";
 import { requireCurrentUser } from "@/lib/auth/session";
@@ -12,6 +13,10 @@ import {
   type LinhaComErro,
   type ProspectoPlanilhaRow,
 } from "@/lib/validation/prospecto";
+import {
+  formatarCnpj,
+  promoverProspectoSchema,
+} from "@/lib/validation/promocao-prospecto";
 
 export interface ImportarProspectosState {
   error: string | null;
@@ -177,6 +182,7 @@ export async function importarProspectosAction(
     .from("dossies_cadastrais")
     .select("id, cnpj_consultado")
     .is("empresa_id", null)
+    .is("promoted_at", null)
     .in("cnpj_consultado", cnpjs);
 
   const idPorCnpj = new Map(
@@ -341,6 +347,7 @@ export async function consultarProspectoAction(
     .select("id, cnpj_consultado, empresa_id")
     .eq("id", dossieId)
     .is("empresa_id", null)
+    .is("promoted_at", null)
     .single();
 
   if (!prospecto || !prospecto.cnpj_consultado) {
@@ -436,4 +443,289 @@ export async function consultarProspectoAction(
 
   revalidatePath(`/backoffice/prospectos/${dossieId}`);
   return { error: null, success: true };
+}
+
+export interface PromoverProspectoState {
+  status: "idle" | "erro" | "duplicado";
+  error: string | null;
+  empresaExistente: { id: string; razaoSocial: string; tenantNome: string } | null;
+}
+
+interface EvidenciaParaContato {
+  tipo: string;
+  valor: string | null;
+}
+
+function extrairContatoDeEvidencias(evidencias: EvidenciaParaContato[]) {
+  const decisor = evidencias.find((e) => e.tipo === "decisor" && e.valor);
+  const email = evidencias.find((e) => e.tipo === "email" && e.valor)?.valor ?? null;
+  const telefone = evidencias.find((e) => e.tipo === "telefone" && e.valor)?.valor ?? null;
+
+  if (!decisor && !email && !telefone) return null;
+
+  let nome = "Contato principal";
+  let cargo: string | null = null;
+  if (decisor?.valor) {
+    const [nomeParte, cargoParte] = decisor.valor.split(" — ");
+    nome = nomeParte?.trim() || nome;
+    cargo = cargoParte?.trim() || null;
+  }
+
+  return { nome, cargo, email, telefone };
+}
+
+/**
+ * STG-01 do roadmap (docs/roadmap-stagings.md) — elimina o recadastro
+ * manual entre prospecto validado e empresa operacional. Dois caminhos:
+ *
+ * 1. Nenhuma empresa com esse CNPJ no sindicato escolhido: cria a
+ *    empresa e o MESMO dossiê do prospecto vira o dossiê dela
+ *    (empresa_id/tenant_id preenchidos — reaproveita a modelagem já
+ *    existente desde a Rodada 16, sem tabela nova).
+ * 2. Já existe uma empresa com esse CNPJ nesse sindicato: nunca duplica
+ *    silenciosamente. As evidências do prospecto são copiadas (nunca
+ *    reparentadas — dossie_evidencias é append-only) para o dossiê já
+ *    existente da empresa, e o prospecto fica marcado como promovido via
+ *    `promoted_empresa_id`, sem tocar seu próprio `empresa_id`.
+ */
+export async function promoverProspectoAction(
+  _prevState: PromoverProspectoState,
+  formData: FormData,
+): Promise<PromoverProspectoState> {
+  const user = await requireCurrentUser();
+  if (!user.isOwner) {
+    return {
+      status: "erro",
+      error: "Apenas Owners podem promover prospectos.",
+      empresaExistente: null,
+    };
+  }
+
+  const confirmarAssociacao = formData.get("confirmarAssociacao") === "true";
+
+  const parsed = promoverProspectoSchema.safeParse({
+    dossieId: formData.get("dossieId"),
+    tenantId: formData.get("tenantId"),
+    razaoSocial: formData.get("razaoSocial"),
+    nomeFantasia: formData.get("nomeFantasia") || undefined,
+    cnae: formData.get("cnae") || undefined,
+    segmento: formData.get("segmento") || undefined,
+    enquadramento: formData.get("enquadramento") || undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "erro",
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+      empresaExistente: null,
+    };
+  }
+
+  const input = parsed.data;
+  const supabase = await createClient();
+
+  const { data: prospecto } = await supabase
+    .from("dossies_cadastrais")
+    .select("id, cnpj_consultado")
+    .eq("id", input.dossieId)
+    .is("empresa_id", null)
+    .is("promoted_at", null)
+    .single();
+
+  if (!prospecto || !prospecto.cnpj_consultado) {
+    return {
+      status: "erro",
+      error: "Prospecto não encontrado ou já promovido.",
+      empresaExistente: null,
+    };
+  }
+
+  const cnpjFormatado = formatarCnpj(prospecto.cnpj_consultado);
+
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("id, name")
+    .eq("id", input.tenantId)
+    .single();
+
+  if (!tenant) {
+    return { status: "erro", error: "Sindicato não encontrado.", empresaExistente: null };
+  }
+
+  const { data: empresaExistente } = await supabase
+    .from("empresas")
+    .select("id, razao_social")
+    .eq("tenant_id", input.tenantId)
+    .eq("cnpj", cnpjFormatado)
+    .maybeSingle();
+
+  if (empresaExistente && !confirmarAssociacao) {
+    return {
+      status: "duplicado",
+      error: null,
+      empresaExistente: {
+        id: empresaExistente.id,
+        razaoSocial: empresaExistente.razao_social,
+        tenantNome: tenant.name,
+      },
+    };
+  }
+
+  const { data: evidencias } = await supabase
+    .from("dossie_evidencias")
+    .select("tipo, campo, valor, fonte, nivel_confianca, observacao")
+    .eq("dossie_id", input.dossieId);
+
+  if (empresaExistente) {
+    const { data: dossieExistente } = await supabase
+      .from("dossies_cadastrais")
+      .select("id")
+      .eq("empresa_id", empresaExistente.id)
+      .maybeSingle();
+
+    if (dossieExistente) {
+      // A empresa já tem seu próprio dossiê canônico — não dá pra
+      // reparentar (dossie_evidencias é append-only, e empresa_id de
+      // dossies_cadastrais é único). Copia as evidências do prospecto
+      // para lá em vez de perdê-las.
+      if (evidencias && evidencias.length > 0) {
+        await supabase.from("dossie_evidencias").insert(
+          evidencias.map((e) => ({
+            dossie_id: dossieExistente.id,
+            tipo: e.tipo,
+            campo: e.campo,
+            valor: e.valor,
+            fonte: e.fonte,
+            nivel_confianca: e.nivel_confianca,
+            observacao: e.observacao
+              ? `${e.observacao} (copiado do prospecto promovido)`
+              : "Copiado do prospecto promovido.",
+            consultado_por: user.id,
+          })),
+        );
+      }
+
+      const { error: updateError } = await supabase
+        .from("dossies_cadastrais")
+        .update({
+          promoted_at: new Date().toISOString(),
+          promoted_by: user.id,
+          promoted_empresa_id: empresaExistente.id,
+        })
+        .eq("id", input.dossieId);
+
+      if (updateError) {
+        return {
+          status: "erro",
+          error: "Não foi possível concluir a associação.",
+          empresaExistente: null,
+        };
+      }
+    } else {
+      // A empresa existe mas ainda não tem dossiê — nada com que
+      // conflitar, então o próprio dossiê do prospecto vira o dela
+      // (mesmo caminho do cadastro novo, só sem criar a empresa).
+      const { error: updateError } = await supabase
+        .from("dossies_cadastrais")
+        .update({
+          empresa_id: empresaExistente.id,
+          tenant_id: input.tenantId,
+          promoted_at: new Date().toISOString(),
+          promoted_by: user.id,
+          promoted_empresa_id: empresaExistente.id,
+        })
+        .eq("id", input.dossieId);
+
+      if (updateError) {
+        return {
+          status: "erro",
+          error: "Não foi possível concluir a associação.",
+          empresaExistente: null,
+        };
+      }
+    }
+
+    await logAuditEvent({
+      tenantId: input.tenantId,
+      action: "prospecto.promovido",
+      entityType: "prospecto",
+      entityId: input.dossieId,
+      newData: { resultado: "associado_a_empresa_existente", empresa_id: empresaExistente.id },
+    });
+
+    revalidatePath("/backoffice/prospectos");
+    revalidatePath(`/backoffice/empresas/${empresaExistente.id}`);
+    redirect(`/backoffice/empresas/${empresaExistente.id}`);
+  }
+
+  const { data: empresaCriada, error: insertError } = await supabase
+    .from("empresas")
+    .insert({
+      tenant_id: input.tenantId,
+      razao_social: input.razaoSocial,
+      nome_fantasia: input.nomeFantasia || null,
+      cnpj: cnpjFormatado,
+      cnae: input.cnae || null,
+      segmento: input.segmento || null,
+      enquadramento: input.enquadramento || null,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !empresaCriada) {
+    return {
+      status: "erro",
+      error: "Não foi possível cadastrar a empresa.",
+      empresaExistente: null,
+    };
+  }
+
+  const contato = extrairContatoDeEvidencias(evidencias ?? []);
+  if (contato) {
+    await supabase.from("empresa_contatos").insert({
+      empresa_id: empresaCriada.id,
+      nome: contato.nome,
+      cargo: contato.cargo,
+      email: contato.email,
+      telefone: contato.telefone,
+      principal: true,
+    });
+  }
+
+  const { error: updateError } = await supabase
+    .from("dossies_cadastrais")
+    .update({
+      empresa_id: empresaCriada.id,
+      tenant_id: input.tenantId,
+      promoted_at: new Date().toISOString(),
+      promoted_by: user.id,
+      promoted_empresa_id: empresaCriada.id,
+    })
+    .eq("id", input.dossieId);
+
+  if (updateError) {
+    return {
+      status: "erro",
+      error: "Empresa criada, mas houve falha ao vincular o dossiê. Contate o suporte.",
+      empresaExistente: null,
+    };
+  }
+
+  await logAuditEvent({
+    tenantId: input.tenantId,
+    action: "prospecto.promovido",
+    entityType: "prospecto",
+    entityId: input.dossieId,
+    newData: {
+      resultado: "empresa_criada",
+      empresa_id: empresaCriada.id,
+      razao_social: input.razaoSocial,
+      cnpj: cnpjFormatado,
+    },
+  });
+
+  revalidatePath("/backoffice/prospectos");
+  revalidatePath("/backoffice/empresas");
+  revalidatePath(`/backoffice/empresas/${empresaCriada.id}`);
+  redirect(`/backoffice/empresas/${empresaCriada.id}`);
 }

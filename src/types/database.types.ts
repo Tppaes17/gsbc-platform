@@ -725,6 +725,9 @@ export interface Database {
           criado_por: string | null;
           created_at: string;
           updated_at: string;
+          promoted_at: string | null;
+          promoted_by: string | null;
+          promoted_empresa_id: string | null;
         };
         Insert: {
           id?: string;
@@ -743,6 +746,9 @@ export interface Database {
           criado_por?: string | null;
           created_at?: string;
           updated_at?: string;
+          promoted_at?: string | null;
+          promoted_by?: string | null;
+          promoted_empresa_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["dossies_cadastrais"]["Insert"]>;
         Relationships: [
@@ -765,6 +771,20 @@ export interface Database {
             columns: ["criado_por"];
             isOneToOne: false;
             referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "dossies_cadastrais_promoted_by_fkey";
+            columns: ["promoted_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "dossies_cadastrais_promoted_empresa_id_fkey";
+            columns: ["promoted_empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "empresas";
             referencedColumns: ["id"];
           },
         ];
