@@ -8,9 +8,15 @@ import { NAV_ITEMS } from "./nav-items";
 export function SidebarNav({
   isPlatformStaff,
   isOwner,
+  onNavigate,
 }: {
   isPlatformStaff: boolean;
   isOwner: boolean;
+  /** Chamado ao clicar num item — usado pela MobileSidebar pra fechar o
+   * drawer após navegar. Mesma fonte de itens/permissão da sidebar
+   * desktop (regra da Seção 14 do master prompt: nunca duplicar a regra
+   * de navegação autorizada). */
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
 
@@ -32,6 +38,7 @@ export function SidebarNav({
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             className={cn(
               "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
               isActive
