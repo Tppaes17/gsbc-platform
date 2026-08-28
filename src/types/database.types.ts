@@ -167,6 +167,9 @@ export type OportunidadeFatorDimensao =
 export type OportunidadeEventoTipo = "avaliacao" | "em_analise" | "validada" | "descartada" | "observacao";
 export type PolicyCategoria = "negociacao" | "cobranca" | "automacao";
 export type PolicyEnforcement = "aplicada" | "registrada";
+export type AiCopilot = "negotiation" | "collections";
+export type AiEntityType = "negociacao" | "cobranca";
+export type AiInteracaoStatus = "gerado" | "aceito" | "rejeitado" | "editado";
 
 export interface Database {
   __InternalSupabase: {
@@ -2165,6 +2168,71 @@ export interface Database {
             columns: ["tenant_id"];
             isOneToOne: false;
             referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_interacoes: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          copilot: AiCopilot;
+          entity_type: AiEntityType;
+          entity_id: string;
+          model: string;
+          prompt_version: number;
+          context_reference: Record<string, unknown>;
+          output: string;
+          output_estruturado: Record<string, unknown> | null;
+          status: AiInteracaoStatus;
+          user_id: string | null;
+          decided_at: string | null;
+          decided_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id?: string | null;
+          copilot: AiCopilot;
+          entity_type: AiEntityType;
+          entity_id: string;
+          model: string;
+          prompt_version: number;
+          context_reference: Record<string, unknown>;
+          output: string;
+          output_estruturado?: Record<string, unknown> | null;
+          status?: AiInteracaoStatus;
+          user_id?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<{
+          status: AiInteracaoStatus;
+          decided_at: string | null;
+          decided_by: string | null;
+          output_estruturado: Record<string, unknown> | null;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "ai_interacoes_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_interacoes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_interacoes_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
             referencedColumns: ["id"];
           },
         ];

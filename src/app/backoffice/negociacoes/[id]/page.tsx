@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/design-system/status-badge";
 import { Timeline, type TimelineItem } from "@/components/design-system/timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCurrentUser } from "@/lib/auth/session";
+import { isAiConfigured } from "@/lib/ai/client";
 import { createClient } from "@/lib/supabase/server";
 import {
   negociacaoEventoTipoOptions,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/validation/negociacao";
 import { DecidirDescontoDialog } from "./decidir-desconto-dialog";
 import { EventoForm } from "./evento-form";
+import { NegotiationCopilotSection } from "./negotiation-copilot-section";
 
 const STATUS_LABEL = Object.fromEntries(
   negociacaoStatusOptions.map((o) => [o.value, o.label]),
@@ -175,6 +177,10 @@ export default async function NegociacaoDetailPage({
           <Timeline items={timelineItems} />
         </CardContent>
       </Card>
+
+      {user.isPlatformStaff ? (
+        <NegotiationCopilotSection negociacaoId={negociacao.id} aiConfigured={isAiConfigured()} />
+      ) : null}
     </div>
   );
 }

@@ -6,12 +6,14 @@ import { Timeline, type TimelineItem } from "@/components/design-system/timeline
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { isEscalationApprover } from "@/lib/auth/permissions";
+import { isAiConfigured } from "@/lib/ai/client";
 import { createClient } from "@/lib/supabase/server";
 import { cobrancaStatusOptions } from "@/lib/validation/cobranca";
 import { valorReferenciaCobranca } from "@/lib/finance/referencia";
 import { PagamentosList } from "../../financeiro/pagamentos-list";
 import { RegistrarPagamentoAction } from "../../financeiro/pagamento-action";
 import { PaymentChargesSection } from "./payment-charges-section";
+import { CollectionsCopilotSection } from "./collections-copilot-section";
 import { ContestacaoSection } from "./contestacao-section";
 import { EscalonamentoSection } from "./escalonamento-section";
 import { EditCobrancaForm } from "./edit-cobranca-form";
@@ -544,6 +546,10 @@ export default async function CobrancaDetailPage({
       />
 
       <NotificacoesList notificacoes={notificacoes ?? []} />
+
+      {user.isPlatformStaff ? (
+        <CollectionsCopilotSection cobrancaId={cobranca.id} aiConfigured={isAiConfigured()} />
+      ) : null}
 
       <Card>
         <CardHeader>
