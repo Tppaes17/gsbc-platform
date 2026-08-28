@@ -22,14 +22,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formaPagamentoOptions } from "@/lib/validation/pagamento";
+import { formaPagamentoOptions, parseCurrency } from "@/lib/validation/pagamento";
 import { registerPagamentoAction, type RegisterPagamentoState } from "./actions";
 
 const initialState: RegisterPagamentoState = { error: null, success: false };
 
-export function RegistrarPagamentoAction({ cobrancaId }: { cobrancaId: string }) {
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+export function RegistrarPagamentoAction({
+  cobrancaId,
+  empresaNome,
+  obrigacaoDescricao,
+  saldoAtual,
+}: {
+  cobrancaId: string;
+  empresaNome: string;
+  obrigacaoDescricao: string;
+  saldoAtual: number;
+}) {
   const [open, setOpen] = useState(false);
   const [forma, setForma] = useState<string>("pix");
+  const [valorDigitado, setValorDigitado] = useState("");
   const [state, formAction, isPending] = useActionState(
     registerPagamentoAction,
     initialState,
@@ -45,8 +60,15 @@ export function RegistrarPagamentoAction({ cobrancaId }: { cobrancaId: string })
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (next) setForma("pix");
+    if (next) {
+      setForma("pix");
+      setValorDigitado("");
+    }
   }
+
+  const valorInformado = parseCurrency(valorDigitado);
+  const valorValido = !Number.isNaN(valorInformado) && valorInformado > 0;
+  const saldoResultante = valorValido ? Math.max(saldoAtual - valorInformado, 0) : saldoAtual;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -72,10 +94,44 @@ export function RegistrarPagamentoAction({ cobrancaId }: { cobrancaId: string })
             </DialogDescription>
           </DialogHeader>
 
+          <div className="flex flex-col gap-2 rounded-md border bg-muted/30 p-3">
+            <div className="flex items-baseline justify-between gap-4 text-sm">
+              <span className="text-muted-foreground">Empresa</span>
+              <span className="font-medium text-foreground">{empresaNome}</span>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 text-sm">
+              <span className="text-muted-foreground">Obrigação</span>
+              <span className="font-medium text-foreground">{obrigacaoDescricao}</span>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="valor">Valor pago *</Label>
-            <Input id="valor" name="valor" inputMode="decimal" placeholder="0,00" required />
+            <Input
+              id="valor"
+              name="valor"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={valorDigitado}
+              onChange={(e) => setValorDigitado(e.target.value)}
+              required
+            />
           </div>
+
+          <dl className="flex flex-col">
+            <div className="flex items-baseline justify-between gap-4 border-b border-border-subtle py-2">
+              <dt className="text-sm text-muted-foreground">Saldo atual</dt>
+              <dd className="text-sm font-medium tabular-nums text-foreground">
+                {formatCurrency(saldoAtual)}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 py-2">
+              <dt className="text-sm font-medium text-foreground">Saldo após este pagamento</dt>
+              <dd className="text-base font-semibold tabular-nums text-foreground">
+                {formatCurrency(saldoResultante)}
+              </dd>
+            </div>
+          </dl>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="dataPagamento">Data do pagamento *</Label>
@@ -116,7 +172,7 @@ export function RegistrarPagamentoAction({ cobrancaId }: { cobrancaId: string })
 
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Salvando..." : "Registrar pagamento"}
+              {isPending ? "Salvando..." : "Confirmar pagamento"}
             </Button>
           </DialogFooter>
         </form>

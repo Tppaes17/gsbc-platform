@@ -30,6 +30,10 @@ import { cobrancaStatusOptions } from "@/lib/validation/cobranca";
 
 const initialState: ChangeStatusState = { error: null, success: false };
 
+const STATUS_LABEL = Object.fromEntries(
+  cobrancaStatusOptions.map((o) => [o.value, o.label]),
+);
+
 export function StatusAction({
   cobrancaId,
   currentStatus,
@@ -80,6 +84,22 @@ export function StatusAction({
               A mudança fica registrada na timeline com o motivo informado.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 p-3 text-sm">
+            <div className="flex flex-col">
+              <span className="text-xs text-muted-foreground">Status atual</span>
+              <span className="font-medium text-foreground">
+                {STATUS_LABEL[currentStatus] ?? currentStatus}
+              </span>
+            </div>
+            <ArrowRightCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="flex flex-col items-end">
+              <span className="text-xs text-muted-foreground">Novo status</span>
+              <span className="font-medium text-foreground">
+                {STATUS_LABEL[newStatus] ?? newStatus}
+              </span>
+            </div>
+          </div>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="statusSelect">Novo status *</Label>

@@ -480,6 +480,11 @@ export default async function CobrancaDetailPage({
           <NotificacaoAction
             cobrancaId={cobranca.id}
             destinatarioEmail={contatoPrincipal?.email ?? null}
+            empresaNome={empresa?.nome_fantasia ?? empresa?.razao_social ?? "empresa"}
+            tenantNome={cobranca.tenants?.name ?? "GSBC"}
+            obrigacaoDescricao={obrigacao?.descricao ?? "—"}
+            valorCobranca={cobranca.valor_cobranca}
+            vencimento={cobranca.vencimento}
           />
         ) : null}
       </div>
@@ -493,7 +498,15 @@ export default async function CobrancaDetailPage({
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-muted-foreground">Financeiro</h2>
         {user.isPlatformStaff ? (
-          <RegistrarPagamentoAction cobrancaId={cobranca.id} />
+          <RegistrarPagamentoAction
+            cobrancaId={cobranca.id}
+            empresaNome={empresa?.nome_fantasia ?? empresa?.razao_social ?? "—"}
+            obrigacaoDescricao={obrigacao?.descricao ?? "—"}
+            saldoAtual={Math.max(
+              valorReferencia - pagamentos.reduce((sum, p) => sum + p.valor, 0),
+              0,
+            )}
+          />
         ) : null}
       </div>
       <PagamentosList pagamentos={pagamentos} valorReferencia={valorReferencia} />

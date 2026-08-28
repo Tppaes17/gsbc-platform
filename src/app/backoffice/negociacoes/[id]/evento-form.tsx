@@ -32,6 +32,14 @@ import { negociacaoEventoTipoOptions } from "@/lib/validation/negociacao";
 const initialState: RegisterEventoState = { error: null, success: false };
 const VALOR_OBRIGATORIO = new Set(["proposta_gsbc", "contraproposta_empresa", "aceite"]);
 
+const TIPO_CONSEQUENCIA: Record<string, string> = {
+  proposta_gsbc: "Registra um valor proposto pela GSBC — não altera o status da negociação.",
+  contraproposta_empresa: "Registra um valor contraproposto pela empresa — não altera o status da negociação.",
+  aceite: "Marca a proposta como aceita. Se o valor for menor que o original da cobrança, exige aprovação de desconto do Owner antes de virar acordo firmado (Policy Engine, STG-11).",
+  recusa: "Marca a proposta como recusada — a negociação continua aberta pra uma nova rodada.",
+  observacao: "Registra uma observação sem valor associado — não altera o status da negociação.",
+};
+
 export function EventoForm({ negociacaoId }: { negociacaoId: string }) {
   const [open, setOpen] = useState(false);
   const [tipo, setTipo] = useState<string>("proposta_gsbc");
@@ -94,6 +102,9 @@ export function EventoForm({ negociacaoId }: { negociacaoId: string }) {
                 ))}
               </SelectContent>
             </Select>
+            {TIPO_CONSEQUENCIA[tipo] ? (
+              <p className="text-xs text-muted-foreground">{TIPO_CONSEQUENCIA[tipo]}</p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2">
