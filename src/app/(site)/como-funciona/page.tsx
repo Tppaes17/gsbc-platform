@@ -63,6 +63,7 @@ export default function ComoFuncionaPage() {
       <section className="bg-brand-ink py-16 sm:py-24">
         <Container>
           <SectionHeading
+            as="h1"
             dark
             eyebrow="Como funciona a parceria"
             title="Um fluxo claro, do primeiro diagnóstico ao benefício entregue"

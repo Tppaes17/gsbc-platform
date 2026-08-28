@@ -356,6 +356,7 @@ export function ContestacaoPortalSection({
                           variant="ghost"
                           size="icon-sm"
                           nativeButton={false}
+                          aria-label={`Baixar ${ev.documentoNome ?? "documento"}`}
                           render={
                             <a href={ev.documentoUrl} target="_blank" rel="noreferrer" download>
                               <Download className="h-4 w-4" />

@@ -551,6 +551,7 @@ export function EscalonamentoSection({
                           variant="ghost"
                           size="icon-sm"
                           nativeButton={false}
+                          aria-label={`Baixar ${doc.nomeArquivo}`}
                           render={
                             <a href={doc.url} target="_blank" rel="noreferrer" download>
                               <Download className="h-4 w-4" />
@@ -588,6 +589,7 @@ export function EscalonamentoSection({
                           variant="ghost"
                           size="icon-sm"
                           nativeButton={false}
+                          aria-label={`Baixar comprovante de envio para ${envio.destinatario}`}
                           render={
                             <a href={envio.comprovanteUrl} target="_blank" rel="noreferrer" download>
                               <Download className="h-4 w-4" />

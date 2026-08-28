@@ -30,12 +30,18 @@ export function SectionHeading({
   description,
   align = "left",
   dark = false,
+  as: Heading = "h2",
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   align?: "left" | "center";
   dark?: boolean;
+  /** "h1" quando esta é a referência principal da página (Seção 56 do
+   * master prompt) — algumas páginas secundárias do site institucional
+   * usavam SectionHeading como título de página sem nenhum h1 real
+   * existir antes dele. Padrão "h2", pra uso como título de subseção. */
+  as?: "h1" | "h2";
 }) {
   return (
     <div
@@ -45,14 +51,14 @@ export function SectionHeading({
       )}
     >
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-      <h2
+      <Heading
         className={cn(
           "text-3xl font-bold tracking-tight sm:text-4xl",
           dark ? "text-white" : "text-brand-ink",
         )}
       >
         {title}
-      </h2>
+      </Heading>
       {description ? (
         <p className={cn("text-base", dark ? "text-brand-ice/85" : "text-brand-slate")}>
           {description}

@@ -63,6 +63,7 @@ export default function TecnologiaPage() {
       <section className="bg-brand-ink py-16 sm:py-24">
         <Container>
           <SectionHeading
+            as="h1"
             dark
             eyebrow="Tecnologia a serviço do sindicato"
             title="A mesma plataforma que roda a operação, na mão da diretoria"

@@ -208,6 +208,7 @@ export function DocumentosSection({
                       variant="ghost"
                       size="icon-sm"
                       nativeButton={false}
+                      aria-label={`Baixar ${doc.nome_arquivo}`}
                       render={
                         <a href={doc.url} target="_blank" rel="noreferrer" download>
                           <Download className="h-4 w-4" />
@@ -218,7 +219,12 @@ export function DocumentosSection({
                   {canManage ? (
                     <ConfirmationDialog
                       trigger={
-                        <Button variant="ghost" size="icon-sm" disabled={isDeleting}>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          disabled={isDeleting}
+                          aria-label={`Remover ${doc.nome_arquivo}`}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       }

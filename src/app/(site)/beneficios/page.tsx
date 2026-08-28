@@ -43,6 +43,7 @@ export default function BeneficiosPage() {
       <section className="bg-brand-ink py-16 sm:py-24">
         <Container>
           <SectionHeading
+            as="h1"
             dark
             eyebrow="Gestão de benefícios"
             title="Do acordo conquistado ao benefício efetivamente recebido"

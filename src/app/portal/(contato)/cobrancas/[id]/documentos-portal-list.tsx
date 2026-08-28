@@ -48,6 +48,7 @@ export function DocumentosPortalList({ documentos }: { documentos: DocumentoItem
                     variant="ghost"
                     size="icon-sm"
                     nativeButton={false}
+                    aria-label={`Baixar ${doc.nome_arquivo}`}
                     render={
                       <a href={doc.url} target="_blank" rel="noreferrer" download>
                         <Download className="h-4 w-4" />

@@ -43,6 +43,7 @@ export default function CompliancePage() {
       <section className="bg-brand-ink py-16 sm:py-24">
         <Container>
           <SectionHeading
+            as="h1"
             dark
             eyebrow="Compliance"
             title="Regularização extrajudicial com rigor de conformidade"

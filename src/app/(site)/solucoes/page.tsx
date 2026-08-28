@@ -63,6 +63,7 @@ export default function SolucoesPage() {
       <section className="bg-brand-ink py-16 sm:py-24">
         <Container>
           <SectionHeading
+            as="h1"
             dark
             eyebrow="Nossas soluções"
             title="Uma operação completa para a gestão sindical de passivos e benefícios"
