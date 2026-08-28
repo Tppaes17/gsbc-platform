@@ -150,7 +150,7 @@ export default async function BackofficeDashboardPage() {
   }));
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title={`Olá, ${user.fullName.split(" ")[0]}`}
         description={

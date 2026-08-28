@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/design-system/page-header";
-import { StatusBadge } from "@/components/design-system/status-badge";
+import { DetailHeader } from "@/components/design-system/detail-header";
 import { Timeline, type TimelineItem } from "@/components/design-system/timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCurrentUser } from "@/lib/auth/session";
@@ -95,9 +94,18 @@ export default async function NegociacaoDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
+      <DetailHeader
         title={empresa?.nome_fantasia ?? empresa?.razao_social ?? "Negociação"}
-        description={`${obrigacao?.descricao ?? "—"} · ${negociacao.tenants?.name ?? "—"}`}
+        subtitle={`${obrigacao?.descricao ?? "—"} · ${negociacao.tenants?.name ?? "—"}`}
+        status={{
+          label: STATUS_LABEL[negociacao.status] ?? negociacao.status,
+          tone: STATUS_TONE[negociacao.status] ?? "neutral",
+        }}
+        metadata={[
+          { label: "Valor original da cobrança", value: formatCurrency(cobranca?.valor_cobranca ?? null) },
+          { label: "Valor negociado atual", value: formatCurrency(negociacao.valor_atual) },
+          { label: "Responsável", value: responsavel?.full_name ?? "Sem responsável definido" },
+        ]}
         actions={
           user.isPlatformStaff && negociacao.status !== "aguardando_aprovacao" ? (
             <EventoForm negociacaoId={negociacao.id} />
@@ -126,31 +134,6 @@ export default async function NegociacaoDetailPage({
       ) : null}
 
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Status:</span>
-          <StatusBadge
-            label={STATUS_LABEL[negociacao.status] ?? negociacao.status}
-            tone={STATUS_TONE[negociacao.status] ?? "neutral"}
-          />
-        </div>
-        <div className="text-sm text-muted-foreground">
-          Valor original da cobrança:{" "}
-          <span className="font-medium text-foreground">
-            {formatCurrency(cobranca?.valor_cobranca ?? null)}
-          </span>
-        </div>
-        <div className="text-sm text-muted-foreground">
-          Valor negociado atual:{" "}
-          <span className="font-medium text-foreground">
-            {formatCurrency(negociacao.valor_atual)}
-          </span>
-        </div>
-        <div className="text-sm text-muted-foreground">
-          Responsável:{" "}
-          <span className="font-medium text-foreground">
-            {responsavel?.full_name ?? "Sem responsável definido"}
-          </span>
-        </div>
         {cobranca ? (
           <Link
             href={`/backoffice/cobrancas/${cobranca.id}`}
