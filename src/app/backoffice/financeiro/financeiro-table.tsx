@@ -58,7 +58,7 @@ export function FinanceiroTable({
 }) {
   const columns: ColumnDef<FinanceiroRow>[] = [
     {
-      id: "empresa",
+      accessorKey: "empresaNome",
       header: "Empresa",
       cell: ({ row }) => (
         <Link
@@ -135,6 +135,8 @@ export function FinanceiroTable({
       data={data}
       emptyTitle="Nenhuma cobrança gerada"
       emptyDescription="A visão financeira aparece assim que houver cobranças geradas."
+      enableSearch
+      searchPlaceholder="Buscar por empresa..."
     />
   );
 }

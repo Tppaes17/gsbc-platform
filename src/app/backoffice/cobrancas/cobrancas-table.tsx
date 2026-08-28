@@ -57,6 +57,7 @@ export function CobrancasTable({ data, showTenantColumn }: CobrancasTableProps) 
   const columns: ColumnDef<CobrancaRow>[] = [
     {
       id: "empresa",
+      accessorFn: (row) => row.empresas?.nome_fantasia ?? row.empresas?.razao_social ?? "",
       header: "Empresa",
       cell: ({ row }) => (
         <Link
@@ -113,6 +114,8 @@ export function CobrancasTable({ data, showTenantColumn }: CobrancasTableProps) 
       data={data}
       emptyTitle="Nenhuma cobrança gerada"
       emptyDescription="Cobranças são geradas a partir de obrigações validadas."
+      enableSearch
+      searchPlaceholder="Buscar por empresa..."
     />
   );
 }

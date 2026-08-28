@@ -18,7 +18,8 @@ interface EmpresasTableProps {
 export function EmpresasTable({ data, showTenantColumn }: EmpresasTableProps) {
   const columns: ColumnDef<EmpresaRow>[] = [
     {
-      accessorKey: "nome_fantasia",
+      id: "empresa",
+      accessorFn: (row) => `${row.nome_fantasia ?? ""} ${row.razao_social}`,
       header: "Empresa",
       cell: ({ row }) => (
         <Link
@@ -68,6 +69,8 @@ export function EmpresasTable({ data, showTenantColumn }: EmpresasTableProps) {
       data={data}
       emptyTitle="Nenhuma empresa cadastrada"
       emptyDescription="Empresas são cadastradas pela equipe GSBC conforme a operação avança."
+      enableSearch
+      searchPlaceholder="Buscar por razão social, nome fantasia ou CNPJ..."
     />
   );
 }

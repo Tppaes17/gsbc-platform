@@ -43,6 +43,7 @@ export function NegociacoesTable({ data, showTenantColumn }: NegociacoesTablePro
   const columns: ColumnDef<NegociacaoRow>[] = [
     {
       id: "empresa",
+      accessorFn: (row) => row.empresas?.nome_fantasia ?? row.empresas?.razao_social ?? "",
       header: "Empresa",
       cell: ({ row }) => {
         const obrigacao = Array.isArray(row.original.cobrancas?.obrigacoes)
@@ -103,6 +104,8 @@ export function NegociacoesTable({ data, showTenantColumn }: NegociacoesTablePro
       data={data}
       emptyTitle="Nenhuma negociação iniciada"
       emptyDescription="Negociações são iniciadas a partir de uma cobrança."
+      enableSearch
+      searchPlaceholder="Buscar por empresa..."
     />
   );
 }
