@@ -2,7 +2,9 @@
 
 ## Objetivo
 
-Duas mudanças pedidas pelo usuário no módulo de prospecção:
+Três mudanças pedidas pelo usuário no módulo de prospecção — as duas
+primeiras no início da rodada, a terceira depois de testar o resultado
+das duas primeiras ao vivo:
 
 1. Renomear "Prospectos" para **"Empresas Prospectadas"** — o rótulo
    "Prospectos" era ambíguo com o módulo "Empresas" (empresas já
@@ -13,6 +15,13 @@ Duas mudanças pedidas pelo usuário no módulo de prospecção:
    automaticamente consultar a Receita Federal para cada empresa nova
    e **descartar** (sem apagar) as que estiverem baixadas, suspensas,
    inaptas, nulas, ou que não forem localizadas.
+3. **Complemento, mesma rodada**: depois de implementar e testar (1) e
+   (2), o usuário reportou "as empresas precisam aparecer aqui" —
+   diagnóstico confirmou que a consulta automática só cobre linhas
+   NOVAS inseridas durante uma importação; os ~290 prospectos da base
+   real, importados antes dessa automação existir, nunca tinham sido
+   consultados e ficavam presos em `pesquisa_iniciada` para sempre. Ver
+   seção própria abaixo ("Varredura periódica").
 
 ## Diagnóstico e decisões arquiteturais
 
@@ -88,6 +97,56 @@ por item) não interrompe o loop.
   minutos em planilhas grandes, e mostra os contadores de consulta e
   descarte no resumo pós-importação.
 
+### Refatoração: um único ponto de escrita da consulta
+
+Antes do complemento, a lógica "chama `avaliarCnpj`, decide o status,
+grava o dossiê e as evidências" estava duplicada em 2 lugares
+(`consultarProspectoAction` e o loop de importação) — um terceiro
+gatilho (cron) duplicaria de novo. Extraída para
+`consultarEAtualizarDossie()` em `src/lib/cnpj/avaliacao.ts`, que
+recebe o cliente Supabase (funciona tanto com o cliente autenticado
+quanto com o admin) e `consultadoPor` (`null` quando quem chama é uma
+automação sem usuário humano — `dossie_evidencias.consultado_por` já
+aceitava null). Os 3 gatilhos (botão manual, importação, cron) chamam
+essa mesma função — nunca podem decidir diferente dependendo de quem
+disparou.
+
+### Varredura periódica (cron) — cobre o backlog
+
+`src/lib/cnpj/consulta-sweep.ts` (`runConsultaProspectosSweep`) +
+`src/app/api/cron/prospectos-consulta/route.ts` — mesmo padrão do
+`collection-engine` (STG-02): Vercel Cron, `Authorization: Bearer
+$CRON_SECRET` injetado pela própria Vercel, `createAdminClient()`
+(sem sessão de usuário, RLS contornado por design — mesma justificativa
+já documentada em `src/lib/supabase/admin.ts`). Endpoint próprio,
+**não** empilhado no cron do collection-engine — aqui cada item é uma
+chamada de rede real à BrasilAPI, bem mais lento que uma varredura só
+de banco.
+
+Decisão confirmada com o usuário (AskUserQuestion, 3 opções: botão
+manual em background, botão síncrono, cron recorrente) — **cron
+recorrente**, cobrindo tanto o backlog atual quanto qualquer gap
+futuro (linha inserida por outro caminho que não seja a importação ou
+o botão manual).
+
+Diferenças de design em relação ao `collection-engine`:
+
+- **`BATCH_SIZE = 50`** por execução, ao contrário do
+  collection-engine que processa tudo de uma vez — lá cada item é
+  operação de banco; aqui é chamada de rede real, sem retry/rate-limit
+  no cliente da BrasilAPI, então um lote sem limite arriscaria estourar
+  o timeout da function bem mais facilmente. Convergência natural: o
+  que não coube fica com `ultima_consulta_em` mais antigo (ou nulo),
+  então é priorizado na próxima execução (`order by ultima_consulta_em
+  asc nulls first, created_at asc`).
+- **`vercel.json`** ganhou uma segunda entrada de cron
+  (`/api/cron/prospectos-consulta`, `0 13 * * *`) — não verificado ao
+  vivo contra o plano Vercel real do projeto (rodando só localmente
+  nesta rodada); ver Riscos residuais.
+
+`maxDuration = 120` na rota (mesma ressalva já documentada: só tem
+efeito real em Vercel Pro+).
+
 ## Banco de dados
 
 `supabase/migrations/0030_descarte_automatico_prospectos.sql` (aplicada
@@ -153,6 +212,43 @@ Dados de teste (dois dossiês criados durante os testes 2-4) removidos
 do banco local por `id` exato ao final, não por padrão de nome — dada
 a lição da Rodada 29 (ver Riscos residuais).
 
+### Varredura periódica — testes ao vivo (complemento)
+
+7. **Backfill real do backlog de ~290 dossiês**, contra a BrasilAPI de
+   verdade, chamando a rota do cron localmente (`curl` com o
+   `CRON_SECRET` do `.env.local`), várias execuções seguidas: resultado
+   final — 251 `cadastro_validado`, 32 `descartado_receita` (28 novos +
+   os que já existiam), 8 `pesquisa_iniciada` (CNPJ com dígito
+   verificador inválido — dado ruim da planilha original, corretamente
+   NUNCA descartado automaticamente, fica para revisão manual), 1
+   `revisao_cadastral` (de teste manual anterior, fora do escopo desta
+   rodada). Confirmado visualmente no módulo que as empresas passaram a
+   "aparecer aqui" com status real, resolvendo o relato original do
+   usuário.
+8. **Achado ao vivo, corrigido na mesma rodada — fome de fila
+   (starvation)**: depois de ~70 chamadas sequenciais sem pausa, a
+   BrasilAPI começou a responder 429 (rate limit). Como
+   `consultarEAtualizarDossie` não escrevia nada em `dossies_cadastrais`
+   quando o resultado era `"erro"`, os mesmos dossiês malsucedidos
+   voltavam para o topo da fila (`ultima_consulta_em is null` sempre
+   primeiro) em toda execução seguinte — uma execução chegou a consumir
+   o lote inteiro (50/50) só repetindo os mesmos 24 erros, sem
+   progredir no backlog. Corrigido registrando `ultima_consulta_em`
+   também quando a consulta falha (o status continua `pesquisa_iniciada`
+   — só sai da frente da fila) e adicionando um intervalo de 300ms entre
+   consultas dentro do sweep, para reduzir a chance de bater no rate
+   limit em primeiro lugar. Reexecutado depois da correção: 0 repetição
+   de erro, progresso real em cada execução.
+9. Autenticação da rota testada ao vivo: sem header → 401; header
+   errado → 401; `CRON_SECRET` correto → 200 com o resultado da
+   varredura.
+10. `npx tsc --noEmit` e `eslint` limpos após a refatoração e a
+    correção de starvation.
+11. Regressão e2e (`prospectos.spec.ts`,
+    `promocao-prospecto.spec.ts`, `inteligencia-cadastral.spec.ts`)
+    reexecutada depois da extração de `consultarEAtualizarDossie()` —
+    5/5 passando, sem regressão pelo refactor.
+
 ### O que não foi testado ao vivo
 
 - Comportamento com uma planilha grande (~1257 linhas) e o tempo real
@@ -163,6 +259,15 @@ a lição da Rodada 29 (ver Riscos residuais).
 - Duas empresas novas com o mesmo CNPJ dentro da mesma planilha
   (comportamento de deduplicação já existia antes desta rodada, não
   foi alterado, não foi retestado aqui).
+- **O cron real no ambiente Vercel** — só testado localmente via `curl`
+  direto na rota, imitando o header que a Vercel injeta. O agendamento
+  em si (`vercel.json`), se o plano atual do projeto comporta 2 cron
+  jobs, e se `CRON_SECRET` está configurado no ambiente de produção,
+  não foram verificados.
+- Comportamento do intervalo de 300ms + `BATCH_SIZE = 50` sob rate
+  limit mais agressivo da BrasilAPI do que o observado (só um episódio
+  de 429 foi visto, e desapareceu sozinho depois de uma pausa breve
+  entre execuções — não foi estressado further).
 
 ## Pendências
 
@@ -183,7 +288,17 @@ a lição da Rodada 29 (ver Riscos residuais).
   e gerar uma sequência de `status: "erro"` — degradação segura (não
   descarta por engano), mas silenciosamente deixa prospectos
   `pesquisa_iniciada` sem indicar ao usuário que foi rate-limit e não
-  falta de dado.
+  falta de dado. Isso ainda é verdade para a importação síncrona
+  (decisão do usuário, item 1); o sweep periódico mitiga o mesmo
+  problema pra si mesmo com um intervalo entre chamadas e reprocessando
+  o que falhou no próximo dia, mas não tem backoff exponencial nem
+  limite de tentativas — um CNPJ permanentemente malformado é
+  reconsultado (e falha de novo) indefinidamente, consumindo uma fração
+  pequena e limitada de cada lote futuro. Aceitável, não bloqueante.
+- **Plano Vercel não verificado**: a suposição de que o plano atual
+  comporta 2 cron jobs (Hobby costuma limitar tanto a quantidade quanto
+  a frequência) não foi confirmada contra o dashboard real do projeto —
+  só testado localmente. Verificar antes do deploy.
 - **Incidente de dados não resolvido de uma rodada anterior**: durante
   a rodada anterior a esta (limpeza de dados de teste antes da
   verificação do rename), um `DELETE ... WHERE razao_social ilike

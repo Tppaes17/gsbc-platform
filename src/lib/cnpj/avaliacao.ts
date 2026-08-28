@@ -1,8 +1,9 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { consultarCnpjOficial, type CnpjOficial } from "@/lib/cnpj/brasil-api";
 import { enriquecerCnpjLeadCnpj } from "@/lib/cnpj/leadcnpj";
 import { classificarScore } from "@/lib/validation/dossie-cadastral";
-import type { DossieEvidenciaTipo, DossieStatus, NivelConfianca } from "@/types/database.types";
+import type { Database, DossieEvidenciaTipo, DossieStatus, NivelConfianca } from "@/types/database.types";
 
 /**
  * Avaliador de CNPJ compartilhado — extraído de dossie-actions.ts
@@ -275,4 +276,94 @@ export function decidirStatusDossie(
   }
 
   return { status: "cadastro_validado", descartadoMotivo: null };
+}
+
+export interface ConsultaDossieResultado {
+  resultado: "encontrado" | "nao_encontrado" | "erro";
+  status?: DossieStatus;
+  mensagemErro?: string;
+}
+
+/**
+ * Consulta a Receita Federal por um dossiê e já grava o resultado
+ * (status, dados oficiais, evidências) — único ponto de escrita
+ * compartilhado pelos 3 gatilhos que existem hoje (Rodada 30): o botão
+ * manual "Consultar CNPJ oficial", a consulta automática no momento da
+ * importação de planilha, e a varredura periódica (cron) que cobre o
+ * backlog de prospectos que nunca foram consultados. Os 3 têm que
+ * decidir exatamente igual — daí viver num só lugar.
+ *
+ * `consultadoPor` é `null` quando quem chama é uma automação sem
+ * usuário humano (cron) — `dossie_evidencias.consultado_por` aceita
+ * null pra exatamente esse caso.
+ */
+export async function consultarEAtualizarDossie(
+  supabase: SupabaseClient<Database>,
+  dossieId: string,
+  cnpj: string,
+  consultadoPor: string | null,
+): Promise<ConsultaDossieResultado> {
+  const resultado = await avaliarCnpj(cnpj);
+
+  if (resultado.status === "erro") {
+    return { resultado: "erro", mensagemErro: resultado.mensagem };
+  }
+
+  const decisao = decidirStatusDossie(resultado);
+
+  if (resultado.status === "nao_encontrado") {
+    await supabase
+      .from("dossies_cadastrais")
+      .update({
+        status: decisao.status,
+        descartado_em: new Date().toISOString(),
+        descartado_motivo: decisao.descartadoMotivo,
+        ultima_consulta_em: new Date().toISOString(),
+      })
+      .eq("id", dossieId);
+
+    await supabase.from("dossie_evidencias").insert({
+      dossie_id: dossieId,
+      tipo: "cnpj",
+      campo: "cnpj",
+      valor: cnpj,
+      fonte: FONTE_BRASIL_API,
+      nivel_confianca: "nao_confirmado",
+      observacao: "CNPJ não localizado na Receita Federal.",
+      consultado_por: consultadoPor,
+    });
+
+    return { resultado: "nao_encontrado", status: decisao.status };
+  }
+
+  await supabase
+    .from("dossies_cadastrais")
+    .update({
+      status: decisao.status,
+      descartado_em: decisao.status === "descartado_receita" ? new Date().toISOString() : null,
+      descartado_motivo: decisao.descartadoMotivo,
+      razao_social: resultado.dadosOficiais.razaoSocial,
+      dados_oficiais: resultado.dadosOficiais as unknown as Record<string, unknown>,
+      dados_enriquecimento: resultado.dadosEnriquecimento,
+      qsa: resultado.dadosOficiais.qsa as unknown as Record<string, unknown>[],
+      score_confiabilidade: resultado.score,
+      score_classificacao: resultado.classificacao,
+      ultima_consulta_em: new Date().toISOString(),
+    })
+    .eq("id", dossieId);
+
+  await supabase.from("dossie_evidencias").insert(
+    resultado.evidencias.map((e) => ({
+      dossie_id: dossieId,
+      tipo: e.tipo,
+      campo: e.campo,
+      valor: e.valor,
+      fonte: e.fonte,
+      nivel_confianca: e.nivel_confianca,
+      observacao: e.observacao,
+      consultado_por: consultadoPor,
+    })),
+  );
+
+  return { resultado: "encontrado", status: decisao.status };
 }

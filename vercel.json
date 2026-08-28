@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/collection-engine",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/prospectos-consulta",
+      "schedule": "0 13 * * *"
     }
   ]
 }
