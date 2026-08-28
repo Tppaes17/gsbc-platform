@@ -27,12 +27,9 @@ import {
   type ChangeStatusState,
 } from "../actions";
 import { cobrancaStatusOptions } from "@/lib/validation/cobranca";
+import { STATUS_LABEL } from "./labels";
 
 const initialState: ChangeStatusState = { error: null, success: false };
-
-const STATUS_LABEL = Object.fromEntries(
-  cobrancaStatusOptions.map((o) => [o.value, o.label]),
-);
 
 export function StatusAction({
   cobrancaId,

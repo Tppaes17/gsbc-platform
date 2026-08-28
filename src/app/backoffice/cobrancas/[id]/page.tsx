@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { DetailHeader } from "@/components/design-system/detail-header";
+import { PageSection } from "@/components/design-system/page-section";
 import { Timeline, type TimelineItem } from "@/components/design-system/timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { isEscalationApprover } from "@/lib/auth/permissions";
 import { isAiConfigured } from "@/lib/ai/client";
 import { createClient } from "@/lib/supabase/server";
-import { cobrancaStatusOptions } from "@/lib/validation/cobranca";
 import { valorReferenciaCobranca } from "@/lib/finance/referencia";
 import { PagamentosList } from "../../financeiro/pagamentos-list";
 import { RegistrarPagamentoAction } from "../../financeiro/pagamento-action";
@@ -16,6 +16,7 @@ import { CollectionsCopilotSection } from "./collections-copilot-section";
 import { ContestacaoSection } from "./contestacao-section";
 import { EscalonamentoSection } from "./escalonamento-section";
 import { EditCobrancaForm } from "./edit-cobranca-form";
+import { CONTESTACAO_EVENTO_LABEL, ESCALONAMENTO_EVENTO_LABEL, STATUS_TONE, statusLabel } from "./labels";
 import { IniciarNegociacaoAction } from "./negociacao-action";
 import { NotificacaoAction } from "./notificacao-action";
 import { NotificacoesList } from "./notificacoes-list";
@@ -23,58 +24,6 @@ import { ReguaCobrancaSection } from "./regua-cobranca-section";
 import { StatusAction } from "./status-action";
 
 const DOCUMENTOS_BUCKET = "documentos-empresas";
-
-const CONTESTACAO_EVENTO_LABEL: Record<string, string> = {
-  abertura: "Contestação aberta",
-  em_analise: "Em análise",
-  procedente: "Procedente",
-  parcialmente_procedente: "Parcialmente procedente",
-  improcedente: "Improcedente",
-  inconclusiva: "Inconclusiva",
-  observacao: "Observação",
-};
-
-const ESCALONAMENTO_EVENTO_LABEL: Record<string, string> = {
-  criacao: "Escalonamento iniciado",
-  submissao_aprovacao: "Submetido para aprovação",
-  aprovacao: "Aprovado pelo Jurídico",
-  rejeicao: "Rejeitado pelo Jurídico",
-  documento_emitido: "Documento emitido",
-  envio: "Envio registrado",
-  resultado: "Resultado registrado",
-  observacao: "Observação",
-};
-
-// 'contestada' não entra em cobrancaStatusOptions de propósito — só é
-// alcançável via abrir_contestacao() (garante que sempre existe uma
-// contestação/evidência por trás, nunca uma mudança de status "solta").
-// Aqui é só pra exibir o rótulo quando a cobrança já estiver nesse status.
-const STATUS_LABEL: Record<string, string> = {
-  ...Object.fromEntries(cobrancaStatusOptions.map((o) => [o.value, o.label])),
-  contestada: "Contestada",
-};
-
-const STATUS_TONE: Record<string, "positive" | "neutral" | "warning" | "negative" | "info"> = {
-  draft: "neutral",
-  pending_validation: "info",
-  approved: "info",
-  notified: "info",
-  contacted: "info",
-  negotiating: "warning",
-  agreement_reached: "positive",
-  partially_paid: "warning",
-  paid: "positive",
-  overdue: "negative",
-  suspended: "neutral",
-  cancelled: "neutral",
-  legal_escalation: "negative",
-  closed: "neutral",
-  contestada: "negative",
-};
-
-function statusLabel(status: string) {
-  return STATUS_LABEL[status] ?? status;
-}
 
 export default async function CobrancaDetailPage({
   params,
@@ -495,21 +444,24 @@ export default async function CobrancaDetailPage({
         readOnly={!user.isPlatformStaff}
       />
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">Financeiro</h2>
-        {user.isPlatformStaff ? (
-          <RegistrarPagamentoAction
-            cobrancaId={cobranca.id}
-            empresaNome={empresa?.nome_fantasia ?? empresa?.razao_social ?? "—"}
-            obrigacaoDescricao={obrigacao?.descricao ?? "—"}
-            saldoAtual={Math.max(
-              valorReferencia - pagamentos.reduce((sum, p) => sum + p.valor, 0),
-              0,
-            )}
-          />
-        ) : null}
-      </div>
-      <PagamentosList pagamentos={pagamentos} valorReferencia={valorReferencia} />
+      <PageSection
+        title="Financeiro"
+        action={
+          user.isPlatformStaff ? (
+            <RegistrarPagamentoAction
+              cobrancaId={cobranca.id}
+              empresaNome={empresa?.nome_fantasia ?? empresa?.razao_social ?? "—"}
+              obrigacaoDescricao={obrigacao?.descricao ?? "—"}
+              saldoAtual={Math.max(
+                valorReferencia - pagamentos.reduce((sum, p) => sum + p.valor, 0),
+                0,
+              )}
+            />
+          ) : undefined
+        }
+      >
+        <PagamentosList pagamentos={pagamentos} valorReferencia={valorReferencia} />
+      </PageSection>
 
       {user.isPlatformStaff ? (
         <PaymentChargesSection cobrancaId={cobranca.id} charges={paymentCharges ?? []} />
