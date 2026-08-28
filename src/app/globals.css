@@ -43,6 +43,14 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-secondary: var(--text-secondary);
+  --color-financial-positive: var(--financial-positive);
+  --color-financial-negative: var(--financial-negative);
+  --color-financial-neutral: var(--financial-neutral);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -71,37 +79,53 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  /* PLACEHOLDER: paleta institucional provisória (navy/compliance). Substituir por manual de marca oficial da GSBC quando disponível. */
-  --primary: oklch(0.32 0.09 258);
+  /* Tema operacional conectado à paleta institucional (Stage 1 da revisão
+     de design, docs/design/stage-01-design-foundation.md) — antes rodava
+     sobre um placeholder navy genérico; agora deriva de --color-brand-*
+     (globals.css acima), a mesma paleta já usada no site institucional. */
+  --primary: var(--color-brand-navy);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.95 0.02 258);
-  --accent-foreground: oklch(0.32 0.09 258);
+  --accent: color-mix(in oklab, var(--color-brand-teal) 12%, white);
+  --accent-foreground: var(--color-brand-teal-dark);
   --destructive: oklch(0.577 0.245 27.325);
   --success: oklch(0.55 0.13 155);
   --success-foreground: oklch(0.985 0 0);
   --warning: oklch(0.75 0.15 75);
   --warning-foreground: oklch(0.205 0 0);
+  --info: color-mix(in oklab, var(--color-brand-navy) 14%, white);
+  --info-foreground: var(--color-brand-navy);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.32 0.09 258 / 0.5);
-  --chart-1: oklch(0.32 0.09 258);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
+  --ring: color-mix(in oklab, var(--color-brand-navy) 50%, transparent);
+  --chart-1: var(--color-brand-navy);
+  --chart-2: var(--color-brand-teal);
+  --chart-3: var(--color-brand-gold);
   --chart-4: oklch(0.75 0.15 75);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+
+  /* Níveis adicionais pedidos pela auditoria de design (Seção 9/10 do
+     master prompt) — complementam foreground/muted-foreground, nunca os
+     substituem. */
+  --surface-elevated: oklch(1 0 0);
+  --border-subtle: oklch(0.955 0 0);
+  --text-secondary: var(--color-brand-slate);
+  --financial-positive: var(--success);
+  --financial-negative: var(--destructive);
+  --financial-neutral: var(--color-brand-slate);
+
   --sidebar: oklch(0.99 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.32 0.09 258);
+  --sidebar-foreground: var(--color-brand-ink);
+  --sidebar-primary: var(--color-brand-navy);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.95 0.02 258);
-  --sidebar-accent-foreground: oklch(0.32 0.09 258);
+  --sidebar-accent: color-mix(in oklab, var(--color-brand-teal) 12%, white);
+  --sidebar-accent-foreground: var(--color-brand-teal-dark);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.32 0.09 258 / 0.5);
+  --sidebar-ring: color-mix(in oklab, var(--color-brand-navy) 50%, transparent);
 }
 
 .dark {
@@ -111,33 +135,43 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.7 0.1 258);
-  --primary-foreground: oklch(0.145 0 0);
+  --primary: var(--color-brand-teal);
+  --primary-foreground: var(--color-brand-ink);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: color-mix(in oklab, var(--color-brand-teal) 22%, oklch(0.269 0 0));
+  --accent-foreground: color-mix(in oklab, var(--color-brand-teal) 55%, white);
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.65 0.15 155);
   --success-foreground: oklch(0.145 0 0);
   --warning: oklch(0.8 0.15 75);
   --warning-foreground: oklch(0.145 0 0);
+  --info: color-mix(in oklab, var(--color-brand-navy) 30%, oklch(0.269 0 0));
+  --info-foreground: color-mix(in oklab, var(--color-brand-ice) 70%, white);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
+  --chart-1: var(--color-brand-teal);
+  --chart-2: var(--color-brand-gold-light);
+  --chart-3: var(--color-brand-ice);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+
+  --surface-elevated: oklch(0.245 0 0);
+  --border-subtle: oklch(1 0 0 / 6%);
+  --text-secondary: var(--color-brand-ice);
+  --financial-positive: var(--success);
+  --financial-negative: var(--destructive);
+  --financial-neutral: var(--color-brand-ice);
+
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--color-brand-teal);
+  --sidebar-primary-foreground: var(--color-brand-ink);
+  --sidebar-accent: color-mix(in oklab, var(--color-brand-teal) 22%, oklch(0.269 0 0));
+  --sidebar-accent-foreground: color-mix(in oklab, var(--color-brand-teal) 55%, white);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }

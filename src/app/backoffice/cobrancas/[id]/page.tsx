@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/design-system/page-header";
-import { StatusBadge } from "@/components/design-system/status-badge";
+import { DetailHeader } from "@/components/design-system/detail-header";
 import { Timeline, type TimelineItem } from "@/components/design-system/timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCurrentUser } from "@/lib/auth/session";
@@ -414,9 +413,33 @@ export default async function CobrancaDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
+      <DetailHeader
         title={empresa?.nome_fantasia ?? empresa?.razao_social ?? "Cobrança"}
-        description={`${obrigacao?.descricao ?? "—"} · ${cobranca.tenants?.name ?? "—"}`}
+        subtitle={`${obrigacao?.descricao ?? "—"} · ${cobranca.tenants?.name ?? "—"}`}
+        status={{
+          label: statusLabel(cobranca.status),
+          tone: STATUS_TONE[cobranca.status] ?? "neutral",
+        }}
+        metadata={[
+          {
+            label: temAcordoComDesconto ? "Valor original" : "Valor total",
+            value: cobranca.valor_cobranca.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            }),
+          },
+          ...(temAcordoComDesconto
+            ? [
+                {
+                  label: "Valor acordado (negociação)",
+                  value: valorReferencia.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  }),
+                },
+              ]
+            : []),
+        ]}
         actions={
           user.isPlatformStaff ? (
             <StatusAction cobrancaId={cobranca.id} currentStatus={cobranca.status} />
@@ -425,33 +448,6 @@ export default async function CobrancaDetailPage({
       />
 
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Status:</span>
-          <StatusBadge
-            label={statusLabel(cobranca.status)}
-            tone={STATUS_TONE[cobranca.status] ?? "neutral"}
-          />
-        </div>
-        <div className="text-sm text-muted-foreground">
-          {temAcordoComDesconto ? "Valor original:" : "Valor total:"}{" "}
-          <span className="font-medium text-foreground">
-            {cobranca.valor_cobranca.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            })}
-          </span>
-        </div>
-        {temAcordoComDesconto ? (
-          <div className="text-sm text-muted-foreground">
-            Valor acordado (negociação):{" "}
-            <span className="font-medium text-foreground">
-              {valorReferencia.toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              })}
-            </span>
-          </div>
-        ) : null}
         {empresa ? (
           <Link
             href={`/backoffice/empresas/${empresa.id}`}

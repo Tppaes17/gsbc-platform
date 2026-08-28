@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/design-system/page-header";
-import { StatusBadge } from "@/components/design-system/status-badge";
+import { DetailHeader } from "@/components/design-system/detail-header";
 import type { TimelineItem } from "@/components/design-system/timeline";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { valorReferenciaCobranca } from "@/lib/finance/referencia";
@@ -341,18 +340,15 @@ export default async function EmpresaDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
+      <DetailHeader
         title={empresa.nome_fantasia ?? empresa.razao_social}
-        description={`${empresa.razao_social} · ${empresa.tenants?.name ?? "—"}`}
+        subtitle={`${empresa.razao_social} · ${empresa.tenants?.name ?? "—"}`}
+        status={{
+          label: empresa.status === "active" ? "Ativa" : "Inativa",
+          tone: empresa.status === "active" ? "positive" : "neutral",
+        }}
+        metadata={[{ label: "CNPJ", value: empresa.cnpj }]}
       />
-
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Status:</span>
-        <StatusBadge
-          label={empresa.status === "active" ? "Ativa" : "Inativa"}
-          tone={empresa.status === "active" ? "positive" : "neutral"}
-        />
-      </div>
 
       <EditEmpresaForm empresa={empresa} readOnly={!user.isPlatformStaff} />
 
