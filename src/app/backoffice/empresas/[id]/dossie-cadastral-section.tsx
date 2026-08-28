@@ -27,6 +27,7 @@ const STATUS_TONE: Record<string, "positive" | "neutral" | "warning" | "negative
   cadastro_validado: "positive",
   conflito_identificado: "warning",
   revisao_cadastral: "negative",
+  descartado_receita: "neutral",
 };
 
 const SCORE_TONE: Record<string, "positive" | "neutral" | "warning" | "negative" | "info"> = {

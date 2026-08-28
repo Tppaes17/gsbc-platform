@@ -53,7 +53,7 @@ export const NAV_ITEMS: NavItem[] = [
     // Owner apenas (mapeado a gsbc_super_admin) — regra explícita do
     // usuário para o módulo de inteligência cadastral (Rodada 14).
     href: "/backoffice/prospectos",
-    label: "Prospectos",
+    label: "Empresas Prospectadas",
     icon: Search,
     ownerOnly: true,
   },

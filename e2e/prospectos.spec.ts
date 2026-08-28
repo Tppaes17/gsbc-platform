@@ -14,8 +14,8 @@ test("Owner vê o menu Prospectos e importa uma planilha", async ({ page }, test
 
   await loginAs(page, STAFF_EMAIL);
 
-  await expect(page.getByRole("link", { name: "Prospectos" })).toBeVisible();
-  await page.getByRole("link", { name: "Prospectos" }).click();
+  await expect(page.getByRole("link", { name: "Empresas Prospectadas" })).toBeVisible();
+  await page.getByRole("link", { name: "Empresas Prospectadas" }).click();
   await page.waitForURL("**/backoffice/prospectos");
 
   await page.getByRole("button", { name: "Importar planilha" }).click();
@@ -39,7 +39,7 @@ test("Owner vê o menu Prospectos e importa uma planilha", async ({ page }, test
 test("sindicato não vê o menu Prospectos e não acessa a rota", async ({ page }) => {
   await loginAs(page, SINDICATO_EMAIL);
 
-  await expect(page.getByRole("link", { name: "Prospectos" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Empresas Prospectadas" })).toHaveCount(0);
 
   await page.goto("/backoffice/prospectos");
   await page.waitForURL("**/backoffice");

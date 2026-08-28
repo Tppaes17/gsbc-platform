@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import * as XLSX from "xlsx";
 import { logAuditEvent } from "@/lib/audit/log";
 import { requireCurrentUser } from "@/lib/auth/session";
-import { avaliarCnpj, FONTE_BRASIL_API, type EvidenciaInput } from "@/lib/cnpj/avaliacao";
+import { avaliarCnpj, decidirStatusDossie, FONTE_BRASIL_API, type EvidenciaInput } from "@/lib/cnpj/avaliacao";
 import { createClient } from "@/lib/supabase/server";
 import {
   PROSPECTO_COLUNAS_ESPERADAS,
@@ -26,6 +26,8 @@ export interface ImportarProspectosState {
     importadas: number;
     atualizadas: number;
     comErro: number;
+    consultadas: number;
+    descartadas: number;
   };
 }
 
@@ -197,6 +199,8 @@ export async function importarProspectosAction(
   const fonte = `Planilha importada: ${file.name}`;
   let importadas = 0;
   let atualizadas = 0;
+  let consultadas = 0;
+  let descartadas = 0;
 
   if (novas.length > 0) {
     const { data: inseridos, error: insertError } = await supabase
@@ -243,6 +247,88 @@ export async function importarProspectosAction(
 
     if (evidenciasNovas.length > 0) {
       await supabase.from("dossie_evidencias").insert(evidenciasNovas);
+    }
+
+    // Consulta automática da Receita Federal pra cada prospecto recém-
+    // importado (Rodada 30, decisão confirmada com o usuário: síncrona,
+    // sequencial, dentro da própria importação — não em background).
+    // Sequencial de propósito: a BrasilAPI não tem rate-limit documentado
+    // e o cliente atual (consultarCnpjOficial) não tem retry/backoff;
+    // rodar em paralelo arriscaria mais falha, não menos. Cada item tem
+    // seu próprio try/catch — uma falha isolada nunca derruba o resto da
+    // importação.
+    for (const dossie of inseridos ?? []) {
+      if (!dossie.cnpj_consultado) continue;
+
+      try {
+        const resultado = await avaliarCnpj(dossie.cnpj_consultado);
+        consultadas += 1;
+
+        if (resultado.status === "erro") {
+          // Falha de rede/validação — não é uma decisão sobre a empresa,
+          // fica como "pesquisa_iniciada" pra revisão manual depois.
+          continue;
+        }
+
+        const decisao = decidirStatusDossie(resultado);
+        if (decisao.status === "descartado_receita") descartadas += 1;
+
+        if (resultado.status === "nao_encontrado") {
+          await supabase
+            .from("dossies_cadastrais")
+            .update({
+              status: decisao.status,
+              descartado_em: new Date().toISOString(),
+              descartado_motivo: decisao.descartadoMotivo,
+              ultima_consulta_em: new Date().toISOString(),
+            })
+            .eq("id", dossie.id);
+
+          await supabase.from("dossie_evidencias").insert({
+            dossie_id: dossie.id,
+            tipo: "cnpj",
+            campo: "cnpj",
+            valor: dossie.cnpj_consultado,
+            fonte: FONTE_BRASIL_API,
+            nivel_confianca: "nao_confirmado",
+            observacao: "CNPJ não localizado na Receita Federal.",
+            consultado_por: user.id,
+          });
+          continue;
+        }
+
+        await supabase
+          .from("dossies_cadastrais")
+          .update({
+            status: decisao.status,
+            descartado_em: decisao.status === "descartado_receita" ? new Date().toISOString() : null,
+            descartado_motivo: decisao.descartadoMotivo,
+            razao_social: resultado.dadosOficiais.razaoSocial,
+            dados_oficiais: resultado.dadosOficiais as unknown as Record<string, unknown>,
+            dados_enriquecimento: resultado.dadosEnriquecimento,
+            qsa: resultado.dadosOficiais.qsa as unknown as Record<string, unknown>[],
+            score_confiabilidade: resultado.score,
+            score_classificacao: resultado.classificacao,
+            ultima_consulta_em: new Date().toISOString(),
+          })
+          .eq("id", dossie.id);
+
+        await supabase.from("dossie_evidencias").insert(
+          resultado.evidencias.map((e) => ({
+            dossie_id: dossie.id,
+            tipo: e.tipo,
+            campo: e.campo,
+            valor: e.valor,
+            fonte: e.fonte,
+            nivel_confianca: e.nivel_confianca,
+            observacao: e.observacao,
+            consultado_por: user.id,
+          })),
+        );
+      } catch {
+        // Falha inesperada num item isolado não derruba a importação —
+        // o prospecto fica "pesquisa_iniciada" pra consulta manual depois.
+      }
     }
   }
 
@@ -310,6 +396,8 @@ export async function importarProspectosAction(
       importadas,
       atualizadas,
       com_erro: errosLinha.length,
+      consultadas,
+      descartadas,
     },
   });
 
@@ -323,6 +411,8 @@ export async function importarProspectosAction(
       importadas,
       atualizadas,
       comErro: errosLinha.length,
+      consultadas,
+      descartadas,
     },
   };
 }
@@ -361,10 +451,14 @@ export async function consultarProspectoAction(
   }
 
   if (resultado.status === "nao_encontrado") {
+    const decisao = decidirStatusDossie(resultado);
+
     const { error: updateError } = await supabase
       .from("dossies_cadastrais")
       .update({
-        status: "revisao_cadastral",
+        status: decisao.status,
+        descartado_em: decisao.status === "descartado_receita" ? new Date().toISOString() : null,
+        descartado_motivo: decisao.descartadoMotivo,
         ultima_consulta_em: new Date().toISOString(),
       })
       .eq("id", dossieId);
@@ -389,19 +483,21 @@ export async function consultarProspectoAction(
       action: "prospecto.consultado",
       entityType: "prospecto",
       entityId: dossieId,
-      newData: { resultado: "nao_encontrado" },
+      newData: { resultado: "nao_encontrado", status: decisao.status },
     });
 
     revalidatePath(`/backoffice/prospectos/${dossieId}`);
     return { error: null, success: true };
   }
 
-  const status = !resultado.ativa ? "revisao_cadastral" : "cadastro_validado";
+  const decisao = decidirStatusDossie(resultado);
 
   const { error: updateError } = await supabase
     .from("dossies_cadastrais")
     .update({
-      status,
+      status: decisao.status,
+      descartado_em: decisao.status === "descartado_receita" ? new Date().toISOString() : null,
+      descartado_motivo: decisao.descartadoMotivo,
       razao_social: resultado.dadosOficiais.razaoSocial,
       dados_oficiais: resultado.dadosOficiais as unknown as Record<string, unknown>,
       dados_enriquecimento: resultado.dadosEnriquecimento,
@@ -438,7 +534,7 @@ export async function consultarProspectoAction(
     action: "prospecto.consultado",
     entityType: "prospecto",
     entityId: dossieId,
-    newData: { resultado: "encontrado", score: resultado.score, status },
+    newData: { resultado: "encontrado", score: resultado.score, status: decisao.status },
   });
 
   revalidatePath(`/backoffice/prospectos/${dossieId}`);

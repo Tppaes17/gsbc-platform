@@ -28,7 +28,7 @@ test.describe("Visão da equipe GSBC (staff)", () => {
       "Usuários",
       "Auditoria",
     ]) {
-      await expect(page.getByRole("link", { name: label })).toBeVisible();
+      await expect(page.getByRole("link", { name: label, exact: true })).toBeVisible();
     }
   });
 

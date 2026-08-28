@@ -151,6 +151,7 @@ export default async function ProspectoDetailPage({
           score_confiabilidade: prospecto.score_confiabilidade,
           score_classificacao: prospecto.score_classificacao,
           ultima_consulta_em: prospecto.ultima_consulta_em,
+          descartado_motivo: prospecto.descartado_motivo,
         }}
         evidencias={evidencias ?? []}
         enriquecimentoWebConfigurado={enriquecimentoWebConfigurado}

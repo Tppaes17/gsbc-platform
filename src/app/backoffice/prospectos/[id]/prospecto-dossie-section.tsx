@@ -27,6 +27,7 @@ const STATUS_TONE: Record<string, "positive" | "neutral" | "warning" | "negative
   cadastro_validado: "positive",
   conflito_identificado: "warning",
   revisao_cadastral: "negative",
+  descartado_receita: "neutral",
 };
 
 const SCORE_TONE: Record<string, "positive" | "neutral" | "warning" | "negative" | "info"> = {
@@ -53,6 +54,7 @@ type DossieData = {
   score_confiabilidade: number | null;
   score_classificacao: string | null;
   ultima_consulta_em: string | null;
+  descartado_motivo: string | null;
 };
 
 export function ProspectoDossieSection({
@@ -102,6 +104,12 @@ export function ProspectoDossieSection({
         </Button>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {dossie.status === "descartado_receita" && dossie.descartado_motivo ? (
+          <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+            Descartado automaticamente: {dossie.descartado_motivo} O registro continua
+            aqui pra consulta — nada foi apagado.
+          </p>
+        ) : null}
         {!enriquecimentoWebConfigurado ? (
           <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
             Enriquecimento web (site, e-mails, telefone, decisores, LinkedIn)

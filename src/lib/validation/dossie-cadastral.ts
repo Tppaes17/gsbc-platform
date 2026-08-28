@@ -12,6 +12,7 @@ export const dossieStatusOptions = [
   { value: "cadastro_validado", label: "Cadastro validado" },
   { value: "conflito_identificado", label: "Conflito identificado" },
   { value: "revisao_cadastral", label: "Revisão cadastral" },
+  { value: "descartado_receita", label: "Descartado (Receita Federal)" },
 ] as const;
 
 export const scoreClassificacaoOptions = [

@@ -27,8 +27,8 @@ export function ImportarProspectosDialog() {
     if (state.success && state.resumo) {
       toast.success(
         `Importação concluída: ${state.resumo.importadas} novo(s), ${state.resumo.atualizadas} atualizado(s)${
-          state.resumo.comErro > 0 ? `, ${state.resumo.comErro} linha(s) com erro` : ""
-        }.`,
+          state.resumo.descartadas > 0 ? `, ${state.resumo.descartadas} descartado(s) automaticamente` : ""
+        }${state.resumo.comErro > 0 ? `, ${state.resumo.comErro} linha(s) com erro` : ""}.`,
       );
     }
   }, [state.success, state.resumo]);
@@ -50,7 +50,10 @@ export function ImportarProspectosDialog() {
             <DialogDescription>
               Para pesquisa já realizada (ex.: exportação de um provedor de dados B2B
               filtrado por CNAE). A planilha precisa ter estas colunas na primeira
-              aba: {PROSPECTO_COLUNAS_ESPERADAS.join(", ")}.
+              aba: {PROSPECTO_COLUNAS_ESPERADAS.join(", ")}. Cada empresa nova é
+              automaticamente consultada na Receita Federal — CNPJ baixado, suspenso,
+              inapto, nulo ou não encontrado é descartado sem apagar o registro. Pode
+              levar alguns minutos em planilhas grandes.
             </DialogDescription>
           </DialogHeader>
 
@@ -77,6 +80,13 @@ export function ImportarProspectosDialog() {
               <p>{state.resumo.totalLinhas} linha(s) na planilha.</p>
               <p>{state.resumo.importadas} prospecto(s) novo(s).</p>
               <p>{state.resumo.atualizadas} prospecto(s) atualizado(s) (CNPJ já importado antes).</p>
+              <p>{state.resumo.consultadas} consultado(s) na Receita Federal.</p>
+              {state.resumo.descartadas > 0 ? (
+                <p>
+                  {state.resumo.descartadas} descartado(s) automaticamente — CNPJ baixado,
+                  suspenso, inapto, nulo ou não encontrado na Receita Federal.
+                </p>
+              ) : null}
               {state.resumo.comErro > 0 ? (
                 <p>{state.resumo.comErro} linha(s) com erro — CNPJ ou Razão Social ausente/inválido, ignoradas.</p>
               ) : null}
@@ -85,7 +95,7 @@ export function ImportarProspectosDialog() {
 
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Importando..." : "Importar"}
+              {isPending ? "Importando e consultando Receita Federal..." : "Importar"}
             </Button>
           </DialogFooter>
         </form>

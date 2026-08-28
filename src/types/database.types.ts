@@ -38,7 +38,8 @@ export type DossieStatus =
   | "pesquisa_iniciada"
   | "cadastro_validado"
   | "conflito_identificado"
-  | "revisao_cadastral";
+  | "revisao_cadastral"
+  | "descartado_receita";
 export type NivelConfianca =
   | "confirmado"
   | "provavel"
@@ -961,6 +962,8 @@ export interface Database {
           promoted_at: string | null;
           promoted_by: string | null;
           promoted_empresa_id: string | null;
+          descartado_em: string | null;
+          descartado_motivo: string | null;
         };
         Insert: {
           id?: string;
@@ -982,6 +985,8 @@ export interface Database {
           promoted_at?: string | null;
           promoted_by?: string | null;
           promoted_empresa_id?: string | null;
+          descartado_em?: string | null;
+          descartado_motivo?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["dossies_cadastrais"]["Insert"]>;
         Relationships: [

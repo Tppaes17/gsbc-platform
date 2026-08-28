@@ -2,7 +2,7 @@ import "server-only";
 import { consultarCnpjOficial, type CnpjOficial } from "@/lib/cnpj/brasil-api";
 import { enriquecerCnpjLeadCnpj } from "@/lib/cnpj/leadcnpj";
 import { classificarScore } from "@/lib/validation/dossie-cadastral";
-import type { DossieEvidenciaTipo, NivelConfianca } from "@/types/database.types";
+import type { DossieEvidenciaTipo, DossieStatus, NivelConfianca } from "@/types/database.types";
 
 /**
  * Avaliador de CNPJ compartilhado — extraído de dossie-actions.ts
@@ -239,4 +239,40 @@ export async function avaliarCnpj(cnpjEntrada: string): Promise<AvaliacaoResulta
     classificacao: classificarScore(scoreFinal),
     enriquecimentoStatus: enriquecimento.status,
   };
+}
+
+export interface DecisaoStatusDossie {
+  status: DossieStatus;
+  descartadoMotivo: string | null;
+}
+
+/**
+ * Decide o status do dossiê a partir de um resultado já "encontrado" ou
+ * "nao_encontrado" de avaliarCnpj — nunca chamar com "erro" (falha de
+ * rede/validação não é uma decisão sobre a empresa, quem chama decide
+ * o que fazer nesse caso, normalmente não alterar nada).
+ *
+ * Única fonte da regra "descarta se não ativa ou não encontrada"
+ * (Rodada 30) — usada tanto pela consulta manual quanto pela automática
+ * no import, pra nunca dar resultado diferente dependendo de quem/quando
+ * dispara a consulta.
+ */
+export function decidirStatusDossie(
+  resultado: AvaliacaoEncontrada | { status: "nao_encontrado" },
+): DecisaoStatusDossie {
+  if (resultado.status === "nao_encontrado") {
+    return {
+      status: "descartado_receita",
+      descartadoMotivo: "CNPJ não localizado na Receita Federal.",
+    };
+  }
+
+  if (!resultado.ativa) {
+    return {
+      status: "descartado_receita",
+      descartadoMotivo: `CNPJ com situação cadastral "${resultado.dadosOficiais.situacaoCadastral}" na Receita Federal (diferente de ATIVA).`,
+    };
+  }
+
+  return { status: "cadastro_validado", descartadoMotivo: null };
 }
