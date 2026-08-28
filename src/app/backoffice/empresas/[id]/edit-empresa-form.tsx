@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { FormSection } from "@/components/design-system/form-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,64 +31,66 @@ export function EditEmpresaForm({
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
       <input type="hidden" name="empresaId" value={empresa.id} />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="razaoSocial">Razão social *</Label>
-          <Input
-            id="razaoSocial"
-            name="razaoSocial"
-            defaultValue={empresa.razao_social}
-            disabled={readOnly}
-            required
-          />
+      <FormSection title="Dados cadastrais">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="razaoSocial">Razão social *</Label>
+            <Input
+              id="razaoSocial"
+              name="razaoSocial"
+              defaultValue={empresa.razao_social}
+              disabled={readOnly}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="nomeFantasia">Nome fantasia</Label>
+            <Input
+              id="nomeFantasia"
+              name="nomeFantasia"
+              defaultValue={empresa.nome_fantasia ?? ""}
+              disabled={readOnly}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="cnpj">CNPJ *</Label>
+            <Input
+              id="cnpj"
+              name="cnpj"
+              defaultValue={empresa.cnpj}
+              disabled={readOnly}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="cnae">CNAE</Label>
+            <Input
+              id="cnae"
+              name="cnae"
+              defaultValue={empresa.cnae ?? ""}
+              disabled={readOnly}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="segmento">Segmento</Label>
+            <Input
+              id="segmento"
+              name="segmento"
+              defaultValue={empresa.segmento ?? ""}
+              disabled={readOnly}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="enquadramento">Enquadramento sindical</Label>
+            <Input
+              id="enquadramento"
+              name="enquadramento"
+              defaultValue={empresa.enquadramento ?? ""}
+              disabled={readOnly}
+            />
+          </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="nomeFantasia">Nome fantasia</Label>
-          <Input
-            id="nomeFantasia"
-            name="nomeFantasia"
-            defaultValue={empresa.nome_fantasia ?? ""}
-            disabled={readOnly}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="cnpj">CNPJ *</Label>
-          <Input
-            id="cnpj"
-            name="cnpj"
-            defaultValue={empresa.cnpj}
-            disabled={readOnly}
-            required
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="cnae">CNAE</Label>
-          <Input
-            id="cnae"
-            name="cnae"
-            defaultValue={empresa.cnae ?? ""}
-            disabled={readOnly}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="segmento">Segmento</Label>
-          <Input
-            id="segmento"
-            name="segmento"
-            defaultValue={empresa.segmento ?? ""}
-            disabled={readOnly}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="enquadramento">Enquadramento sindical</Label>
-          <Input
-            id="enquadramento"
-            name="enquadramento"
-            defaultValue={empresa.enquadramento ?? ""}
-            disabled={readOnly}
-          />
-        </div>
-      </div>
+      </FormSection>
 
       {state.error ? (
         <p role="alert" className="text-sm text-destructive">
