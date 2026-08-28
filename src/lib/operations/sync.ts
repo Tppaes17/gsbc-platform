@@ -1,5 +1,6 @@
 import "server-only";
 import { formatCurrencyBRL, formatDateBR } from "@/lib/format";
+import { valorReferenciaCobranca } from "@/lib/finance/referencia";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { registrarDecisaoPolicy } from "@/lib/policies/log";
 import type { WorkItemTipo } from "@/types/database.types";
@@ -252,7 +253,7 @@ async function syncAcordosInadimplentes(supabase: AdminClient, resultado: SyncRe
 
   const { data: cobrancas } = await supabase
     .from("cobrancas")
-    .select("id, tenant_id, valor_cobranca, empresas(razao_social, nome_fantasia)")
+    .select("id, tenant_id, valor_cobranca, empresas(razao_social, nome_fantasia), negociacoes(status, valor_atual)")
     .eq("status", "agreement_reached");
 
   const idsInadimplentes = new Set<string>();
@@ -276,12 +277,16 @@ async function syncAcordosInadimplentes(supabase: AdminClient, resultado: SyncRe
       .eq("cobranca_id", c.id);
 
     const totalPago = (pagamentosRows ?? []).reduce((acc, p) => acc + p.valor, 0);
-    if (totalPago >= (c.valor_cobranca ?? 0)) continue;
+    const negociacao = Array.isArray(c.negociacoes)
+      ? c.negociacoes.find((n) => n.status === "aceita") ?? c.negociacoes[0]
+      : c.negociacoes;
+    const valorReferencia = valorReferenciaCobranca(c.valor_cobranca ?? 0, negociacao);
+    if (totalPago >= valorReferencia) continue;
 
     idsInadimplentes.add(c.id);
     const empresa = Array.isArray(c.empresas) ? c.empresas[0] : c.empresas;
     const nome = empresa?.nome_fantasia ?? empresa?.razao_social ?? "empresa";
-    const saldo = (c.valor_cobranca ?? 0) - totalPago;
+    const saldo = valorReferencia - totalPago;
 
     await criarWorkItemSeNaoExiste(supabase, {
       tenantId: c.tenant_id,
@@ -298,7 +303,12 @@ async function syncAcordosInadimplentes(supabase: AdminClient, resultado: SyncRe
       tenantId: c.tenant_id,
       entityType: "cobranca",
       entityId: c.id,
-      inputs: { dias_limite: diasLimite, total_pago: totalPago, valor_cobranca: c.valor_cobranca },
+      inputs: {
+        dias_limite: diasLimite,
+        total_pago: totalPago,
+        valor_original: c.valor_cobranca,
+        valor_referencia: valorReferencia,
+      },
       resultado: "work_item_criado",
       motivo: `Acordo firmado há mais de ${diasLimite} dias sem quitação total — saldo pendente ${formatCurrencyBRL(saldo)}.`,
     });

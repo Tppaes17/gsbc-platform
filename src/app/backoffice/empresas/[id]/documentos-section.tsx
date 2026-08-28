@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/design-system/empty-state";
 import { ConfirmationDialog } from "@/components/design-system/confirmation-dialog";
-import { documentoCategoriaOptions } from "@/lib/validation/documento";
+import { DOCUMENTO_ACCEPT, documentoCategoriaOptions } from "@/lib/validation/documento";
 import {
   deleteDocumentoAction,
   uploadDocumentoAction,
@@ -156,6 +156,7 @@ export function DocumentosSection({
                     id="file"
                     name="file"
                     type="file"
+                    accept={DOCUMENTO_ACCEPT}
                     required
                     className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-2.5 file:py-1 file:text-sm"
                   />

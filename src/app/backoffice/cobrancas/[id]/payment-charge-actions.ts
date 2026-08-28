@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { logAuditEvent } from "@/lib/audit/log";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { valorReferenciaCobranca } from "@/lib/finance/referencia";
 import { getPaymentProvider } from "@/lib/payments/registry";
 import { buildSimulatedWebhookPayload } from "@/lib/payments/mock-provider";
 import type { PaymentChargeTipo } from "@/types/database.types";
@@ -23,7 +24,7 @@ export async function criarChargeAction(cobrancaId: string, tipo: PaymentChargeT
 
   const { data: cobranca } = await supabase
     .from("cobrancas")
-    .select("tenant_id, empresa_id, valor_cobranca, empresas(razao_social, cnpj)")
+    .select("tenant_id, empresa_id, valor_cobranca, empresas(razao_social, cnpj), negociacoes(status, valor_atual)")
     .eq("id", cobrancaId)
     .single();
 
@@ -32,11 +33,15 @@ export async function criarChargeAction(cobrancaId: string, tipo: PaymentChargeT
   }
 
   const empresa = Array.isArray(cobranca.empresas) ? cobranca.empresas[0] : cobranca.empresas;
+  const negociacao = Array.isArray(cobranca.negociacoes)
+    ? cobranca.negociacoes.find((n) => n.status === "aceita") ?? cobranca.negociacoes[0]
+    : cobranca.negociacoes;
+  const valorReferencia = valorReferenciaCobranca(cobranca.valor_cobranca, negociacao);
   const provider = getPaymentProvider("mock");
 
   const result = await provider.createCharge({
     internalId: cobrancaId,
-    valor: cobranca.valor_cobranca,
+    valor: valorReferencia,
     tipo,
     descricao: `Cobrança GSBC — ${empresa?.razao_social ?? "empresa"}`,
     payerName: empresa?.razao_social ?? "",
@@ -49,7 +54,7 @@ export async function criarChargeAction(cobrancaId: string, tipo: PaymentChargeT
     cobranca_id: cobrancaId,
     provider: "mock",
     tipo,
-    valor: cobranca.valor_cobranca,
+    valor: valorReferencia,
     status: result.status,
     external_id: result.externalId,
     external_status: result.externalStatus,

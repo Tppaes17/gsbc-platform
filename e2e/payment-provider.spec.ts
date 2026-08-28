@@ -43,6 +43,18 @@ test("webhook rejeita assinatura inválida", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
+test("webhook rejeita corpo não JSON sem erro 500", async ({ request }) => {
+  const response = await request.post("/api/webhooks/payments/mock", {
+    headers: {
+      "content-type": "application/json",
+      "x-webhook-signature": "assinatura-forjada",
+    },
+    data: "not-json",
+  });
+
+  expect(response.status()).toBe(401);
+});
+
 test("webhook rejeita provider desconhecido", async ({ request }) => {
   const response = await request.post("/api/webhooks/payments/provider-inexistente", {
     data: {},

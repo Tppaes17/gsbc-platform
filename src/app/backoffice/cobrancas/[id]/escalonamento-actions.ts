@@ -6,6 +6,7 @@ import { requireCurrentUser } from "@/lib/auth/session";
 import { isEscalationApprover } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/send";
+import { valorReferenciaCobranca } from "@/lib/finance/referencia";
 import { MAX_DOCUMENTO_SIZE_BYTES } from "@/lib/validation/documento";
 import {
   decidirAprovacaoSchema,
@@ -19,6 +20,8 @@ export interface EscalonamentoActionState {
   error: string | null;
   success: boolean;
 }
+
+type NegociacaoReferencia = { status: string; valor_atual: number | null };
 
 const BUCKET = "documentos-empresas";
 
@@ -200,7 +203,7 @@ export async function gerarDocumentoAction(
   const { data: escalonamento } = await supabase
     .from("escalonamentos")
     .select(
-      "tenant_id, empresa_id, cobranca_id, motivo, empresas(razao_social, nome_fantasia, cnpj, endereco), cobrancas(valor_cobranca, vencimento, obrigacoes(descricao)), tenants(name)",
+      "tenant_id, empresa_id, cobranca_id, motivo, empresas(razao_social, nome_fantasia, cnpj, endereco), cobrancas(valor_cobranca, vencimento, obrigacoes(descricao), negociacoes(status, valor_atual)), tenants(name)",
     )
     .eq("id", escalonamentoId)
     .single();
@@ -222,6 +225,17 @@ export async function gerarDocumentoAction(
     return { error: "Dados da cobrança/empresa incompletos.", success: false };
   }
 
+  const negociacoes = Array.isArray(cobranca.negociacoes)
+    ? (cobranca.negociacoes as NegociacaoReferencia[])
+    : cobranca.negociacoes
+      ? [cobranca.negociacoes as NegociacaoReferencia]
+      : [];
+  const negociacao = negociacoes.find((n) => n.status === "aceita") ?? negociacoes[0];
+  const valorReferencia = valorReferenciaCobranca(
+    cobranca.valor_cobranca,
+    negociacao,
+  );
+
   const endereco = empresa.endereco as Record<string, unknown> | null;
   const enderecoTexto = endereco
     ? [endereco.logradouro, endereco.cidade, endereco.uf].filter(Boolean).join(", ") || null
@@ -233,7 +247,7 @@ export async function gerarDocumentoAction(
     empresaCnpj: empresa.cnpj,
     empresaEndereco: enderecoTexto,
     obrigacaoDescricao: obrigacao?.descricao ?? "—",
-    valorCobranca: cobranca.valor_cobranca,
+    valorCobranca: valorReferencia,
     vencimento: cobranca.vencimento,
     motivoEscalonamento: escalonamento.motivo,
     emissorNome: user.fullName,

@@ -1,6 +1,6 @@
-import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { loginAs, SINDICATO_EMAIL, STAFF_EMAIL } from "./helpers/auth";
+import { createProspectosFixture } from "./helpers/prospectos-fixture";
 
 /**
  * Prospectos (Rodada 16) — upload de planilha de pesquisa já realizada,
@@ -9,9 +9,9 @@ import { loginAs, SINDICATO_EMAIL, STAFF_EMAIL } from "./helpers/auth";
  * usuário (colunas de PROSPECTO_COLUNAS_ESPERADAS).
  */
 
-const SAMPLE_XLSX = path.join(__dirname, "fixtures", "prospectos-teste.xlsx");
+test("Owner vê o menu Prospectos e importa uma planilha", async ({ page }, testInfo) => {
+  const fixture = createProspectosFixture(testInfo);
 
-test("Owner vê o menu Prospectos e importa uma planilha", async ({ page }) => {
   await loginAs(page, STAFF_EMAIL);
 
   await expect(page.getByRole("link", { name: "Prospectos" })).toBeVisible();
@@ -19,7 +19,7 @@ test("Owner vê o menu Prospectos e importa uma planilha", async ({ page }) => {
   await page.waitForURL("**/backoffice/prospectos");
 
   await page.getByRole("button", { name: "Importar planilha" }).click();
-  await page.locator('input#file[type="file"]').setInputFiles(SAMPLE_XLSX);
+  await page.locator('input#file[type="file"]').setInputFiles(fixture.path);
   await page.getByRole("button", { name: "Importar" }).click();
 
   await expect(page.getByText(/2 prospecto\(s\) novo\(s\)/)).toBeVisible({ timeout: 10_000 });
@@ -27,10 +27,10 @@ test("Owner vê o menu Prospectos e importa uma planilha", async ({ page }) => {
 
   await page.getByRole("button", { name: "Close" }).click();
 
-  await expect(page.getByText("PROVEDOR TESTE UM LTDA")).toBeVisible();
-  await expect(page.getByText("PROVEDOR TESTE DOIS LTDA")).toBeVisible();
+  await expect(page.getByText(fixture.nomeUm)).toBeVisible();
+  await expect(page.getByText(fixture.nomeDois)).toBeVisible();
 
-  await page.getByText("PROVEDOR TESTE UM LTDA").click();
+  await page.getByText(fixture.nomeUm).click();
   await page.waitForURL("**/backoffice/prospectos/**");
   await expect(page.getByText("Inteligência cadastral")).toBeVisible();
   await expect(page.getByRole("button", { name: "Consultar CNPJ oficial" })).toBeVisible();

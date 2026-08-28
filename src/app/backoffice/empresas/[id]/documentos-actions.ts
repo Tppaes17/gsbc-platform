@@ -5,6 +5,7 @@ import { logAuditEvent } from "@/lib/audit/log";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
+  isAllowedDocumentoFile,
   MAX_DOCUMENTO_SIZE_BYTES,
   uploadDocumentoSchema,
 } from "@/lib/validation/documento";
@@ -47,6 +48,9 @@ export async function uploadDocumentoAction(
   }
   if (file.size > MAX_DOCUMENTO_SIZE_BYTES) {
     return { error: "Arquivo maior que o limite de 50MB.", success: false };
+  }
+  if (!isAllowedDocumentoFile(file)) {
+    return { error: "Tipo de arquivo não permitido.", success: false };
   }
 
   const input = parsed.data;

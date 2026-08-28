@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { logAuditEvent } from "@/lib/audit/log";
 import { requireCurrentPortalContato } from "@/lib/auth/portal-session";
 import { createClient } from "@/lib/supabase/server";
-import { MAX_DOCUMENTO_SIZE_BYTES } from "@/lib/validation/documento";
+import { isAllowedDocumentoFile, MAX_DOCUMENTO_SIZE_BYTES } from "@/lib/validation/documento";
 import { abrirContestacaoSchema, adicionarComentarioSchema } from "@/lib/validation/contestacao";
 import { parseCurrency } from "@/lib/validation/cobranca";
 import { z } from "zod";
@@ -134,6 +134,9 @@ export async function adicionarDocumentoEvidenciaPortalAction(
   }
   if (file.size > MAX_DOCUMENTO_SIZE_BYTES) {
     return { error: "Arquivo maior que o limite de 50MB.", success: false };
+  }
+  if (!isAllowedDocumentoFile(file)) {
+    return { error: "Tipo de arquivo não permitido.", success: false };
   }
 
   const supabase = await createClient();

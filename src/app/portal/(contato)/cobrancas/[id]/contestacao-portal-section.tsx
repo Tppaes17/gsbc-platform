@@ -28,6 +28,7 @@ import { EmptyState } from "@/components/design-system/empty-state";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { Timeline, type TimelineItem } from "@/components/design-system/timeline";
 import { contestacaoTipoOptions } from "@/lib/validation/contestacao";
+import { DOCUMENTO_ACCEPT } from "@/lib/validation/documento";
 import {
   abrirContestacaoPortalAction,
   adicionarComentarioEvidenciaPortalAction,
@@ -260,6 +261,7 @@ function DocumentoEvidenciaDialog({ contestacaoId }: { contestacaoId: string }) 
               id="file"
               name="file"
               type="file"
+              accept={DOCUMENTO_ACCEPT}
               required
               className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-2.5 file:py-1 file:text-sm"
             />

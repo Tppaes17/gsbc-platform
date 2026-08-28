@@ -16,6 +16,18 @@ export interface WebhookProcessResult {
 // nunca desfaz um pagamento que já aconteceu.
 const STATUS_TERMINAL_SUCESSO = new Set(["paid", "refunded"]);
 
+function safeJsonPayload(rawBody: string): Record<string, unknown> {
+  if (!rawBody) return {};
+  try {
+    const parsed = JSON.parse(rawBody);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : { raw_body: rawBody };
+  } catch {
+    return { raw_body: rawBody, parse_error: "invalid_json" };
+  }
+}
+
 /**
  * Processa um webhook de pagamento — o único caminho de entrada pra
  * qualquer confirmação externa virar estado interno. Sempre persiste o
@@ -32,6 +44,7 @@ export async function processPaymentWebhook(
   const admin = createAdminClient();
   const provider = getPaymentProvider(providerName);
   const signatureValid = provider.verifyWebhookSignature(rawBody, signatureHeader);
+  const payload = safeJsonPayload(rawBody);
 
   let event: ReturnType<typeof provider.parseWebhookEvent> | null = null;
   try {
@@ -48,7 +61,7 @@ export async function processPaymentWebhook(
       provider: providerName,
       external_event_id: event?.externalEventId ?? `unparsed_${Date.now()}_${Math.random()}`,
       charge_external_id: event?.chargeExternalId ?? null,
-      payload: JSON.parse(rawBody || "{}"),
+      payload,
       signature_valid: signatureValid,
       processing_status: signatureValid ? "pending" : "error",
       processing_error: signatureValid ? null : "Assinatura inválida.",
