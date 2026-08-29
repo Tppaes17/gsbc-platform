@@ -2245,6 +2245,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      backup_list_tables: {
+        Args: Record<PropertyKey, never>;
+        Returns: { table_name: string }[];
+      };
       is_platform_staff: {
         Args: { p_user_id: string };
         Returns: boolean;
