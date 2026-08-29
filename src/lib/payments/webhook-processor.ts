@@ -1,10 +1,12 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatCurrencyBRL } from "@/lib/format";
+import { recordOperationalEvent } from "@/lib/observability/events";
 import type { Database, PaymentProviderName } from "@/types/database.types";
 import { getPaymentProvider } from "./registry";
 
 type PaymentChargeUpdate = Database["public"]["Tables"]["payment_charges"]["Update"];
+type PaymentWebhookEventRow = Database["public"]["Tables"]["payment_webhook_events"]["Row"];
 
 export interface WebhookProcessResult {
   status: "processed" | "ignored" | "manual_review" | "invalid_signature" | "duplicate";
@@ -33,8 +35,9 @@ function safeJsonPayload(rawBody: string): Record<string, unknown> {
  * qualquer confirmação externa virar estado interno. Sempre persiste o
  * evento bruto primeiro (auditoria/revisão manual independe do
  * resultado do processamento), sempre idempotente por
- * (provider, external_event_id) — retry e entrega duplicada do provider
- * nunca reprocessam.
+ * (provider, external_event_id). Replays de eventos já processados não
+ * geram efeito duplicado; reentrega de evento que ficou em error/manual
+ * review pode ser reprocessada depois que a causa externa for resolvida.
  */
 export async function processPaymentWebhook(
   providerName: PaymentProviderName,
@@ -55,6 +58,8 @@ export async function processPaymentWebhook(
 
   // Persistência bruta ANTES de qualquer decisão — mesmo se a
   // assinatura for inválida ou o parse falhar, o evento fica registrado.
+  let webhookEvent: Pick<PaymentWebhookEventRow, "id" | "processing_status"> | null = null;
+
   const { data: inserted, error: insertError } = await admin
     .from("payment_webhook_events")
     .insert({
@@ -66,16 +71,35 @@ export async function processPaymentWebhook(
       processing_status: signatureValid ? "pending" : "error",
       processing_error: signatureValid ? null : "Assinatura inválida.",
     })
-    .select("id")
+    .select("id, processing_status")
     .single();
 
   if (insertError || !inserted) {
-    // Conflito de idempotência (provider, external_event_id) já existe
-    // — retry ou entrega duplicada do provider. Nunca reprocessa.
     if (insertError?.message.includes("duplicate key")) {
-      return { status: "duplicate", message: "Evento já processado anteriormente." };
+      const { data: existing } = await admin
+        .from("payment_webhook_events")
+        .select("id, processing_status")
+        .eq("provider", providerName)
+        .eq("external_event_id", event?.externalEventId ?? "")
+        .maybeSingle();
+
+      if (!existing || existing.processing_status === "processed" || existing.processing_status === "ignored") {
+        return { status: "duplicate", message: "Evento já processado anteriormente." };
+      }
+
+      webhookEvent = existing;
+    } else {
+      recordOperationalEvent({
+        area: "payment_webhook",
+        event: "webhook_event_insert_failed",
+        severity: "error",
+        message: insertError?.message ?? "Falha sem detalhe ao registrar evento bruto.",
+        metadata: { provider: providerName },
+      });
+      return { status: "manual_review", message: "Não foi possível registrar o evento." };
     }
-    return { status: "manual_review", message: "Não foi possível registrar o evento." };
+  } else {
+    webhookEvent = inserted;
   }
 
   if (!signatureValid || !event) {
@@ -84,7 +108,7 @@ export async function processPaymentWebhook(
 
   const { data: charge } = await admin
     .from("payment_charges")
-    .select("id, cobranca_id, valor, status, tipo")
+    .select("id, tenant_id, cobranca_id, valor, status, tipo")
     .eq("provider", providerName)
     .eq("external_id", event.chargeExternalId)
     .maybeSingle();
@@ -93,7 +117,14 @@ export async function processPaymentWebhook(
     await admin
       .from("payment_webhook_events")
       .update({ processing_status: "manual_review", processing_error: "Charge não encontrada.", processed_at: new Date().toISOString() })
-      .eq("id", inserted.id);
+      .eq("id", webhookEvent.id);
+    recordOperationalEvent({
+      area: "payment_webhook",
+      event: "unknown_payment_charge",
+      severity: "warn",
+      message: "Webhook referencia uma charge desconhecida.",
+      metadata: { provider: providerName, externalEventId: event.externalEventId },
+    });
     return { status: "manual_review", message: "Evento referencia uma charge desconhecida." };
   }
 
@@ -101,7 +132,7 @@ export async function processPaymentWebhook(
     await admin
       .from("payment_webhook_events")
       .update({ processing_status: "ignored", processed_at: new Date().toISOString() })
-      .eq("id", inserted.id);
+      .eq("id", webhookEvent.id);
     return { status: "ignored", message: "Charge já está num estado terminal de sucesso — evento fora de ordem ignorado." };
   }
 
@@ -114,11 +145,10 @@ export async function processPaymentWebhook(
 
   let pagamentoId: string | null = null;
   if (event.status === "paid") {
-    const { data: pagamentoIdResult, error: pagamentoError } = await admin.rpc("register_pagamento", {
-      p_cobranca_id: charge.cobranca_id,
-      p_valor: charge.valor,
-      p_data_pagamento: event.occurredAt.slice(0, 10),
-      p_forma_pagamento: charge.tipo,
+    const { data: pagamentoIdResult, error: pagamentoError } = await admin.rpc("register_provider_pagamento", {
+      p_charge_id: charge.id,
+      p_external_status: event.externalStatus,
+      p_paid_at: event.occurredAt,
       p_observacao: `Confirmado via webhook (simulação) — charge ${event.chargeExternalId}.`,
     });
 
@@ -126,19 +156,31 @@ export async function processPaymentWebhook(
       await admin
         .from("payment_webhook_events")
         .update({ processing_status: "error", processing_error: pagamentoError.message, processed_at: new Date().toISOString() })
-        .eq("id", inserted.id);
+        .eq("id", webhookEvent.id);
+      recordOperationalEvent({
+        area: "payment_webhook",
+        event: "provider_payment_registration_failed",
+        severity: "error",
+        tenantId: charge.tenant_id,
+        entityType: "cobranca",
+        entityId: charge.cobranca_id,
+        message: pagamentoError.message,
+        metadata: { provider: providerName, externalEventId: event.externalEventId },
+      });
       return { status: "manual_review", message: "Falha ao registrar o pagamento a partir do webhook." };
     }
     pagamentoId = pagamentoIdResult;
     updatePayload.pagamento_id = pagamentoId;
   }
 
-  await admin.from("payment_charges").update(updatePayload).eq("id", charge.id);
+  if (event.status !== "paid") {
+    await admin.from("payment_charges").update(updatePayload).eq("id", charge.id);
+  }
 
   await admin
     .from("payment_webhook_events")
     .update({ processing_status: "processed", processed_at: new Date().toISOString() })
-    .eq("id", inserted.id);
+    .eq("id", webhookEvent.id);
 
   return {
     status: "processed",

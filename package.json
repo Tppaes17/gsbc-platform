@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test:e2e": "playwright test",
-    "test:e2e:reset": "supabase db reset && playwright test"
+    "test:e2e:reset": "supabase db reset && playwright test",
+    "test:phase0": "playwright test e2e/phase0-security.spec.ts e2e/phase0-backup-restore.spec.ts",
+    "check:phase0": "npm run lint && npx tsc --noEmit && npx supabase migration list --local && npm run test:phase0 && git diff --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",

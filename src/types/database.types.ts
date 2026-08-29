@@ -2314,6 +2314,15 @@ export interface Database {
         };
         Returns: string;
       };
+      register_provider_pagamento: {
+        Args: {
+          p_charge_id: string;
+          p_external_status: string;
+          p_paid_at: string;
+          p_observacao?: string | null;
+        };
+        Returns: string;
+      };
       abrir_contestacao: {
         Args: {
           p_cobranca_id: string;
