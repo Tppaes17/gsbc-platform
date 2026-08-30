@@ -435,6 +435,8 @@ export async function registrarEnvioFisicoAction(
     canal: formData.get("canal"),
     destinatario: formData.get("destinatario"),
     deliveryStatus: formData.get("deliveryStatus"),
+    evidenciaReferencia: formData.get("evidenciaReferencia") || undefined,
+    observacao: formData.get("observacao") || undefined,
   });
 
   if (!parsed.success) {
@@ -442,14 +444,17 @@ export async function registrarEnvioFisicoAction(
   }
 
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "Anexe o comprovante do envio (AR, protocolo de cartório, etc.).", success: false };
+  const hasFile = file instanceof File && file.size > 0;
+  const input = parsed.data;
+
+  if (!hasFile && !input.evidenciaReferencia) {
+    return { error: "Informe um comprovante ou uma referência externa auditável (AR, protocolo de cartório, etc.).", success: false };
   }
-  if (file.size > MAX_DOCUMENTO_SIZE_BYTES) {
+
+  if (hasFile && file.size > MAX_DOCUMENTO_SIZE_BYTES) {
     return { error: "Arquivo maior que o limite de 50MB.", success: false };
   }
 
-  const input = parsed.data;
   const supabase = await createClient();
 
   const { data: escalonamento } = await supabase
@@ -462,33 +467,39 @@ export async function registrarEnvioFisicoAction(
     return { error: "Escalonamento não encontrado.", success: false };
   }
 
-  const storagePath = `${escalonamento.empresa_id}/${crypto.randomUUID()}-${sanitizeFilename(file.name)}`;
+  let documentoId: string | null = null;
 
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, file, { contentType: file.type || undefined });
+  if (hasFile) {
+    const storagePath = `${escalonamento.empresa_id}/${crypto.randomUUID()}-${sanitizeFilename(file.name)}`;
 
-  if (uploadError) {
-    return { error: "Não foi possível enviar o comprovante.", success: false };
-  }
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(storagePath, file, { contentType: file.type || undefined });
 
-  const { data: documento, error: documentoError } = await supabase
-    .from("documentos")
-    .insert({
-      tenant_id: escalonamento.tenant_id,
-      empresa_id: escalonamento.empresa_id,
-      storage_path: storagePath,
-      nome_arquivo: file.name,
-      categoria: "comprovante",
-      tamanho_bytes: file.size,
-      uploaded_by: user.id,
-    })
-    .select("id")
-    .single();
+    if (uploadError) {
+      return { error: "Não foi possível enviar o comprovante.", success: false };
+    }
 
-  if (documentoError || !documento) {
-    await supabase.storage.from(BUCKET).remove([storagePath]);
-    return { error: "Não foi possível registrar o comprovante.", success: false };
+    const { data: documento, error: documentoError } = await supabase
+      .from("documentos")
+      .insert({
+        tenant_id: escalonamento.tenant_id,
+        empresa_id: escalonamento.empresa_id,
+        storage_path: storagePath,
+        nome_arquivo: file.name,
+        categoria: "comprovante",
+        tamanho_bytes: file.size,
+        uploaded_by: user.id,
+      })
+      .select("id")
+      .single();
+
+    if (documentoError || !documento) {
+      await supabase.storage.from(BUCKET).remove([storagePath]);
+      return { error: "Não foi possível registrar o comprovante.", success: false };
+    }
+
+    documentoId = documento.id;
   }
 
   const { data: envioId, error: registroError } = await supabase.rpc("registrar_envio", {
@@ -497,7 +508,9 @@ export async function registrarEnvioFisicoAction(
     p_destinatario: input.destinatario,
     p_delivery_status: input.deliveryStatus,
     p_erro: null,
-    p_comprovante_documento_id: documento.id,
+    p_comprovante_documento_id: documentoId,
+    p_evidencia_referencia: input.evidenciaReferencia ?? null,
+    p_observacao: input.observacao ?? null,
   });
 
   if (registroError || !envioId) {
@@ -509,7 +522,11 @@ export async function registrarEnvioFisicoAction(
     action: "escalonamento.enviado",
     entityType: "escalonamento",
     entityId: input.escalonamentoId,
-    newData: { canal: input.canal, destinatario: input.destinatario },
+    newData: {
+      canal: input.canal,
+      destinatario: input.destinatario,
+      evidencia_referencia: input.evidenciaReferencia ?? null,
+    },
   });
 
   revalidatePath(`/backoffice/cobrancas/${escalonamento.cobranca_id}`);

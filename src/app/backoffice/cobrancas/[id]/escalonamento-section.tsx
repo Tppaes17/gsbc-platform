@@ -99,6 +99,8 @@ interface EnvioData {
   destinatario: string;
   deliveryStatus: string;
   erro: string | null;
+  evidenciaReferencia: string | null;
+  observacao: string | null;
   enviadoEm: string;
   comprovanteUrl: string | null;
 }
@@ -317,8 +319,8 @@ function RegistrarEnvioFisicoDialog({ escalonamentoId }: { escalonamentoId: stri
           <DialogHeader>
             <DialogTitle>Registrar envio por canal físico</DialogTitle>
             <DialogDescription>
-              Pra carta com AR ou protocolo de cartório — anexe o comprovante,
-              é a evidência com valor jurídico real.
+              Pra carta com AR ou protocolo de cartório — anexe o comprovante
+              ou informe uma referência externa auditável.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">
@@ -364,14 +366,33 @@ function RegistrarEnvioFisicoDialog({ escalonamentoId }: { escalonamentoId: stri
             </Select>
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="file">Comprovante (AR, protocolo) *</Label>
+            <Label htmlFor="evidenciaReferencia">Referência externa</Label>
+            <Input
+              id="evidenciaReferencia"
+              name="evidenciaReferencia"
+              placeholder="Ex.: AR JT123456789BR ou protocolo do cartório"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="observacaoEnvio">Observação</Label>
+            <Textarea
+              id="observacaoEnvio"
+              name="observacao"
+              rows={2}
+              placeholder="Detalhes operacionais do envio ou recebimento."
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="file">Comprovante (AR, protocolo)</Label>
             <input
               id="file"
               name="file"
               type="file"
-              required
               className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-2.5 file:py-1 file:text-sm"
             />
+            <p className="text-xs text-muted-foreground">
+              Use arquivo ou referência externa. Pelo menos uma evidência é obrigatória.
+            </p>
           </div>
           {state.error ? (
             <p role="alert" className="text-sm text-destructive">
@@ -580,9 +601,13 @@ export function EscalonamentoSection({
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {DELIVERY_LABEL[envio.deliveryStatus] ?? envio.deliveryStatus}
+                          {envio.evidenciaReferencia ? ` · ${envio.evidenciaReferencia}` : ""}
                           {envio.erro ? ` · ${envio.erro}` : ""} ·{" "}
                           {new Date(envio.enviadoEm).toLocaleDateString("pt-BR")}
                         </span>
+                        {envio.observacao ? (
+                          <span className="text-xs text-muted-foreground">{envio.observacao}</span>
+                        ) : null}
                       </div>
                       {envio.comprovanteUrl ? (
                         <Button

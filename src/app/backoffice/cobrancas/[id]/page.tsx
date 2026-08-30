@@ -213,7 +213,7 @@ export default async function CobrancaDetailPage({
       ? supabase
           .from("escalonamento_envios")
           .select(
-            "id, canal, destinatario, delivery_status, erro, enviado_em, documentos(storage_path)",
+            "id, canal, destinatario, delivery_status, erro, evidencia_referencia, observacao, enviado_em, documentos(storage_path)",
           )
           .eq("escalonamento_id", escalonamento.id)
           .order("enviado_em", { ascending: false })
@@ -269,6 +269,8 @@ export default async function CobrancaDetailPage({
         destinatario: envio.destinatario,
         deliveryStatus: envio.delivery_status,
         erro: envio.erro,
+        evidenciaReferencia: envio.evidencia_referencia,
+        observacao: envio.observacao,
         enviadoEm: envio.enviado_em,
         comprovanteUrl,
       };

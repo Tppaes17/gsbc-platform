@@ -36,6 +36,8 @@ export const registrarEnvioFisicoSchema = z.object({
   canal: z.enum(canalEnvioValues),
   destinatario: z.string().trim().min(3, "Descreva o destinatário/endereço do envio."),
   deliveryStatus: z.enum(deliveryStatusValues),
+  evidenciaReferencia: z.string().trim().max(120, "Referência muito longa.").optional(),
+  observacao: z.string().trim().max(500, "Observação muito longa.").optional(),
 });
 
 export type RegistrarEnvioFisicoInput = z.infer<typeof registrarEnvioFisicoSchema>;

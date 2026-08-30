@@ -2257,6 +2257,8 @@ export interface Database {
           delivery_status: EscalonamentoEnvioDeliveryStatus;
           erro: string | null;
           comprovante_documento_id: string | null;
+          evidencia_referencia: string | null;
+          observacao: string | null;
           registrado_por: string | null;
           enviado_em: string;
           created_at: string;
@@ -2269,6 +2271,8 @@ export interface Database {
           delivery_status?: EscalonamentoEnvioDeliveryStatus;
           erro?: string | null;
           comprovante_documento_id?: string | null;
+          evidencia_referencia?: string | null;
+          observacao?: string | null;
           registrado_por?: string | null;
           enviado_em?: string;
           created_at?: string;
@@ -2628,6 +2632,8 @@ export interface Database {
           p_delivery_status: string;
           p_erro?: string | null;
           p_comprovante_documento_id?: string | null;
+          p_evidencia_referencia?: string | null;
+          p_observacao?: string | null;
         };
         Returns: string;
       };
