@@ -2506,6 +2506,25 @@ export interface Database {
         };
         Returns: string;
       };
+      create_financial_split_rule_version: {
+        Args: {
+          p_contract_id: string;
+          p_effective_from: string;
+          p_gsbc_percent: number;
+          p_sindicato_percent: number;
+          p_terceiros_percent?: number;
+          p_provider_fee_percent?: number;
+          p_provider_fee_fixed?: number;
+          p_metadata?: Record<string, unknown>;
+        };
+        Returns: string;
+      };
+      retry_manual_payment_reconciliation: {
+        Args: {
+          p_reconciliation_id: string;
+        };
+        Returns: string;
+      };
       abrir_contestacao: {
         Args: {
           p_cobranca_id: string;

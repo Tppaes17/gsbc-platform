@@ -2,9 +2,11 @@ import type { LucideIcon } from "lucide-react";
 import {
   Building,
   Building2,
+  CircleDollarSign,
   FileText,
   Gavel,
   Handshake,
+  Landmark,
   LayoutDashboard,
   ListTodo,
   Receipt,
@@ -73,6 +75,18 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Gavel,
   },
   { href: "/backoffice/financeiro", label: "Financeiro", icon: Wallet },
+  {
+    href: "/backoffice/contratos-financeiros",
+    label: "Contratos Financeiros",
+    icon: Landmark,
+    requiresPlatformStaff: true,
+  },
+  {
+    href: "/backoffice/conciliacao",
+    label: "Conciliação",
+    icon: CircleDollarSign,
+    requiresPlatformStaff: true,
+  },
   {
     // Staff GSBC apenas — governança de políticas de decisão/automação
     // (STG-11), mesmo nível de acesso de Central Operacional; ativar/
