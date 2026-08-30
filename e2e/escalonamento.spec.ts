@@ -146,6 +146,7 @@ async function cleanupEscalonamentoFixture(fixture: Awaited<ReturnType<typeof se
   }
 
   await admin.from("documentos").delete().eq("empresa_id", fixture.empresaId);
+  await admin.from("delivery_evidence_policies").delete().eq("tenant_id", fixture.tenantId);
   await admin.from("cobranca_eventos").delete().eq("cobranca_id", fixture.cobrancaId);
   await admin.from("collection_enrollments").delete().eq("cobranca_id", fixture.cobrancaId);
   await admin.from("cobrancas").delete().eq("id", fixture.cobrancaId);
@@ -247,7 +248,7 @@ test("staff executa rejeição, nova aprovação, documento e envio físico com 
 
     const { data: envios, error: enviosError } = await admin
       .from("escalonamento_envios")
-      .select("canal, delivery_status, evidencia_referencia, comprovante_documento_id")
+      .select("canal, delivery_status, evidencia_referencia, comprovante_documento_id, delivery_policy_version, policy_relevant_timestamp, delivery_valid")
       .eq("escalonamento_id", escalonamentos![1]!.id);
     expect(enviosError?.message).toBeUndefined();
     expect(envios).toEqual([
@@ -256,8 +257,11 @@ test("staff executa rejeição, nova aprovação, documento e envio físico com 
         delivery_status: "desconhecido",
         evidencia_referencia: "AR E2E-STG09-001",
         comprovante_documento_id: null,
+        delivery_policy_version: 1,
+        delivery_valid: true,
       }),
     ]);
+    expect(envios?.[0]?.policy_relevant_timestamp).toBeTruthy();
 
     const { data: cobranca, error: cobrancaError } = await admin
       .from("cobrancas")
@@ -315,6 +319,144 @@ test("envio com falha não avança cobrança para legal_escalation", async () =>
       .single();
     expect(cobrancaError?.message).toBeUndefined();
     expect(cobranca?.status).toBe("approved");
+  } finally {
+    await cleanupEscalonamentoFixture(fixture);
+  }
+});
+
+test("policy de delivery bloqueia envio físico sem evidência obrigatória", async () => {
+  const fixture = await setupEscalonamentoFixture();
+  const admin = adminClient();
+  const escalonamentoId = randomUUID();
+
+  try {
+    await expectOk(admin.from("escalonamentos").insert({
+      id: escalonamentoId,
+      tenant_id: fixture.tenantId,
+      empresa_id: fixture.empresaId,
+      cobranca_id: fixture.cobrancaId,
+      status: "documento_emitido",
+      motivo: "Fixture para validar DeliveryEvidencePolicy sem evidência.",
+    }));
+
+    const staff = await staffClient();
+    const { error: envioError } = await staff.rpc("registrar_envio", {
+      p_escalonamento_id: escalonamentoId,
+      p_canal: "cartorio",
+      p_destinatario: "Cartório de Registro de Títulos e Documentos",
+      p_delivery_status: "entregue",
+      p_erro: null,
+      p_comprovante_documento_id: null,
+      p_evidencia_referencia: null,
+      p_observacao: null,
+    });
+    expect(envioError?.message).toContain("exige comprovante anexado ou referência externa auditável");
+
+    const { data: envios, error: enviosError } = await admin
+      .from("escalonamento_envios")
+      .select("id")
+      .eq("escalonamento_id", escalonamentoId);
+    expect(enviosError?.message).toBeUndefined();
+    expect(envios).toEqual([]);
+
+    const { data: cobranca, error: cobrancaError } = await admin
+      .from("cobrancas")
+      .select("status")
+      .eq("id", fixture.cobrancaId)
+      .single();
+    expect(cobrancaError?.message).toBeUndefined();
+    expect(cobranca?.status).toBe("approved");
+  } finally {
+    await cleanupEscalonamentoFixture(fixture);
+  }
+});
+
+test("policy de delivery preserva versão, timestamp e vínculo de arquivo histórico", async () => {
+  const fixture = await setupEscalonamentoFixture();
+  const admin = adminClient();
+  const escalonamentoId = randomUUID();
+  const documentoId = randomUUID();
+
+  try {
+    await expectOk(admin.from("escalonamentos").insert({
+      id: escalonamentoId,
+      tenant_id: fixture.tenantId,
+      empresa_id: fixture.empresaId,
+      cobranca_id: fixture.cobrancaId,
+      status: "documento_emitido",
+      motivo: "Fixture para validar snapshot de DeliveryEvidencePolicy.",
+    }));
+    await expectOk(admin.from("documentos").insert({
+      id: documentoId,
+      tenant_id: fixture.tenantId,
+      empresa_id: fixture.empresaId,
+      storage_path: `${fixture.empresaId}/comprovante-delivery-policy.pdf`,
+      nome_arquivo: "comprovante-delivery-policy.pdf",
+      categoria: "comprovante",
+      tamanho_bytes: 128,
+    }));
+
+    const staff = await staffClient();
+    const { data: envioId, error: envioError } = await staff.rpc("registrar_envio", {
+      p_escalonamento_id: escalonamentoId,
+      p_canal: "correio_ar",
+      p_destinatario: "Empresa Escalonamento, Rua do Teste, 100",
+      p_delivery_status: "entregue",
+      p_erro: null,
+      p_comprovante_documento_id: documentoId,
+      p_evidencia_referencia: "AR-ARQUIVO-STG09-001",
+      p_observacao: "Arquivo comprobatório vinculado ao envio.",
+    });
+    expect(envioError?.message).toBeUndefined();
+    expect(envioId).toBeTruthy();
+
+    const { data: envio, error: envioSelectError } = await admin
+      .from("escalonamento_envios")
+      .select("delivery_policy_id, delivery_policy_version, policy_relevant_timestamp, delivery_valid, comprovante_documento_id")
+      .eq("id", envioId!)
+      .single();
+    expect(envioSelectError?.message).toBeUndefined();
+    expect(envio).toEqual(expect.objectContaining({
+      delivery_policy_version: 1,
+      delivery_valid: true,
+      comprovante_documento_id: documentoId,
+    }));
+    expect(envio?.delivery_policy_id).toBeTruthy();
+    expect(envio?.policy_relevant_timestamp).toBeTruthy();
+
+    await expectOk(admin.from("delivery_evidence_policies").insert({
+      id: randomUUID(),
+      tenant_id: fixture.tenantId,
+      version: 2,
+      effective_from: "2099-01-01",
+      communication_type: "extrajudicial_notice",
+      channel: "correio_ar",
+      evidence_required: ["future_rule"],
+      validity_rule: "future_policy_must_not_rewrite_historical_event",
+      relevant_timestamp_field: "future_delivered_at",
+      failure_behavior: "future_failure_behavior",
+      requires_human_review: true,
+      starts_operational_deadline: false,
+      starts_legal_deadline: false,
+    }));
+
+    const { data: unchanged, error: unchangedError } = await admin
+      .from("escalonamento_envios")
+      .select("delivery_policy_version, policy_relevant_timestamp, comprovante_documento_id")
+      .eq("id", envioId!)
+      .single();
+    expect(unchangedError?.message).toBeUndefined();
+    expect(unchanged?.delivery_policy_version).toBe(1);
+    expect(unchanged?.comprovante_documento_id).toBe(documentoId);
+
+    const { data: collectionPolicies, error: policyError } = await admin
+      .from("delivery_evidence_policies")
+      .select("channel, validity_rule")
+      .eq("communication_type", "collection_attempt")
+      .in("channel", ["email", "whatsapp"])
+      .order("channel");
+    expect(policyError?.message).toBeUndefined();
+    expect(collectionPolicies?.map((policy) => policy.channel).sort()).toEqual(["email", "whatsapp"]);
   } finally {
     await cleanupEscalonamentoFixture(fixture);
   }

@@ -170,6 +170,18 @@ Falha definitiva suspende avanço e cria tarefa de correção.
 ### DR-COL-010
 Próxima tentativa somente pode iniciar após 3 dias úteis desde `attempt_completed_at`.
 
+### DR-COL-011
+Physical delivery é canal complementar, não substituto silencioso de e-mail/WhatsApp. Seu uso em cobrança ou notificação depende de `DeliveryEvidencePolicy` versionada por tipo de comunicação e canal.
+
+### DR-COL-012
+Uma evidência física válida deve preservar, conforme aplicável, destinatário institucional, endereço/destino, status, referência externa ou arquivo comprobatório, operador, tenant, CNPJ/estabelecimento, obrigação/caso e audit event.
+
+### DR-COL-013
+Falha, devolução, destinatário desconhecido, endereço inválido ou ausência de evidência requerida não contam como entrega válida, não concluem tentativa dependente de entrega e devem preservar evidência da falha.
+
+### DR-COL-014
+Canal físico não marca canal digital como entregue. Em fluxo multicanal, cada canal mantém seu próprio estado/evidência; `attempt_completed_at` continua derivado da última entrega válida dos canais obrigatórios definidos pela policy aplicável.
+
 ## 10. Resposta da empresa
 
 Classificação mínima:
@@ -226,6 +238,12 @@ Prazo padrão é 10 dias corridos.
 
 ### DR-NOT-004
 O marco inicial deverá ser a evidência de entrega definida na policy versionada da notificação; até homologação jurídica específica, não usar mera criação do documento como início do prazo.
+
+### DR-NOT-005
+Notificação extrajudicial pode registrar envio físico por correspondência, AR, cartório, protocolo, comprovante, referência externa auditável ou documento equivalente homologado, desde que a `DeliveryEvidencePolicy` aplicável permita o canal e defina sua evidência mínima.
+
+### DR-NOT-006
+Registro de envio físico pode produzir evidência operacional de envio sem, por si só, iniciar prazo jurídico. O início de prazo depende do timestamp e da regra de validade definidos na `DeliveryEvidencePolicy` versionada.
 
 ## 13. Decisão pós-notificação
 

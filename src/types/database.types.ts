@@ -2259,6 +2259,10 @@ export interface Database {
           comprovante_documento_id: string | null;
           evidencia_referencia: string | null;
           observacao: string | null;
+          delivery_policy_id: string | null;
+          delivery_policy_version: number | null;
+          policy_relevant_timestamp: string | null;
+          delivery_valid: boolean;
           registrado_por: string | null;
           enviado_em: string;
           created_at: string;
@@ -2273,6 +2277,10 @@ export interface Database {
           comprovante_documento_id?: string | null;
           evidencia_referencia?: string | null;
           observacao?: string | null;
+          delivery_policy_id?: string | null;
+          delivery_policy_version?: number | null;
+          policy_relevant_timestamp?: string | null;
+          delivery_valid?: boolean;
           registrado_por?: string | null;
           enviado_em?: string;
           created_at?: string;
@@ -2294,8 +2302,74 @@ export interface Database {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "escalonamento_envios_delivery_policy_id_fkey";
+            columns: ["delivery_policy_id"];
+            isOneToOne: false;
+            referencedRelation: "delivery_evidence_policies";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "escalonamento_envios_registrado_por_fkey";
             columns: ["registrado_por"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      delivery_evidence_policies: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          version: number;
+          effective_from: string;
+          effective_to: string | null;
+          communication_type: "collection_attempt" | "extrajudicial_notice";
+          channel: "email" | "whatsapp" | "correio_ar" | "cartorio" | "outro";
+          evidence_required: Record<string, unknown> | unknown[];
+          validity_rule: string;
+          relevant_timestamp_field: string;
+          failure_behavior: string;
+          requires_human_review: boolean;
+          starts_operational_deadline: boolean;
+          starts_legal_deadline: boolean;
+          approved_by: string | null;
+          approved_at: string | null;
+          audit_metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id?: string | null;
+          version: number;
+          effective_from: string;
+          effective_to?: string | null;
+          communication_type: "collection_attempt" | "extrajudicial_notice";
+          channel: "email" | "whatsapp" | "correio_ar" | "cartorio" | "outro";
+          evidence_required?: Record<string, unknown> | unknown[];
+          validity_rule: string;
+          relevant_timestamp_field: string;
+          failure_behavior: string;
+          requires_human_review?: boolean;
+          starts_operational_deadline?: boolean;
+          starts_legal_deadline?: boolean;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          audit_metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "delivery_evidence_policies_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "delivery_evidence_policies_approved_by_fkey";
+            columns: ["approved_by"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];

@@ -568,6 +568,25 @@ Se apenas um canal falhar, apenas ele é reenviado.
 
 O canal entregue permanece válido.
 
+### 14.3.1 DeliveryEvidencePolicy
+
+Regras de envio, entrega válida, timestamp operacional, início de prazo e tratamento de falha devem ser definidas por `DeliveryEvidencePolicy` versionada, auditável e aplicável por tipo de comunicação e canal.
+
+Falha, devolução, destinatário desconhecido, endereço inválido ou ausência da evidência exigida pela política aplicável não produzem efeito de entrega válida e não avançam automaticamente estado dependente de entrega.
+
+Physical delivery é canal complementar suportado pelo GSBC, incluindo, quando aplicável:
+
+- correspondência;
+- AR;
+- protocolo;
+- comprovante de entrega;
+- referência externa auditável;
+- documento equivalente homologado.
+
+Physical delivery não substitui silenciosamente regras de comunicação digital. Seu efeito operacional ou jurídico depende da `DeliveryEvidencePolicy` aplicável ao evento.
+
+Uma evidência física deve preservar, conforme aplicável: tipo, destinatário, endereço/destino institucional, data de envio, data de entrega, status, referência externa, provider/carrier, arquivo comprobatório, hash quando houver arquivo, operador, tenant, CNPJ/estabelecimento, obrigação/caso e evento de auditoria.
+
 ### 14.4 Conclusão da tentativa
 
 A tentativa é concluída na data/hora da última entrega válida necessária para completar os canais obrigatórios.
@@ -673,6 +692,8 @@ Após terceira tentativa válida sem solução:
 - usa template pré-aprovado e versionado;
 - possui assinatura digital quando aplicável;
 - prazo: **10 dias corridos**.
+
+O marco de início do prazo da notificação extrajudicial não deve ser inferido universalmente de AR, protocolo, criação de documento ou mero envio. O timestamp relevante deve vir da `DeliveryEvidencePolicy` versionada e, quando depender de interpretação jurídica, de regra homologada aplicável.
 
 Após o prazo, entidade possui **10 dias corridos** para decidir:
 

@@ -101,6 +101,9 @@ interface EnvioData {
   erro: string | null;
   evidenciaReferencia: string | null;
   observacao: string | null;
+  deliveryPolicyVersion: number | null;
+  policyRelevantTimestamp: string | null;
+  deliveryValid: boolean;
   enviadoEm: string;
   comprovanteUrl: string | null;
 }
@@ -601,9 +604,11 @@ export function EscalonamentoSection({
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {DELIVERY_LABEL[envio.deliveryStatus] ?? envio.deliveryStatus}
+                          {envio.deliveryPolicyVersion ? ` · Policy v${envio.deliveryPolicyVersion}` : ""}
+                          {envio.deliveryValid ? " · válido operacionalmente" : " · não válido"}
                           {envio.evidenciaReferencia ? ` · ${envio.evidenciaReferencia}` : ""}
                           {envio.erro ? ` · ${envio.erro}` : ""} ·{" "}
-                          {new Date(envio.enviadoEm).toLocaleDateString("pt-BR")}
+                          {new Date(envio.policyRelevantTimestamp ?? envio.enviadoEm).toLocaleDateString("pt-BR")}
                         </span>
                         {envio.observacao ? (
                           <span className="text-xs text-muted-foreground">{envio.observacao}</span>
