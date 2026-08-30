@@ -2,6 +2,7 @@ import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 import { AI_MODEL, getAiClient } from "./client";
 import { ACAO_SUGERIDA_OPTIONS, ACAO_VALUES } from "./collections-copilot-options";
+import { sanitizeAiContextText, summarizeAiContextSafety } from "./guardrails";
 
 /**
  * Collections Copilot (STG-12, Autonomy Level 2 — Draft). Sugere a
@@ -47,6 +48,7 @@ export interface CollectionsCopilotResult {
   justificativa: string | null;
   rascunhoNotificacao: string | null;
   contextReference: Record<string, unknown>;
+  contextSafety: Record<string, unknown>;
   parseOk: boolean;
 }
 
@@ -67,20 +69,31 @@ export async function sugerirAcaoCobranca(
   const notificacoesTexto =
     input.notificacoesRecentes.length > 0
       ? input.notificacoesRecentes
-          .map((n) => `- [${formatDate(n.createdAt)}] "${n.assunto}" — status: ${n.status}`)
+          .map((n) => `- [${formatDate(n.createdAt)}] "${sanitizeAiContextText(n.assunto).text}" — status: ${sanitizeAiContextText(n.status).text}`)
           .join("\n")
       : "(nenhuma notificação enviada ainda)";
 
   const eventosTexto =
     input.eventosRecentes.length > 0
       ? input.eventosRecentes
-          .map((e) => `- [${formatDate(e.createdAt)}] status mudou para "${e.toStatus}"${e.reason ? ` — ${e.reason}` : ""}`)
+          .map((e) => `- [${formatDate(e.createdAt)}] status mudou para "${sanitizeAiContextText(e.toStatus).text}"${e.reason ? ` — ${sanitizeAiContextText(e.reason).text}` : ""}`)
           .join("\n")
       : "(nenhum evento de status registrado)";
 
-  const userPrompt = `Empresa: ${input.empresaNome}
-Obrigação: ${input.obrigacaoDescricao}
-Status atual da cobrança: ${input.status}
+  const empresaNome = sanitizeAiContextText(input.empresaNome).text;
+  const obrigacaoDescricao = sanitizeAiContextText(input.obrigacaoDescricao).text;
+  const status = sanitizeAiContextText(input.status).text;
+  const contextSafety = summarizeAiContextSafety({
+    empresaNome: input.empresaNome,
+    obrigacaoDescricao: input.obrigacaoDescricao,
+    status: input.status,
+    notificacoes: input.notificacoesRecentes.map((n) => `${n.assunto} ${n.status}`).join(" | "),
+    eventos: input.eventosRecentes.map((e) => `${e.toStatus} ${e.reason ?? ""}`).join(" | "),
+  });
+
+  const userPrompt = `Empresa: ${empresaNome}
+Obrigação: ${obrigacaoDescricao}
+Status atual da cobrança: ${status}
 Valor: ${formatCurrency(input.valorCobranca)}
 Vencimento: ${formatDate(input.vencimento)}
 Já existe negociação ativa nesta cobrança: ${input.temNegociacaoAtiva ? "sim" : "não"}
@@ -128,6 +141,7 @@ ${eventosTexto}`;
       justificativa: parsed.justificativa ?? null,
       rascunhoNotificacao: parsed.rascunho_notificacao ?? null,
       contextReference,
+      contextSafety,
       parseOk: acaoSugerida !== null,
     };
   } catch {
@@ -137,6 +151,7 @@ ${eventosTexto}`;
       justificativa: null,
       rascunhoNotificacao: null,
       contextReference,
+      contextSafety,
       parseOk: false,
     };
   }

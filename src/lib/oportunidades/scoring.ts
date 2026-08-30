@@ -1,6 +1,3 @@
-import "server-only";
-import { normalizar } from "@/lib/cnpj/avaliacao";
-
 /**
  * Opportunity Score determinístico (STG-10) — primeira versão, sem ML
  * (regra explícita do roadmap: "primeiro acumular dados"). Mesmo padrão
@@ -37,6 +34,9 @@ export interface FatorScore {
   pontos: number;
   pesoMaximo: number;
   explicacao: string;
+  sourceType: "observed_data" | "derived_inference";
+  sourceFields: string[];
+  evidenceSnapshot: Record<string, unknown>;
 }
 
 export interface ProspectoParaAvaliacao {
@@ -118,6 +118,14 @@ const STOPWORDS = new Set([
   "especificadas",
   "especificados",
 ]);
+
+function normalizar(valor: string | null | undefined) {
+  return (valor ?? "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
 
 function tokenizar(texto: string): string[] {
   return normalizar(texto)
@@ -239,6 +247,15 @@ export function calcularScoreOportunidade(params: {
     dimensao: "fit_territorial",
     pontos: pontosFitTerritorial,
     pesoMaximo: PESO_MAXIMO.fit_territorial,
+    sourceType: "derived_inference",
+    sourceFields: ["prospecto.uf", "prospecto.municipio", "sindicato.baseTerritorial"],
+    evidenceSnapshot: {
+      uf: prospecto.uf,
+      municipio: prospecto.municipio,
+      tenantCandidatoId: melhor?.tenantId ?? null,
+      tenantCandidatoNome: melhor?.tenantNome ?? null,
+      fitTerritorial: melhor?.fitTerritorial ?? 0,
+    },
     explicacao: !prospecto.uf
       ? "Sem UF nos dados cadastrais do prospecto — fit territorial não pôde ser avaliado."
       : melhor && melhor.fitTerritorial === 1
@@ -254,6 +271,14 @@ export function calcularScoreOportunidade(params: {
     dimensao: "fit_atividade",
     pontos: pontosFitAtividade,
     pesoMaximo: PESO_MAXIMO.fit_atividade,
+    sourceType: "derived_inference",
+    sourceFields: ["prospecto.cnaeDescricao", "sindicato.categoria"],
+    evidenceSnapshot: {
+      cnaeDescricao: prospecto.cnaeDescricao,
+      tenantCandidatoId: melhor?.tenantId ?? null,
+      tenantCandidatoNome: melhor?.tenantNome ?? null,
+      fitAtividade: melhor?.fitAtividade ?? 0,
+    },
     explicacao: !prospecto.cnaeDescricao
       ? "Sem CNAE nos dados cadastrais do prospecto — fit de atividade não pôde ser avaliado."
       : melhor && melhor.fitAtividade > 0
@@ -268,6 +293,9 @@ export function calcularScoreOportunidade(params: {
     dimensao: "qualidade_evidencias",
     pontos: pontosEvidencias,
     pesoMaximo: PESO_MAXIMO.qualidade_evidencias,
+    sourceType: "observed_data",
+    sourceFields: ["dossie_evidencias.fonte"],
+    evidenceSnapshot: { quantidadeFontesDistintas: prospecto.quantidadeFontesDistintas },
     explicacao:
       prospecto.quantidadeFontesDistintas === 0
         ? "Nenhuma evidência registrada ainda para este prospecto."
@@ -289,6 +317,15 @@ export function calcularScoreOportunidade(params: {
     dimensao: "completude",
     pontos: pontosCompletude,
     pesoMaximo: PESO_MAXIMO.completude,
+    sourceType: "observed_data",
+    sourceFields: [
+      "dados_oficiais.razaoSocial",
+      "dados_oficiais.uf",
+      "dados_oficiais.cnaePrincipalDescricao",
+      "dados_oficiais.situacaoCadastral",
+      "dados_oficiais.qsa",
+    ],
+    evidenceSnapshot: { presentes, ausentes },
     explicacao: `Dados presentes: ${presentes.length > 0 ? presentes.join(", ") : "nenhum"}.${ausentes.length > 0 ? ` Faltando: ${ausentes.join(", ")}.` : ""}`,
   });
 
@@ -309,6 +346,14 @@ export function calcularScoreOportunidade(params: {
     dimensao: "potencial_economico",
     pontos: pontosPotencialEconomico,
     pesoMaximo: PESO_MAXIMO.potencial_economico,
+    sourceType: "derived_inference",
+    sourceFields: ["obrigacoes.valor_referencia", "oportunidades.tenant_candidato_id"],
+    evidenceSnapshot: {
+      tenantCandidatoId: melhor?.tenantId ?? null,
+      tenantCandidatoNome: melhor?.tenantNome ?? null,
+      historicoQuantidade: historico?.quantidade ?? 0,
+      estimativaValor,
+    },
     explicacao: estimativaMetodologia,
   });
 
@@ -328,6 +373,9 @@ export function calcularScoreOportunidade(params: {
     dimensao: "recencia",
     pontos: pontosRecencia,
     pesoMaximo: PESO_MAXIMO.recencia,
+    sourceType: "observed_data",
+    sourceFields: ["dossies_cadastrais.ultima_consulta_em"],
+    evidenceSnapshot: { ultimaConsultaEm: prospecto.ultimaConsultaEm },
     explicacao: explicacaoRecencia,
   });
 
@@ -337,6 +385,9 @@ export function calcularScoreOportunidade(params: {
     dimensao: "qualidade_contato",
     pontos: pontosContato,
     pesoMaximo: PESO_MAXIMO.qualidade_contato,
+    sourceType: "observed_data",
+    sourceFields: ["dados_oficiais.email", "dados_oficiais.telefone", "dossie_evidencias.email", "dossie_evidencias.telefone"],
+    evidenceSnapshot: { temEmail: prospecto.temEmail, temTelefone: prospecto.temTelefone },
     explicacao:
       prospecto.temEmail && prospecto.temTelefone
         ? "E-mail e telefone de contato encontrados."

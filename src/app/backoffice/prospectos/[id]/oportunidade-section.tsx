@@ -65,6 +65,8 @@ interface FatorItem {
   pontos: number;
   peso_maximo: number;
   explicacao: string;
+  source_type?: string;
+  source_fields?: string[];
 }
 
 interface CandidatoItem {
@@ -283,7 +285,7 @@ export function OportunidadeSection({
             </div>
 
             <div className="flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Estimativa econômica:</span>
+              <span className="text-muted-foreground">Estimativa econômica inferida:</span>
               <span className="font-medium">
                 {oportunidade.estimativaValor !== null ? formatCurrency(oportunidade.estimativaValor) : "Não disponível"}
               </span>
@@ -331,6 +333,11 @@ export function OportunidadeSection({
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">{f.explicacao}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Proveniência:{" "}
+                      {f.source_type === "observed_data" ? "dados observados" : "inferência derivada"}
+                      {f.source_fields && f.source_fields.length > 0 ? ` · ${f.source_fields.join(", ")}` : ""}
+                    </p>
                   </div>
                 ))}
               </div>

@@ -72,7 +72,7 @@ export default async function ProspectoDetailPage({
     oportunidadeRow
       ? supabase
           .from("oportunidade_fatores")
-          .select("dimensao, pontos, peso_maximo, explicacao")
+          .select("dimensao, pontos, peso_maximo, explicacao, source_type, source_fields")
           .eq("oportunidade_id", oportunidadeRow.id)
       : Promise.resolve({ data: [] as never[] }),
     oportunidadeRow

@@ -168,6 +168,14 @@ export type OportunidadeFatorDimensao =
 export type OportunidadeEventoTipo = "avaliacao" | "em_analise" | "validada" | "descartada" | "observacao";
 export type PolicyCategoria = "negociacao" | "cobranca" | "automacao";
 export type PolicyEnforcement = "aplicada" | "registrada";
+export type PolicyDecisionResult =
+  | "ALLOW"
+  | "DENY"
+  | "REQUIRE_CONFIRMATION"
+  | "REQUIRE_MFA"
+  | "REQUIRE_MAKER_CHECKER"
+  | "REQUIRE_ENTITY_AUTHORITY"
+  | "GSBC_VETO";
 export type AiCopilot = "negotiation" | "collections";
 export type AiEntityType = "negociacao" | "cobranca";
 export type AiInteracaoStatus = "gerado" | "aceito" | "rejeitado" | "editado";
@@ -1337,6 +1345,9 @@ export interface Database {
           pontos: number;
           peso_maximo: number;
           explicacao: string;
+          source_type: "observed_data" | "derived_inference" | "human_decision";
+          source_fields: string[];
+          evidence_snapshot: Record<string, unknown>;
           created_at: string;
         };
         Insert: {
@@ -1346,6 +1357,9 @@ export interface Database {
           pontos: number;
           peso_maximo: number;
           explicacao: string;
+          source_type?: "observed_data" | "derived_inference" | "human_decision";
+          source_fields?: string[];
+          evidence_snapshot?: Record<string, unknown>;
           created_at?: string;
         };
         Update: never;
@@ -1367,6 +1381,10 @@ export interface Database {
           descricao: string | null;
           score: number | null;
           user_id: string | null;
+          actor_type: "human" | "system";
+          decision_nature: "inference" | "human_review";
+          before_state: Record<string, unknown> | null;
+          after_state: Record<string, unknown> | null;
           created_at: string;
         };
         Insert: {
@@ -1376,6 +1394,10 @@ export interface Database {
           descricao?: string | null;
           score?: number | null;
           user_id?: string | null;
+          actor_type?: "human" | "system";
+          decision_nature?: "inference" | "human_review";
+          before_state?: Record<string, unknown> | null;
+          after_state?: Record<string, unknown> | null;
           created_at?: string;
         };
         Update: never;
@@ -2404,6 +2426,36 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      policy_action_requirements: {
+        Row: {
+          id: string;
+          action_code: string;
+          policy_id: string;
+          policy_versao: number;
+          pass_result: PolicyDecisionResult;
+          fail_result: PolicyDecisionResult;
+          requires_owner: boolean;
+          requires_platform_staff: boolean;
+          requires_mfa: boolean;
+          requires_maker_checker: boolean;
+          risk_level: "low" | "medium" | "high" | "critical";
+          reason: string;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "policy_action_requirements_policy_id_fkey";
+            columns: ["policy_id"];
+            isOneToOne: false;
+            referencedRelation: "policies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       policy_decisoes: {
         Row: {
           id: string;
@@ -2460,6 +2512,9 @@ export interface Database {
           output: string;
           output_estruturado: Record<string, unknown> | null;
           status: AiInteracaoStatus;
+          autonomy_level: number;
+          context_safety: Record<string, unknown>;
+          policy_decision_id: string | null;
           user_id: string | null;
           decided_at: string | null;
           decided_by: string | null;
@@ -2477,6 +2532,9 @@ export interface Database {
           output: string;
           output_estruturado?: Record<string, unknown> | null;
           status?: AiInteracaoStatus;
+          autonomy_level?: number;
+          context_safety?: Record<string, unknown>;
+          policy_decision_id?: string | null;
           user_id?: string | null;
           decided_at?: string | null;
           decided_by?: string | null;
@@ -2487,6 +2545,7 @@ export interface Database {
           decided_at: string | null;
           decided_by: string | null;
           output_estruturado: Record<string, unknown> | null;
+          policy_decision_id: string | null;
         }>;
         Relationships: [
           {
@@ -2718,6 +2777,16 @@ export interface Database {
       alternar_policy_ativa: {
         Args: { p_policy_id: string; p_ativa: boolean; p_motivo: string };
         Returns: undefined;
+      };
+      evaluate_policy_action: {
+        Args: {
+          p_action_code: string;
+          p_tenant_id: string | null;
+          p_entity_type: string;
+          p_entity_id: string;
+          p_inputs?: Record<string, unknown>;
+        };
+        Returns: Record<string, unknown>;
       };
       decidir_aprovacao_desconto: {
         Args: { p_negociacao_id: string; p_aprovado: boolean; p_motivo: string };

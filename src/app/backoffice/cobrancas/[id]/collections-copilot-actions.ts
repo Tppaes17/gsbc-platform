@@ -117,7 +117,9 @@ export async function sugerirAcaoCobrancaAction(cobrancaId: string): Promise<Sug
       model: AI_MODEL,
       prompt_version: COLLECTIONS_COPILOT_PROMPT_VERSION,
       context_reference: resultado.contextReference,
+      context_safety: resultado.contextSafety,
       output: resultado.output,
+      autonomy_level: 2,
       output_estruturado: resultado.parseOk
         ? {
             acao_sugerida: resultado.acaoSugerida,
@@ -166,10 +168,37 @@ export async function marcarDecisaoCollectionsAction(
   }
 
   const supabase = await createClient();
+  let policyDecisionId: string | null = null;
+
+  if (status === "aceito") {
+    const { data: interacao } = await supabase
+      .from("ai_interacoes")
+      .select("tenant_id, entity_type, entity_id")
+      .eq("id", interacaoId)
+      .single();
+
+    if (!interacao) {
+      return { error: "Interação de IA não encontrada.", success: false };
+    }
+
+    const { data: decision, error: decisionError } = await supabase.rpc("evaluate_policy_action", {
+      p_action_code: "ai.suggestion_acceptance",
+      p_tenant_id: interacao.tenant_id,
+      p_entity_type: interacao.entity_type,
+      p_entity_id: interacao.entity_id,
+      p_inputs: { interacao_id: interacaoId, status },
+    });
+
+    if (decisionError || decision?.result !== "ALLOW") {
+      return { error: "Policy Engine não autorizou aceitar esta sugestão de IA.", success: false };
+    }
+
+    policyDecisionId = typeof decision.decision_id === "string" ? decision.decision_id : null;
+  }
 
   const { error } = await supabase
     .from("ai_interacoes")
-    .update({ status, decided_at: new Date().toISOString(), decided_by: user.id })
+    .update({ status, decided_at: new Date().toISOString(), decided_by: user.id, policy_decision_id: policyDecisionId })
     .eq("id", interacaoId);
 
   if (error) {
@@ -195,6 +224,30 @@ export async function enviarRascunhoNotificacaoAction(
     return { error: "Apenas a equipe GSBC pode enviar notificações.", success: false };
   }
 
+  const supabase = await createClient();
+
+  const { data: cobranca } = await supabase
+    .from("cobrancas")
+    .select("tenant_id")
+    .eq("id", cobrancaId)
+    .single();
+
+  if (!cobranca) {
+    return { error: "Cobrança não encontrada.", success: false };
+  }
+
+  const { data: decision, error: decisionError } = await supabase.rpc("evaluate_policy_action", {
+    p_action_code: "ai.draft_send_notification",
+    p_tenant_id: cobranca.tenant_id,
+    p_entity_type: "cobranca",
+    p_entity_id: cobrancaId,
+    p_inputs: { interacao_id: interacaoId, human_confirmed: true },
+  });
+
+  if (decisionError || decision?.result !== "REQUIRE_CONFIRMATION") {
+    return { error: "Policy Engine não liberou o uso deste rascunho de IA.", success: false };
+  }
+
   const formData = new FormData();
   formData.set("cobrancaId", cobrancaId);
   formData.set("mensagem", mensagem);
@@ -205,7 +258,6 @@ export async function enviarRascunhoNotificacaoAction(
     return { error: result.error, success: false };
   }
 
-  const supabase = await createClient();
   const foiEditado = rascunhoOriginal !== null && mensagem.trim() !== rascunhoOriginal.trim();
 
   await supabase
@@ -214,6 +266,7 @@ export async function enviarRascunhoNotificacaoAction(
       status: foiEditado ? "editado" : "aceito",
       decided_at: new Date().toISOString(),
       decided_by: user.id,
+      policy_decision_id: typeof decision.decision_id === "string" ? decision.decision_id : null,
     })
     .eq("id", interacaoId);
 

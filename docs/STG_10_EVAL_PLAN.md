@@ -35,3 +35,18 @@ Objetivo: validar que STG-10 aumenta inteligência de oportunidade sem criar efe
 ## Exit Criteria
 
 STG-10 can be marked complete only when all automated evals pass, no P0 exists, no STG-10 P1 invariant remains open, and the release report confirms that opportunity intelligence remained non-executory.
+
+## Execution Result
+
+Data: 2026-08-30
+
+Status: PASSED.
+
+Evidence:
+
+- `npx playwright test e2e/oportunidades.spec.ts e2e/oportunidades-invariants.spec.ts`: passed, 6/6.
+- `npm run test:e2e`: passed, 81/81.
+- STG10-EVAL-002/004 covered by deterministic pure scoring and explicit factor provenance.
+- STG10-EVAL-003/006 covered by side-effect counts across obligations, charges, notifications, escalations and delivery rows.
+- STG10-EVAL-005 covered by authenticated sindicato read/update/insert denial.
+- STG10-EVAL-007 covered by human-review event context and factor preservation.

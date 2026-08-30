@@ -192,6 +192,9 @@ export async function avaliarOportunidadeAction(dossieId: string): Promise<Oport
       pontos: f.pontos,
       peso_maximo: f.pesoMaximo,
       explicacao: f.explicacao,
+      source_type: f.sourceType,
+      source_fields: f.sourceFields,
+      evidence_snapshot: f.evidenceSnapshot,
     })),
   );
 
@@ -207,10 +210,19 @@ export async function avaliarOportunidadeAction(dossieId: string): Promise<Oport
       : `Score ${resultado.score}/100 — nenhum sindicato candidato identificado`,
     score: resultado.score,
     user_id: user.id,
+    actor_type: "system",
+    decision_nature: "inference",
+    after_state: {
+      status: existente?.status ?? "potencial",
+      score: resultado.score,
+      prioridade: resultado.prioridade,
+      confianca: resultado.confianca,
+      tenant_candidato_id: resultado.tenantCandidatoId,
+    },
   });
 
   await logAuditEvent({
-    tenantId: null,
+    tenantId: resultado.tenantCandidatoId,
     action: "oportunidade.avaliada",
     entityType: "oportunidade",
     entityId: oportunidadeId,
@@ -232,7 +244,7 @@ export async function iniciarAnaliseOportunidadeAction(oportunidadeId: string): 
 
   const { data: oportunidade } = await supabase
     .from("oportunidades")
-    .select("id, status, dossie_cadastral_id")
+    .select("id, status, dossie_cadastral_id, tenant_candidato_id")
     .eq("id", oportunidadeId)
     .single();
 
@@ -256,10 +268,14 @@ export async function iniciarAnaliseOportunidadeAction(oportunidadeId: string): 
     oportunidade_id: oportunidadeId,
     tipo: "em_analise",
     user_id: user.id,
+    actor_type: "human",
+    decision_nature: "human_review",
+    before_state: { status: oportunidade.status },
+    after_state: { status: "em_analise" },
   });
 
   await logAuditEvent({
-    tenantId: null,
+    tenantId: oportunidade.tenant_candidato_id,
     action: "oportunidade.em_analise",
     entityType: "oportunidade",
     entityId: oportunidadeId,
@@ -296,7 +312,7 @@ export async function decidirOportunidadeAction(
 
   const { data: oportunidade } = await supabase
     .from("oportunidades")
-    .select("id, status, dossie_cadastral_id")
+    .select("id, status, dossie_cadastral_id, tenant_candidato_id")
     .eq("id", oportunidadeId)
     .single();
 
@@ -333,10 +349,14 @@ export async function decidirOportunidadeAction(
     tipo: decisao,
     descricao: motivo,
     user_id: user.id,
+    actor_type: "human",
+    decision_nature: "human_review",
+    before_state: { status: oportunidade.status },
+    after_state: { status: decisao, motivo },
   });
 
   await logAuditEvent({
-    tenantId: null,
+    tenantId: oportunidade.tenant_candidato_id,
     action: `oportunidade.${decisao}`,
     entityType: "oportunidade",
     entityId: oportunidadeId,

@@ -1,6 +1,7 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 import { AI_MODEL, getAiClient } from "./client";
+import { sanitizeAiContextText, summarizeAiContextSafety } from "./guardrails";
 
 /**
  * Negotiation Copilot (STG-12, Autonomy Level 1 — Insight). Só leitura:
@@ -52,6 +53,7 @@ export interface NegotiationCopilotInput {
 export interface NegotiationCopilotResult {
   output: string;
   contextReference: Record<string, unknown>;
+  contextSafety: Record<string, unknown>;
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -73,10 +75,10 @@ function formatEventos(eventos: NegotiationEventoInput[]): string {
     .map((e) => {
       const partes = [
         `[${new Date(e.createdAt).toLocaleString("pt-BR")}]`,
-        TIPO_LABEL[e.tipo] ?? e.tipo,
+        sanitizeAiContextText(TIPO_LABEL[e.tipo] ?? e.tipo).text,
         e.valor !== null ? `(${formatCurrency(e.valor)})` : null,
-        e.condicoes ? `— ${e.condicoes}` : null,
-        `· por ${e.autorNome ?? "desconhecido"}`,
+        e.condicoes ? `— ${sanitizeAiContextText(e.condicoes).text}` : null,
+        `· por ${sanitizeAiContextText(e.autorNome ?? "desconhecido").text}`,
       ].filter(Boolean);
       return `- ${partes.join(" ")}`;
     })
@@ -88,8 +90,16 @@ export async function gerarResumoNegociacao(
 ): Promise<NegotiationCopilotResult> {
   const client = getAiClient();
 
-  const userPrompt = `Empresa: ${input.empresaNome}
-Status atual da negociação: ${input.status}
+  const empresaNome = sanitizeAiContextText(input.empresaNome).text;
+  const status = sanitizeAiContextText(input.status).text;
+  const contextSafety = summarizeAiContextSafety({
+    empresaNome: input.empresaNome,
+    status: input.status,
+    eventos: input.eventos.map((e) => `${e.tipo} ${e.condicoes ?? ""} ${e.autorNome ?? ""}`).join(" | "),
+  });
+
+  const userPrompt = `Empresa: ${empresaNome}
+Status atual da negociação: ${status}
 Valor original da cobrança: ${formatCurrency(input.valorOriginal)}
 Valor negociado atual: ${formatCurrency(input.valorAtual)}
 
@@ -116,5 +126,6 @@ ${formatEventos(input.eventos)}`;
       valor_original: input.valorOriginal,
       valor_atual: input.valorAtual,
     },
+    contextSafety,
   };
 }

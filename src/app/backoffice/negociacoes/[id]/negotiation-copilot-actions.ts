@@ -99,7 +99,9 @@ export async function gerarResumoNegociacaoAction(negociacaoId: string): Promise
       model: AI_MODEL,
       prompt_version: NEGOTIATION_COPILOT_PROMPT_VERSION,
       context_reference: resultado.contextReference,
+      context_safety: resultado.contextSafety,
       output: resultado.output,
+      autonomy_level: 1,
       user_id: user.id,
     })
     .select("id")
@@ -141,10 +143,37 @@ export async function marcarDecisaoNegotiationAction(
   }
 
   const supabase = await createClient();
+  let policyDecisionId: string | null = null;
+
+  if (status === "aceito") {
+    const { data: interacao } = await supabase
+      .from("ai_interacoes")
+      .select("tenant_id, entity_type, entity_id")
+      .eq("id", interacaoId)
+      .single();
+
+    if (!interacao) {
+      return { error: "Interação de IA não encontrada.", success: false };
+    }
+
+    const { data: decision, error: decisionError } = await supabase.rpc("evaluate_policy_action", {
+      p_action_code: "ai.suggestion_acceptance",
+      p_tenant_id: interacao.tenant_id,
+      p_entity_type: interacao.entity_type,
+      p_entity_id: interacao.entity_id,
+      p_inputs: { interacao_id: interacaoId, status },
+    });
+
+    if (decisionError || decision?.result !== "ALLOW") {
+      return { error: "Policy Engine não autorizou aceitar esta sugestão de IA.", success: false };
+    }
+
+    policyDecisionId = typeof decision.decision_id === "string" ? decision.decision_id : null;
+  }
 
   const { error } = await supabase
     .from("ai_interacoes")
-    .update({ status, decided_at: new Date().toISOString(), decided_by: user.id })
+    .update({ status, decided_at: new Date().toISOString(), decided_by: user.id, policy_decision_id: policyDecisionId })
     .eq("id", interacaoId);
 
   if (error) {
