@@ -884,6 +884,179 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["payment_webhook_events"]["Insert"]>;
         Relationships: [];
       };
+      financial_contracts: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          sindicato_id: string;
+          titulo: string;
+          status: "draft" | "pending_validation" | "validated" | "archived";
+          vigencia_inicio: string;
+          vigencia_fim: string | null;
+          moeda: "BRL";
+          termos_snapshot: Record<string, unknown>;
+          criado_por: string | null;
+          validado_por: string | null;
+          validado_em: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          sindicato_id: string;
+          titulo: string;
+          status?: "draft" | "pending_validation" | "validated" | "archived";
+          vigencia_inicio: string;
+          vigencia_fim?: string | null;
+          moeda?: "BRL";
+          termos_snapshot?: Record<string, unknown>;
+          criado_por?: string | null;
+          validado_por?: string | null;
+          validado_em?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["financial_contracts"]["Insert"]>;
+        Relationships: [];
+      };
+      financial_split_rules: {
+        Row: {
+          id: string;
+          contract_id: string;
+          tenant_id: string;
+          version: number;
+          status: "draft" | "active" | "archived";
+          effective_from: string;
+          effective_to: string | null;
+          gsbc_percent: number;
+          sindicato_percent: number;
+          terceiros_percent: number;
+          fee_policy: Record<string, unknown>;
+          metadata: Record<string, unknown>;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          contract_id: string;
+          tenant_id: string;
+          version: number;
+          status?: "draft" | "active" | "archived";
+          effective_from: string;
+          effective_to?: string | null;
+          gsbc_percent: number;
+          sindicato_percent: number;
+          terceiros_percent?: number;
+          fee_policy?: Record<string, unknown>;
+          metadata?: Record<string, unknown>;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["financial_split_rules"]["Insert"]>;
+        Relationships: [];
+      };
+      payment_reconciliations: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          empresa_id: string;
+          cobranca_id: string;
+          pagamento_id: string;
+          payment_charge_id: string | null;
+          provider: string | null;
+          provider_status: string | null;
+          provider_event_id: string | null;
+          gross_amount: number;
+          provider_fee_amount: number;
+          net_amount: number;
+          status:
+            | "pending"
+            | "provider_reported"
+            | "reconciling"
+            | "partial"
+            | "mismatch"
+            | "manual_review"
+            | "reconciled"
+            | "unidentified"
+            | "reversed"
+            | "chargeback"
+            | "failed_review_required";
+          split_rule_id: string | null;
+          split_rule_version: number | null;
+          provider_payload: Record<string, unknown>;
+          processing_error: string | null;
+          reconciled_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      payment_split_items: {
+        Row: {
+          id: string;
+          reconciliation_id: string;
+          tenant_id: string;
+          beneficiary_type: "gsbc" | "sindicato" | "terceiro";
+          beneficiary_label: string;
+          gross_share_amount: number;
+          fee_share_amount: number;
+          net_amount: number;
+          status: "pending" | "reconciled" | "repass_pending" | "repassed" | "manual_review";
+          split_rule_id: string;
+          split_rule_version: number;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      financial_repasses: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          split_item_id: string;
+          beneficiary_type: "sindicato" | "terceiro";
+          beneficiary_label: string;
+          amount: number;
+          status: "pending" | "scheduled" | "paid" | "failed" | "cancelled";
+          scheduled_for: string | null;
+          paid_at: string | null;
+          external_transfer_id: string | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      reconciliation_divergences: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          reconciliation_id: string | null;
+          provider: string | null;
+          external_reference: string | null;
+          status: "open" | "in_review" | "resolved" | "dismissed";
+          reason: string;
+          payload: Record<string, unknown>;
+          created_at: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+        };
+        Insert: never;
+        Update: {
+          status?: "open" | "in_review" | "resolved" | "dismissed";
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+        };
+        Relationships: [];
+      };
       notificacoes: {
         Row: {
           id: string;
@@ -2320,6 +2493,16 @@ export interface Database {
           p_external_status: string;
           p_paid_at: string;
           p_observacao?: string | null;
+        };
+        Returns: string;
+      };
+      reconcile_provider_payment: {
+        Args: {
+          p_pagamento_id: string;
+          p_payment_charge_id: string;
+          p_provider_status: string;
+          p_provider_event_id?: string | null;
+          p_provider_payload?: Record<string, unknown> | null;
         };
         Returns: string;
       };

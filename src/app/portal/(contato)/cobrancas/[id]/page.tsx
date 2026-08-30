@@ -96,6 +96,7 @@ export default async function PortalCobrancaDetailPage({
     { data: contestacaoRows },
     { data: negociacao },
     { data: pagamentosRaw },
+    { data: conciliacoesRaw },
   ] = await Promise.all([
     supabase
       .from("documentos")
@@ -118,6 +119,10 @@ export default async function PortalCobrancaDetailPage({
       .select("id, valor, data_pagamento, forma_pagamento, observacao")
       .eq("cobranca_id", id)
       .order("data_pagamento", { ascending: false }),
+    supabase
+      .from("payment_reconciliations")
+      .select("id, pagamento_id, status, gross_amount, provider_fee_amount, net_amount")
+      .eq("cobranca_id", id),
   ]);
 
   const documentos = await Promise.all(
@@ -192,14 +197,30 @@ export default async function PortalCobrancaDetailPage({
     timestamp: ev.created_at,
   }));
 
-  const pagamentos = (pagamentosRaw ?? []).map((p) => ({
-    id: p.id,
-    valor: p.valor,
-    data_pagamento: p.data_pagamento,
-    forma_pagamento: p.forma_pagamento,
-    observacao: p.observacao,
-    registradoPorNome: null,
-  }));
+  const conciliacaoPorPagamento = new Map(
+    (conciliacoesRaw ?? []).map((c) => [c.pagamento_id, c]),
+  );
+
+  const pagamentos = (pagamentosRaw ?? []).map((p) => {
+    const conciliacao = conciliacaoPorPagamento.get(p.id);
+    return {
+      id: p.id,
+      valor: p.valor,
+      data_pagamento: p.data_pagamento,
+      forma_pagamento: p.forma_pagamento,
+      observacao: p.observacao,
+      registradoPorNome: null,
+      conciliacao: conciliacao
+        ? {
+            status: conciliacao.status,
+            valorBruto: conciliacao.gross_amount,
+            taxas: conciliacao.provider_fee_amount,
+            valorLiquido: conciliacao.net_amount,
+            repasses: [],
+          }
+        : null,
+    };
+  });
 
   const valorReferencia = valorReferenciaCobranca(cobranca.valor_cobranca, negociacao);
 

@@ -17,11 +17,12 @@ test("staff GSBC vê a página de Políticas com as 5 políticas registradas", a
   await page.goto("/backoffice/politicas");
 
   await expect(page.getByRole("heading", { name: "Políticas" })).toBeVisible();
-  await expect(page.getByText("Desconto exige aprovação")).toBeVisible();
-  await expect(page.getByText("Acordo inadimplente cria item de trabalho")).toBeVisible();
-  await expect(page.getByText("Pagamento identificado pausa cobrança")).toBeVisible();
-  await expect(page.getByText("Contestação suspende automação")).toBeVisible();
-  await expect(page.getByText("Régua avança por agendamento")).toBeVisible();
+  const policyTitles = page.locator('[data-slot="card-title"]');
+  await expect(policyTitles.filter({ hasText: /^Desconto exige aprovação$/ })).toBeVisible();
+  await expect(policyTitles.filter({ hasText: /^Acordo inadimplente cria item de trabalho$/ })).toBeVisible();
+  await expect(policyTitles.filter({ hasText: /^Pagamento identificado pausa cobrança$/ })).toBeVisible();
+  await expect(policyTitles.filter({ hasText: /^Contestação suspende automação$/ })).toBeVisible();
+  await expect(policyTitles.filter({ hasText: /^Régua avança por agendamento$/ })).toBeVisible();
 });
 
 test("nav lateral tem o item Políticas pra staff", async ({ page }) => {

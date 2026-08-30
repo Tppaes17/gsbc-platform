@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/design-system/empty-state";
+import { StatusBadge } from "@/components/design-system/status-badge";
 import { CircleDollarSign } from "lucide-react";
 import { formaPagamentoOptions } from "@/lib/validation/pagamento";
 
@@ -10,11 +11,46 @@ interface PagamentoItem {
   forma_pagamento: string;
   observacao: string | null;
   registradoPorNome: string | null;
+  conciliacao?: {
+    status: string;
+    valorBruto: number;
+    taxas: number;
+    valorLiquido: number;
+    repasses: { amount: number; status: string }[];
+  } | null;
 }
 
 const FORMA_LABEL = Object.fromEntries(
   formaPagamentoOptions.map((o) => [o.value, o.label]),
 );
+
+const CONCILIACAO_LABEL: Record<string, string> = {
+  pending: "Pendente",
+  provider_reported: "Provider reportado",
+  reconciling: "Conciliando",
+  partial: "Parcial",
+  mismatch: "Divergência",
+  manual_review: "Revisão manual",
+  reconciled: "Conciliado",
+  unidentified: "Não identificado",
+  reversed: "Estornado",
+  chargeback: "Chargeback",
+  failed_review_required: "Falha em revisão",
+};
+
+const CONCILIACAO_TONE: Record<string, "neutral" | "info" | "positive" | "warning" | "negative"> = {
+  pending: "neutral",
+  provider_reported: "info",
+  reconciling: "info",
+  partial: "warning",
+  mismatch: "negative",
+  manual_review: "warning",
+  reconciled: "positive",
+  unidentified: "warning",
+  reversed: "negative",
+  chargeback: "negative",
+  failed_review_required: "negative",
+};
 
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -82,6 +118,34 @@ export function PagamentosList({
                     ? ` · registrado por ${pagamento.registradoPorNome}`
                     : ""}
                 </span>
+                {pagamento.conciliacao ? (
+                  <div className="mt-2 grid gap-2 rounded-md border bg-muted/30 p-3 sm:grid-cols-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Conciliação</p>
+                      <StatusBadge
+                        label={CONCILIACAO_LABEL[pagamento.conciliacao.status] ?? pagamento.conciliacao.status}
+                        tone={CONCILIACAO_TONE[pagamento.conciliacao.status] ?? "neutral"}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Valor bruto</p>
+                      <p className="font-medium">{formatCurrency(pagamento.conciliacao.valorBruto)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Taxas</p>
+                      <p className="font-medium">{formatCurrency(pagamento.conciliacao.taxas)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Líquido / repasse</p>
+                      <p className="font-medium">{formatCurrency(pagamento.conciliacao.valorLiquido)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {pagamento.conciliacao.repasses.length === 0
+                          ? "Sem repasse calculado"
+                          : `${pagamento.conciliacao.repasses.length} repasse(s) pendente(s)`}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

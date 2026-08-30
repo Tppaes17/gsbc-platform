@@ -58,6 +58,7 @@ export default async function CobrancaDetailPage({
     { data: gsbcMembers },
     { data: negociacaoExistente },
     { data: pagamentosRaw },
+    { data: conciliacoesRaw },
     { data: contatoPrincipal },
     { data: notificacoes },
     { data: paymentCharges },
@@ -82,6 +83,10 @@ export default async function CobrancaDetailPage({
       .select("id, valor, data_pagamento, forma_pagamento, observacao, users!pagamentos_registrado_por_fkey(full_name)")
       .eq("cobranca_id", id)
       .order("data_pagamento", { ascending: false }),
+    supabase
+      .from("payment_reconciliations")
+      .select("id, pagamento_id, status, gross_amount, provider_fee_amount, net_amount")
+      .eq("cobranca_id", id),
     supabase
       .from("empresa_contatos")
       .select("email, principal")
@@ -303,8 +308,13 @@ export default async function CobrancaDetailPage({
     };
   });
 
+  const conciliacaoPorPagamento = new Map(
+    (conciliacoesRaw ?? []).map((c) => [c.pagamento_id, c]),
+  );
+
   const pagamentos = (pagamentosRaw ?? []).map((p) => {
     const registrador = Array.isArray(p.users) ? p.users[0] : p.users;
+    const conciliacao = conciliacaoPorPagamento.get(p.id);
     return {
       id: p.id,
       valor: p.valor,
@@ -312,6 +322,15 @@ export default async function CobrancaDetailPage({
       forma_pagamento: p.forma_pagamento,
       observacao: p.observacao,
       registradoPorNome: registrador?.full_name ?? null,
+      conciliacao: conciliacao
+        ? {
+            status: conciliacao.status,
+            valorBruto: conciliacao.gross_amount,
+            taxas: conciliacao.provider_fee_amount,
+            valorLiquido: conciliacao.net_amount,
+            repasses: [],
+          }
+        : null,
     };
   });
 
