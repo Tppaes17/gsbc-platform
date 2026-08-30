@@ -1035,6 +1035,25 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      payment_compensation_events: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          reconciliation_id: string;
+          payment_charge_id: string | null;
+          pagamento_id: string;
+          event_type: "refund" | "chargeback" | "credit" | "reversal";
+          amount: number;
+          reason: string;
+          provider_reference: string | null;
+          metadata: Record<string, unknown>;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       reconciliation_divergences: {
         Row: {
           id: string;
@@ -2522,6 +2541,27 @@ export interface Database {
       retry_manual_payment_reconciliation: {
         Args: {
           p_reconciliation_id: string;
+        };
+        Returns: string;
+      };
+      transition_financial_repasse: {
+        Args: {
+          p_repasse_id: string;
+          p_status: "scheduled" | "paid" | "failed" | "cancelled";
+          p_scheduled_for?: string | null;
+          p_external_transfer_id?: string | null;
+          p_reason?: string | null;
+        };
+        Returns: string;
+      };
+      register_payment_compensation_event: {
+        Args: {
+          p_reconciliation_id: string;
+          p_event_type: "refund" | "chargeback" | "credit" | "reversal";
+          p_amount: number;
+          p_reason: string;
+          p_provider_reference?: string | null;
+          p_metadata?: Record<string, unknown>;
         };
         Returns: string;
       };

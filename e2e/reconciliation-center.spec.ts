@@ -230,6 +230,53 @@ test("staff reprocessa conciliação manual depois de contrato e split existirem
       processing_error: null,
     });
 
+    const { data: repasse } = await admin
+      .from("financial_repasses")
+      .select("id, status")
+      .eq("tenant_id", fixture.tenantId)
+      .single();
+    expect(repasse?.status).toBe("pending");
+
+    await page.getByLabel("Agendar").fill("2026-09-01");
+    await page.getByTestId(`schedule-repasse-${repasse!.id}`).click();
+    await expect(page.getByText("repasse scheduled")).toBeVisible();
+
+    await page.getByLabel("Ref. externa").fill(`transfer_${fixture.tenantId.slice(0, 8)}`);
+    await page.getByTestId(`pay-repasse-${repasse!.id}`).click();
+    await expect(page.getByText("repasse paid")).toBeVisible();
+
+    const { data: paidRepasse } = await admin
+      .from("financial_repasses")
+      .select("status, external_transfer_id, paid_at")
+      .eq("id", repasse!.id)
+      .single();
+    expect(paidRepasse?.status).toBe("paid");
+    expect(paidRepasse?.external_transfer_id).toBe(`transfer_${fixture.tenantId.slice(0, 8)}`);
+    expect(paidRepasse?.paid_at).toBeTruthy();
+
+    const compensationForm = page.getByTestId(`compensation-form-${manual!.id}`);
+    await compensationForm.getByLabel("Evento").selectOption("refund");
+    await compensationForm.getByLabel("Valor").fill("500");
+    await compensationForm.getByLabel("Ref. provider").fill(`refund_${fixture.tenantId.slice(0, 8)}`);
+    await compensationForm.getByPlaceholder("Justificativa obrigatória").fill("Estorno informado após repasse pago");
+    await compensationForm.getByRole("button", { name: "Registrar evento" }).click();
+    await expect(page.getByText("Falha em revisão")).toBeVisible();
+
+    const { data: compensationState } = await admin
+      .from("payment_reconciliations")
+      .select("status, processing_error")
+      .eq("id", manual!.id)
+      .single();
+    expect(compensationState?.status).toBe("failed_review_required");
+    expect(compensationState?.processing_error).toContain("repasse não-pendente");
+
+    const { count: compensationDivergences } = await admin
+      .from("reconciliation_divergences")
+      .select("id", { count: "exact", head: true })
+      .eq("reconciliation_id", manual!.id)
+      .eq("status", "open");
+    expect(compensationDivergences).toBe(1);
+
     const { data: resolvedDivergence } = await admin
       .from("reconciliation_divergences")
       .select("status, resolved_by, resolved_at")

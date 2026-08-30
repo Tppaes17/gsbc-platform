@@ -6,7 +6,12 @@ import { StatusBadge } from "@/components/design-system/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { DivergenceStatusButtons, RetryReconciliationButton } from "./reconciliation-actions";
+import {
+  CompensationEventForm,
+  DivergenceStatusButtons,
+  RepasseTransitionForm,
+  RetryReconciliationButton,
+} from "./reconciliation-actions";
 
 type ReconciliationStatus =
   | "pending"
@@ -74,6 +79,11 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+function formatDate(value: string | null) {
+  if (!value) return "sem data";
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
 export default async function ConciliacaoPage() {
   const user = await requireCurrentUser();
   if (!user.isPlatformStaff) {
@@ -81,8 +91,13 @@ export default async function ConciliacaoPage() {
   }
 
   const supabase = await createClient();
-  const [{ data: reconciliationsRaw }, { data: divergencesRaw }, { data: splitsRaw }, { data: repassesRaw }] =
-    await Promise.all([
+  const [
+    { data: reconciliationsRaw },
+    { data: divergencesRaw },
+    { data: splitsRaw },
+    { data: repassesRaw },
+    { data: compensationRaw },
+  ] = await Promise.all([
       supabase
         .from("payment_reconciliations")
         .select(
@@ -101,7 +116,12 @@ export default async function ConciliacaoPage() {
         .order("beneficiary_type"),
       supabase
         .from("financial_repasses")
-        .select("id, split_item_id, beneficiary_type, amount, status"),
+        .select("id, split_item_id, beneficiary_type, amount, status, scheduled_for, paid_at, external_transfer_id"),
+      supabase
+        .from("payment_compensation_events")
+        .select("id, reconciliation_id, event_type, amount, reason, provider_reference, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
 
   const reconciliations = reconciliationsRaw ?? [];
@@ -114,10 +134,17 @@ export default async function ConciliacaoPage() {
   }
 
   const repassesBySplit = new Map((repassesRaw ?? []).map((repasse) => [repasse.split_item_id, repasse]));
+  const compensationByReconciliation = new Map<string, typeof compensationRaw>();
+  for (const event of compensationRaw ?? []) {
+    const current = compensationByReconciliation.get(event.reconciliation_id) ?? [];
+    current.push(event);
+    compensationByReconciliation.set(event.reconciliation_id, current);
+  }
   const openDivergences = divergences.filter((divergence) => divergence.status === "open");
   const manualReview = reconciliations.filter((reconciliation) => reconciliation.status === "manual_review");
   const reconciled = reconciliations.filter((reconciliation) => reconciliation.status === "reconciled");
   const pendingRepasse = (repassesRaw ?? []).filter((repasse) => repasse.status === "pending");
+  const paidRepasse = (repassesRaw ?? []).filter((repasse) => repasse.status === "paid");
 
   return (
     <div className="flex flex-col gap-6">
@@ -130,7 +157,11 @@ export default async function ConciliacaoPage() {
         <MetricCard label="Revisão manual" value={String(manualReview.length)} icon={FileWarning} tone="warning" />
         <MetricCard label="Divergências abertas" value={String(openDivergences.length)} icon={RotateCw} tone="warning" />
         <MetricCard label="Conciliadas" value={String(reconciled.length)} icon={SplitSquareHorizontal} tone="positive" />
-        <MetricCard label="Repasses pendentes" value={String(pendingRepasse.length)} icon={CircleDollarSign} />
+        <MetricCard
+          label="Repasses pendentes"
+          value={`${pendingRepasse.length} / ${paidRepasse.length} pagos`}
+          icon={CircleDollarSign}
+        />
       </div>
 
       <Card>
@@ -153,6 +184,7 @@ export default async function ConciliacaoPage() {
               <tbody className="divide-y">
                 {reconciliations.map((reconciliation) => {
                   const splits = splitsByReconciliation.get(reconciliation.id) ?? [];
+                  const compensationEvents = compensationByReconciliation.get(reconciliation.id) ?? [];
                   return (
                     <tr key={reconciliation.id}>
                       <td className="py-3 pr-4 text-muted-foreground">{formatDateTime(reconciliation.created_at)}</td>
@@ -187,12 +219,33 @@ export default async function ConciliacaoPage() {
                             {splits.map((split) => {
                               const repasse = repassesBySplit.get(split.id);
                               return (
-                                <span key={split.id} className="text-xs">
-                                  {split.beneficiary_type}: {formatCurrency(split.net_amount)}
-                                  {repasse ? ` · repasse ${repasse.status}` : ""}
-                                </span>
+                                <div key={split.id} className="text-xs">
+                                  <span>
+                                    {split.beneficiary_type}: {formatCurrency(split.net_amount)}
+                                    {repasse ? ` · repasse ${repasse.status}` : ""}
+                                  </span>
+                                  {repasse ? (
+                                    <div className="text-muted-foreground/80">
+                                      {repasse.scheduled_for ? `agendado ${formatDate(repasse.scheduled_for)}` : null}
+                                      {repasse.external_transfer_id ? ` · ref. ${repasse.external_transfer_id}` : null}
+                                      {repasse.paid_at ? ` · pago ${formatDateTime(repasse.paid_at)}` : null}
+                                    </div>
+                                  ) : null}
+                                  {repasse ? (
+                                    <RepasseTransitionForm repasseId={repasse.id} status={repasse.status} />
+                                  ) : null}
+                                </div>
                               );
                             })}
+                            {compensationEvents.length > 0 ? (
+                              <div className="mt-2 flex flex-col gap-1 border-t pt-2">
+                                {compensationEvents.map((event) => (
+                                  <span key={event.id} className="text-xs">
+                                    {event.event_type}: {formatCurrency(event.amount)} · {event.reason}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                         ) : (
                           "Sem split aplicado"
@@ -206,7 +259,15 @@ export default async function ConciliacaoPage() {
                         reconciliation.status === "unidentified" ? (
                           <RetryReconciliationButton reconciliationId={reconciliation.id} />
                         ) : (
-                          <span className="text-xs text-muted-foreground">Sem ação disponível</span>
+                          <div className="min-w-72">
+                            <span className="text-xs text-muted-foreground">Sem reprocessamento disponível</span>
+                            {reconciliation.status === "reconciled" ? (
+                              <CompensationEventForm
+                                reconciliationId={reconciliation.id}
+                                grossAmount={reconciliation.gross_amount}
+                              />
+                            ) : null}
+                          </div>
                         )}
                       </td>
                     </tr>
