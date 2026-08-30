@@ -24,11 +24,18 @@ interface KpiDef {
   label: string;
   icon: typeof Search;
   statusFilter: string | null;
+  href?: string;
   tone?: "default" | "positive" | "warning" | "negative";
 }
 
 const KPI_DEFS: KpiDef[] = [
-  { key: "identificada", label: "Receita identificada", icon: Search, statusFilter: null },
+  {
+    key: "identificada",
+    label: "Receita identificada",
+    icon: Search,
+    statusFilter: null,
+    href: "/backoffice/receita#segmentacao-receita",
+  },
   { key: "validada", label: "Receita validada", icon: ShieldCheck, statusFilter: VALIDADA_STATUS },
   { key: "emCobranca", label: "Receita em cobrança", icon: Receipt, statusFilter: "approved,notified,contacted" },
   { key: "emNegociacao", label: "Receita em negociação", icon: Handshake, statusFilter: "negotiating" },
@@ -65,7 +72,15 @@ export function KpiGrid({ kpis }: { kpis: RevenueKpis }) {
           </Card>
         );
 
-        if (!def.statusFilter) return <div key={def.key}>{card}</div>;
+        if (!def.statusFilter) {
+          return def.href ? (
+            <Link key={def.key} href={def.href}>
+              {card}
+            </Link>
+          ) : (
+            <div key={def.key}>{card}</div>
+          );
+        }
 
         return (
           <Link key={def.key} href={`/backoffice/cobrancas?status=${def.statusFilter}`}>

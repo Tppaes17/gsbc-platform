@@ -15,9 +15,15 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function CobrancasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; empresaId?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    empresaId?: string;
+    obrigacaoId?: string;
+    vencimentoInicio?: string;
+    vencimentoFim?: string;
+  }>;
 }) {
-  const { status, empresaId } = await searchParams;
+  const { status, empresaId, obrigacaoId, vencimentoInicio, vencimentoFim } = await searchParams;
   const user = await requireCurrentUser();
   const supabase = await createClient();
 
@@ -36,11 +42,22 @@ export default async function CobrancasPage({
   if (statusList.length === 1) query = query.eq("status", statusList[0]);
   else if (statusList.length > 1) query = query.in("status", statusList);
   if (empresaId) query = query.eq("empresa_id", empresaId);
+  if (obrigacaoId) query = query.eq("obrigacao_id", obrigacaoId);
+  if (vencimentoInicio) query = query.gte("vencimento", vencimentoInicio);
+  if (vencimentoFim) query = query.lte("vencimento", vencimentoFim);
 
   const { data } = await query;
 
-  const filtroAtivo = status || empresaId;
+  const filtroAtivo = status || empresaId || obrigacaoId || vencimentoInicio || vencimentoFim;
   const statusLabelTexto = statusList.map((s) => STATUS_LABEL[s] ?? s).join(", ");
+  const filterLabels = [
+    statusList.length > 0 ? `status "${statusLabelTexto}"` : null,
+    empresaId ? "empresa" : null,
+    obrigacaoId ? "obrigação" : null,
+    vencimentoInicio || vencimentoFim
+      ? `vencimento ${vencimentoInicio ?? "início"} até ${vencimentoFim ?? "fim"}`
+      : null,
+  ].filter(Boolean);
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,9 +68,7 @@ export default async function CobrancasPage({
       {filtroAtivo ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>
-            Filtrado {statusList.length > 0 ? `por status "${statusLabelTexto}"` : ""}
-            {statusList.length > 0 && empresaId ? " e " : ""}
-            {empresaId ? "por empresa" : ""} — {data?.length ?? 0} resultado(s).
+            Filtrado por {filterLabels.join(", ")} — {data?.length ?? 0} resultado(s).
           </span>
           <Link href="/backoffice/cobrancas" className="flex items-center gap-1 text-primary hover:underline">
             <X className="h-3 w-3" />
