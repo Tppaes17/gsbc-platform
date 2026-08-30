@@ -37,6 +37,7 @@ async function createSindicatoFixture() {
   const tenantId = randomUUID();
   const sindicatoId = randomUUID();
   const suffix = randomUUID().slice(0, 8);
+  const cnpjDigits = Date.now().toString().slice(-12).padStart(12, "0");
   const label = `Financeiro E2E ${suffix}`;
 
   const tenantResult = await admin.from("tenants").insert({
@@ -53,7 +54,7 @@ async function createSindicatoFixture() {
     tenant_id: tenantId,
     razao_social: `${label} Ltda`,
     nome_fantasia: label,
-    cnpj: `97${suffix.replace(/\D/g, "").padEnd(12, "0").slice(0, 12)}`,
+    cnpj: `97${cnpjDigits}`,
     status: "active",
   });
   expect(sindicatoResult.error?.message).toBeUndefined();
