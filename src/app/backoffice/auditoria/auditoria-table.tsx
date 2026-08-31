@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
+import { AuditEventLabel } from "@/components/design-system/audit-event-label";
 import { DataTable } from "@/components/design-system/data-table";
 import type { Database } from "@/types/database.types";
 
@@ -14,7 +15,12 @@ const columns: ColumnDef<AuditLogRow>[] = [
     cell: ({ row }) =>
       format(new Date(row.original.created_at), "dd/MM/yyyy HH:mm"),
   },
-  { accessorKey: "action", header: "Ação" },
+  {
+    accessorKey: "action",
+    header: "Ação",
+    meta: { isPrimary: true },
+    cell: ({ row }) => <AuditEventLabel action={row.original.action} />,
+  },
   {
     accessorKey: "entity_type",
     header: "Entidade",

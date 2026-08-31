@@ -3,7 +3,10 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { DataTable } from "@/components/design-system/data-table";
+import { FinancialCell, formatBrl } from "@/components/design-system/financial-cell";
+import { MobileRowCard } from "@/components/design-system/mobile-row-card";
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { buttonVariants } from "@/components/ui/button";
 import { cobrancaStatusOptions } from "@/lib/validation/cobranca";
 
 interface FinanceiroRow {
@@ -40,10 +43,6 @@ const STATUS_TONE: Record<string, "positive" | "neutral" | "warning" | "negative
   closed: "neutral",
 };
 
-function formatCurrency(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 function formatDate(value: string | null) {
   if (!value) return "—";
   return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
@@ -60,6 +59,7 @@ export function FinanceiroTable({
     {
       accessorKey: "empresaNome",
       header: "Empresa",
+      meta: { isPrimary: true },
       cell: ({ row }) => (
         <Link
           href={`/backoffice/cobrancas/${row.original.id}`}
@@ -74,6 +74,7 @@ export function FinanceiroTable({
           {
             id: "tenant",
             header: "Sindicato",
+            meta: { cellClassName: "max-w-64 truncate" },
             cell: ({ row }: { row: { original: FinanceiroRow } }) =>
               row.original.tenantNome ?? "—",
           } satisfies ColumnDef<FinanceiroRow>,
@@ -82,30 +83,31 @@ export function FinanceiroTable({
     {
       accessorKey: "valorCobranca",
       header: "Valor total",
+      meta: { isNumeric: true },
       cell: ({ row }) => {
         const { valorCobranca, valorReferencia } = row.original;
         const temDesconto = valorReferencia !== valorCobranca;
         return (
-          <span>
-            {formatCurrency(valorCobranca)}
-            {temDesconto ? (
-              <span className="block text-xs text-muted-foreground">
-                Acordado: {formatCurrency(valorReferencia)}
-              </span>
-            ) : null}
-          </span>
+          <FinancialCell
+            value={valorCobranca}
+            secondary={temDesconto ? `Acordado: ${formatBrl(valorReferencia)}` : undefined}
+          />
         );
       },
     },
     {
       accessorKey: "totalPago",
       header: "Pago",
-      cell: ({ row }) => formatCurrency(row.original.totalPago),
+      meta: { isNumeric: true },
+      cell: ({ row }) => <FinancialCell value={row.original.totalPago} tone="positive" />,
     },
     {
       accessorKey: "saldo",
       header: "Saldo",
-      cell: ({ row }) => formatCurrency(row.original.saldo),
+      meta: { isNumeric: true },
+      cell: ({ row }) => (
+        <FinancialCell value={row.original.saldo} tone={row.original.saldo > 0 ? "warning" : "muted"} />
+      ),
     },
     {
       accessorKey: "vencimento",
@@ -133,10 +135,55 @@ export function FinanceiroTable({
     <DataTable
       columns={columns}
       data={data}
+      density="compact"
+      tableLabel="Financeiro"
       emptyTitle="Nenhuma cobrança gerada"
       emptyDescription="A visão financeira aparece assim que houver cobranças geradas."
       enableSearch
       searchPlaceholder="Buscar por empresa..."
+      renderMobileCard={(row) => {
+        const temDesconto = row.valorReferencia !== row.valorCobranca;
+        return (
+          <MobileRowCard
+            title={row.empresaNome}
+            subtitle={showTenantColumn ? row.tenantNome : undefined}
+            status={
+              <StatusBadge
+                label={STATUS_LABEL[row.status] ?? row.status}
+                tone={STATUS_TONE[row.status] ?? "neutral"}
+              />
+            }
+            value={formatBrl(row.saldo)}
+            metadata={[
+              { label: "Saldo", value: formatBrl(row.saldo), priority: "primary" },
+              { label: "Pago", value: formatBrl(row.totalPago), priority: "primary" },
+              {
+                label: "Total",
+                value: temDesconto
+                  ? `${formatBrl(row.valorCobranca)} · acordado ${formatBrl(row.valorReferencia)}`
+                  : formatBrl(row.valorCobranca),
+                priority: "secondary",
+              },
+              {
+                label: "Vencimento",
+                value: `${formatDate(row.vencimento)}${row.vencida ? " · vencida" : ""}`,
+                priority: "secondary",
+              },
+              ...(showTenantColumn
+                ? [{ label: "Sindicato", value: row.tenantNome ?? "—", priority: "detail" as const }]
+                : []),
+            ]}
+            action={
+              <Link
+                href={`/backoffice/cobrancas/${row.id}`}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Abrir cobrança
+              </Link>
+            }
+          />
+        );
+      }}
     />
   );
 }

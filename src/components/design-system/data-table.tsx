@@ -1,6 +1,7 @@
 "use client";
+"use no memo";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   type ColumnDef,
   type SortingState,
@@ -22,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { EmptyState } from "./empty-state";
 import { TableToolbar } from "./table-toolbar";
 
@@ -37,6 +39,9 @@ interface DataTableProps<TData, TValue> {
    * busca server-side fica registrada como necessidade futura). */
   enableSearch?: boolean;
   searchPlaceholder?: string;
+  density?: "compact" | "default";
+  renderMobileCard?: (row: TData) => ReactNode;
+  tableLabel?: string;
 }
 
 /**
@@ -55,7 +60,12 @@ export function DataTable<TData, TValue>({
   pageSize = 20,
   enableSearch = false,
   searchPlaceholder,
+  density = "default",
+  renderMobileCard,
+  tableLabel = "Tabela de dados",
 }: DataTableProps<TData, TValue>) {
+  "use no memo";
+
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -113,53 +123,94 @@ export function DataTable<TData, TValue>({
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const canSort = header.column.getCanSort();
-                    const sortDirection = header.column.getIsSorted();
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder ? null : canSort ? (
-                          <button
-                            type="button"
-                            onClick={header.column.getToggleSortingHandler()}
-                            className="flex items-center gap-1 text-left hover:text-foreground"
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                            {sortDirection === "asc" ? (
-                              <ArrowUp className="h-3 w-3" />
-                            ) : sortDirection === "desc" ? (
-                              <ArrowDown className="h-3 w-3" />
-                            ) : (
-                              <ArrowUpDown className="h-3 w-3 opacity-40" />
+        <>
+          <div className={renderMobileCard ? "hidden xl:block" : "block"}>
+            <div className="overflow-hidden rounded-md border bg-card">
+              <div className="overflow-x-auto">
+                <Table aria-label={tableLabel} className="min-w-full">
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => {
+                          const canSort = header.column.getCanSort();
+                          const sortDirection = header.column.getIsSorted();
+                          const meta = header.column.columnDef.meta;
+                          return (
+                            <TableHead
+                              key={header.id}
+                              aria-sort={
+                                sortDirection === "asc"
+                                  ? "ascending"
+                                  : sortDirection === "desc"
+                                    ? "descending"
+                                    : undefined
+                              }
+                              className={cn(
+                                "sticky top-0 z-10 bg-card text-xs",
+                                meta?.isNumeric ? "text-right" : null,
+                                meta?.isPrimary ? "min-w-56" : null,
+                                meta?.headerClassName,
+                              )}
+                            >
+                              {header.isPlaceholder ? null : canSort ? (
+                                <button
+                                  type="button"
+                                  onClick={header.column.getToggleSortingHandler()}
+                                  className={cn(
+                                    "inline-flex items-center gap-1 text-left hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                                    meta?.isNumeric ? "justify-end" : null,
+                                  )}
+                                >
+                                  {flexRender(header.column.columnDef.header, header.getContext())}
+                                  {sortDirection === "asc" ? (
+                                    <ArrowUp className="h-3 w-3" />
+                                  ) : sortDirection === "desc" ? (
+                                    <ArrowDown className="h-3 w-3" />
+                                  ) : (
+                                    <ArrowUpDown className="h-3 w-3 opacity-40" />
+                                  )}
+                                </button>
+                              ) : (
+                                flexRender(header.column.columnDef.header, header.getContext())
+                              )}
+                            </TableHead>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              density === "compact" ? "px-2 py-1.5" : null,
+                              cell.column.columnDef.meta?.isNumeric ? "text-right" : null,
+                              cell.column.columnDef.meta?.isPrimary ? "min-w-56" : null,
+                              cell.column.columnDef.meta?.cellClassName,
                             )}
-                          </button>
-                        ) : (
-                          flexRender(header.column.columnDef.header, header.getContext())
-                        )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+
+          {renderMobileCard ? (
+            <div className="grid gap-3 xl:hidden" aria-label={`${tableLabel} em cards`}>
               {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <div key={row.id}>{renderMobileCard(row.original)}</div>
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+          ) : null}
+        </>
       )}
 
       {table.getPageCount() > 1 ? (

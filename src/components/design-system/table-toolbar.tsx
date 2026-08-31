@@ -38,13 +38,13 @@ export function TableToolbar({
   const hasActiveFilter = Boolean(searchValue) || Boolean(onReset && selectedCount);
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+    <div className={cn("flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center", className)}>
       {hasSearch ? (
         <Input
           value={searchValue ?? ""}
           onChange={(e) => onSearchChange?.(e.target.value)}
           placeholder={searchPlaceholder}
-          className="h-9 max-w-xs"
+          className="h-9 w-full sm:max-w-xs"
         />
       ) : null}
       {filters}
@@ -54,7 +54,7 @@ export function TableToolbar({
           Limpar filtros
         </Button>
       ) : null}
-      <div className="ml-auto flex items-center gap-3">
+      <div className="flex w-full items-center justify-between gap-3 sm:ml-auto sm:w-auto">
         {selectedCount ? (
           <span className="text-sm text-muted-foreground">
             {selectedCount} selecionada(s)

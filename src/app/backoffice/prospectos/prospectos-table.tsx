@@ -142,6 +142,8 @@ export function ProspectosTable({ data }: { data: ProspectoRow[] }) {
     <DataTable
       columns={columns}
       data={data}
+      enableSearch
+      searchPlaceholder="Buscar prospectos..."
       emptyTitle="Nenhum prospecto ainda"
       emptyDescription="Importe uma planilha de pesquisa já realizada, ou promova uma consulta oficial de CNPJ diretamente a partir de um dossiê de empresa."
     />

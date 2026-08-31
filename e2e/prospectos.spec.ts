@@ -27,6 +27,8 @@ test("Owner vê o menu Prospectos e importa uma planilha", async ({ page }, test
 
   await page.getByRole("button", { name: "Close" }).click();
 
+  await page.getByPlaceholder("Buscar prospectos...").fill(fixture.nomeUm.replace(" UM LTDA", ""));
+
   await expect(page.getByText(fixture.nomeUm)).toBeVisible();
   await expect(page.getByText(fixture.nomeDois)).toBeVisible();
 

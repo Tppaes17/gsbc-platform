@@ -3,7 +3,10 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { DataTable } from "@/components/design-system/data-table";
+import { FinancialCell, formatBrl } from "@/components/design-system/financial-cell";
+import { MobileRowCard } from "@/components/design-system/mobile-row-card";
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { buttonVariants } from "@/components/ui/button";
 import { cobrancaStatusOptions } from "@/lib/validation/cobranca";
 import type { Database } from "@/types/database.types";
 
@@ -39,10 +42,6 @@ const PRIORIDADE_LABEL: Record<string, string> = {
   high: "Alta",
 };
 
-function formatCurrency(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 function formatDate(value: string | null) {
   if (!value) return "—";
   return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
@@ -59,6 +58,7 @@ export function CobrancasTable({ data, showTenantColumn }: CobrancasTableProps) 
       id: "empresa",
       accessorFn: (row) => row.empresas?.nome_fantasia ?? row.empresas?.razao_social ?? "",
       header: "Empresa",
+      meta: { isPrimary: true },
       cell: ({ row }) => (
         <Link
           href={`/backoffice/cobrancas/${row.original.id}`}
@@ -75,6 +75,7 @@ export function CobrancasTable({ data, showTenantColumn }: CobrancasTableProps) 
           {
             id: "tenant",
             header: "Sindicato",
+            meta: { cellClassName: "max-w-64 truncate" },
             cell: ({ row }: { row: { original: CobrancaRow } }) =>
               row.original.tenants?.name ?? "—",
           } satisfies ColumnDef<CobrancaRow>,
@@ -83,7 +84,8 @@ export function CobrancasTable({ data, showTenantColumn }: CobrancasTableProps) 
     {
       accessorKey: "valor_cobranca",
       header: "Valor",
-      cell: ({ row }) => formatCurrency(row.original.valor_cobranca),
+      meta: { isNumeric: true },
+      cell: ({ row }) => <FinancialCell value={row.original.valor_cobranca} />,
     },
     {
       accessorKey: "vencimento",
@@ -112,10 +114,44 @@ export function CobrancasTable({ data, showTenantColumn }: CobrancasTableProps) 
     <DataTable
       columns={columns}
       data={data}
+      density="compact"
+      tableLabel="Cobranças"
       emptyTitle="Nenhuma cobrança gerada"
       emptyDescription="Cobranças são geradas a partir de obrigações validadas."
       enableSearch
       searchPlaceholder="Buscar por empresa..."
+      renderMobileCard={(row) => (
+        <MobileRowCard
+          title={row.empresas?.nome_fantasia ?? row.empresas?.razao_social ?? "Empresa não informada"}
+          subtitle={showTenantColumn ? row.tenants?.name : row.empresas?.razao_social}
+          status={
+            <StatusBadge
+              label={STATUS_LABEL[row.status] ?? row.status}
+              tone={STATUS_TONE[row.status] ?? "neutral"}
+            />
+          }
+          value={formatBrl(row.valor_cobranca)}
+          metadata={[
+            { label: "Vencimento", value: formatDate(row.vencimento), priority: "primary" },
+            {
+              label: "Prioridade",
+              value: PRIORIDADE_LABEL[row.prioridade] ?? row.prioridade,
+              priority: "primary",
+            },
+            ...(showTenantColumn
+              ? [{ label: "Sindicato", value: row.tenants?.name ?? "—", priority: "detail" as const }]
+              : []),
+          ]}
+          action={
+            <Link
+              href={`/backoffice/cobrancas/${row.id}`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Abrir cobrança
+            </Link>
+          }
+        />
+      )}
     />
   );
 }

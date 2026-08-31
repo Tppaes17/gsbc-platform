@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { ChartFrame } from "@/components/design-system/chart-frame";
+import { auditEventLabel } from "@/components/design-system/audit-event-label";
 import {
   DecisionQueue,
   type DecisionQueueItem,
@@ -122,7 +123,7 @@ type EscalonamentoRow = {
 };
 
 function auditLabel(action: string) {
-  return AUDIT_ACTION_LABEL[action] ?? action;
+  return AUDIT_ACTION_LABEL[action] ?? auditEventLabel(action);
 }
 
 function formatCurrency(value: number, compact = false) {
