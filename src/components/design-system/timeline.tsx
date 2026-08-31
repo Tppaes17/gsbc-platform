@@ -37,15 +37,15 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
               <span className="w-px flex-1 bg-border" />
             ) : null}
           </div>
-          <div className="flex flex-col gap-0.5 pb-4">
-            <div className="flex items-baseline gap-2">
-              <span className="text-sm font-medium">{item.label}</span>
-              <span className="text-xs text-muted-foreground">
+          <div className="flex min-w-0 flex-col gap-0.5 pb-4">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="min-w-0 break-words text-sm font-medium">{item.label}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
                 {formatTimestamp(item.timestamp)}
               </span>
             </div>
             {item.description ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="min-w-0 break-words text-sm text-muted-foreground">
                 {item.description}
               </p>
             ) : null}

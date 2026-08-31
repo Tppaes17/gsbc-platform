@@ -23,7 +23,7 @@ export function PageHeader({
       <div className="flex min-w-0 flex-col gap-1.5">
         {showBreadcrumbs ? <BackofficeBreadcrumbs /> : null}
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h1 className="truncate text-2xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="min-w-0 text-2xl font-semibold tracking-normal">{title}</h1>
           {status}
         </div>
         {description ? (

@@ -33,25 +33,27 @@ const iconByTone = {
 export function DecisionQueue({ items }: { items: DecisionQueueItem[] }) {
   if (items.length === 0) {
     return (
-      <section className="flex min-h-72 flex-col justify-center rounded-lg border border-dashed p-6">
-        <div className="flex max-w-xl flex-col gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-success/10 text-success">
+      <section className="flex flex-col gap-2 border-y border-border-subtle py-4">
+        <div className="flex max-w-2xl items-start gap-3">
+          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-success/10 text-success">
             <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
           </div>
-          <h2 className="text-base font-semibold">Nenhuma decisão suportada pendente</h2>
-          <p className="text-sm text-muted-foreground">
-            A tela não inventa decisões para preencher espaço. Tarefas, aprovações e exceções
-            aparecem aqui apenas quando existem objetos reais e autorizados no escopo atual.
-          </p>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-base font-semibold">Nenhuma decisão suportada pendente</h2>
+            <p className="text-sm text-muted-foreground">
+              Tarefas, aprovações e exceções aparecem aqui apenas quando existem objetos reais e
+              autorizados no escopo atual.
+            </p>
+          </div>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border bg-card p-4">
+    <section className="flex flex-col gap-3 border-y border-border-subtle py-4">
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-warning/15 text-warning-foreground">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-warning/15 text-warning-foreground">
           <ShieldAlert className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="flex flex-col gap-1">
@@ -70,7 +72,7 @@ export function DecisionQueue({ items }: { items: DecisionQueueItem[] }) {
           return (
             <article
               key={item.id}
-              className={cn("rounded-md border p-3", toneClass[tone])}
+              className={cn("rounded-md border bg-card p-3", toneClass[tone])}
             >
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 gap-3">

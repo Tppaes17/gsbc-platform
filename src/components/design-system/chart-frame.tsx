@@ -20,13 +20,13 @@ export function ChartFrame({
   fallback,
 }: ChartFrameProps) {
   return (
-    <section className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+    <section className="flex min-w-0 flex-col gap-4 border-y border-border-subtle bg-muted/30 px-4 py-5 sm:px-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">{question}</p>
-          <p className="text-xs text-muted-foreground">
-            Métrica: {metric} · Período: {period}
+          <h2 className="text-lg font-semibold tracking-normal">{title}</h2>
+          <p className="max-w-2xl text-sm text-muted-foreground">{question}</p>
+          <p className="text-[0.72rem] font-medium text-muted-foreground">
+            {metric} · {period}
           </p>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}

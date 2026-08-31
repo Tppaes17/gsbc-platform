@@ -13,9 +13,9 @@ test("staff GSBC vê o Command Center e o aviso de Documentos não existe mais",
   await loginAs(page, STAFF_EMAIL);
 
   await expect(page.getByRole("heading", { name: "Executive Command Center" })).toBeVisible();
-  await expect(page.getByText("Zone A — Executive Pulse")).toBeVisible();
-  await expect(page.getByText("Zone B — Performance & Risk")).toBeVisible();
-  await expect(page.getByText("Zone D — Executive Intelligence")).toBeVisible();
+  await expect(page.getByText("Visão executiva")).toBeVisible();
+  await expect(page.getByText("Performance e risco")).toBeVisible();
+  await expect(page.getByText("Inteligência operacional")).toBeVisible();
   await expect(page.getByText("Atividade recente auditável")).toBeVisible();
   await expect(page.getByText(/módulo de Documentos chega/)).toHaveCount(0);
 });

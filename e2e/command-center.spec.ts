@@ -7,13 +7,13 @@ test("staff vê pulse executivo, risco, decisões e drill-downs", async ({ page 
   await expect(page.getByRole("heading", { name: "Executive Command Center" })).toBeVisible();
   await expect(page.getByText("Recebido confirmado")).toBeVisible();
   await expect(page.getByText("Exposição em cobrança")).toBeVisible();
-  await expect(page.getByRole("link", { name: /Exposição vencida/ })).toBeVisible();
+  await expect(page.getByText("Exposição vencida", { exact: true })).toBeVisible();
   await expect(page.getByText("Aging de cobrança")).toBeVisible();
   await expect(page.getByText("Concentração por empresa")).toBeVisible();
   await expect(page.getByText("Decisões e exceções agora").or(page.getByText("Nenhuma decisão suportada pendente"))).toBeVisible();
-  await expect(page.getByText("Oportunidade, cobertura, obrigação e dívida")).toBeVisible();
+  await expect(page.getByText("Inteligência operacional")).toBeVisible();
 
-  await page.getByRole("link", { name: /Exposição em cobrança/ }).click();
+  await page.locator('article:has-text("Exposição em cobrança")').getByRole("link", { name: /Abrir/ }).click();
   await page.waitForURL("**/backoffice/cobrancas");
 });
 

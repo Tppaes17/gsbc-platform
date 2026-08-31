@@ -8,8 +8,6 @@ import {
   FileText,
   Handshake,
   Receipt,
-  ShieldCheck,
-  TrendingUp,
   Users,
 } from "lucide-react";
 import { ChartFrame } from "@/components/design-system/chart-frame";
@@ -24,6 +22,7 @@ import { Timeline, type TimelineItem } from "@/components/design-system/timeline
 import { Button } from "@/components/ui/button";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 const COBRANCA_STATUS_ENCERRADO = new Set(["paid", "cancelled", "closed"]);
 const COBRANCA_STATUS_NAO_VALIDADO = new Set(["draft", "pending_validation"]);
@@ -277,36 +276,61 @@ function buildDecisionItems({
   return [...escalationItems, ...taskItems].slice(0, 5);
 }
 
-function BarList({
+function ExposureList({
   items,
   total,
+  mode = "bars",
 }: {
   items: { label: string; value: number; href?: string }[];
   total: number;
+  mode?: "bars" | "adaptive";
 }) {
-  if (items.every((item) => item.value === 0)) {
+  const nonZeroItems = items.filter((item) => item.value > 0);
+
+  if (nonZeroItems.length === 0) {
     return (
-      <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+      <div className="rounded-md border border-dashed border-border-subtle bg-background/60 px-3 py-4 text-sm text-muted-foreground">
         Sem valores no escopo atual.
       </div>
     );
   }
 
+  if (mode === "adaptive" && nonZeroItems.length === 1) {
+    const item = nonZeroItems[0];
+    const content = (
+      <div className="flex items-center justify-between gap-4 rounded-md bg-background px-3 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{item.label}</p>
+          <p className="text-xs text-muted-foreground">Exposição concentrada no escopo atual</p>
+        </div>
+        <p className="shrink-0 text-base font-semibold tabular-nums">{formatCurrency(item.value)}</p>
+      </div>
+    );
+
+    return item.href ? (
+      <Link href={item.href} className="block hover:text-primary">
+        {content}
+      </Link>
+    ) : (
+      content
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       {items.map((item) => {
         const width =
           total > 0 ? Math.max((item.value / total) * 100, item.value > 0 ? 4 : 0) : 0;
         const row = (
-          <div className="flex flex-col gap-1">
+          <div className={cn("flex flex-col gap-1", item.value === 0 ? "opacity-55" : null)}>
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="truncate font-medium">{item.label}</span>
-              <span className="shrink-0 tabular-nums text-muted-foreground">
+              <span className="shrink-0 font-medium tabular-nums text-muted-foreground">
                 {formatCurrency(item.value)}
               </span>
             </div>
-            <div className="h-2 rounded-full bg-muted">
-              <div className="h-2 rounded-full bg-primary" style={{ width: `${width}%` }} />
+            <div className="h-px bg-border-subtle">
+              <div className="h-px bg-primary" style={{ width: `${width}%` }} />
             </div>
           </div>
         );
@@ -320,6 +344,34 @@ function BarList({
         );
       })}
     </div>
+  );
+}
+
+function OperationalContextStrip({
+  items,
+}: {
+  items: { label: string; value: string; href: string; description: string }[];
+}) {
+  return (
+    <section aria-label="Contexto operacional" className="border-y border-border-subtle py-3">
+      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
+        {items.map((item) => (
+          <Link key={item.label} href={item.href} className="group min-w-0">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="truncate text-xs font-semibold uppercase text-muted-foreground">
+                {item.label}
+              </p>
+              <p className="shrink-0 text-lg font-semibold tabular-nums text-foreground">
+                {item.value}
+              </p>
+            </div>
+            <p className="mt-1 truncate text-xs text-muted-foreground group-hover:text-primary">
+              {item.description}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -445,8 +497,35 @@ export default async function BackofficeDashboardPage() {
     timeStyle: "short",
   });
 
+  const operationalContext = [
+    {
+      label: "Receita identificada",
+      value: formatCurrency(valorIdentificado, true),
+      href: "/backoffice/receita",
+      description: "Obrigações válidas; não é dívida nem recebido",
+    },
+    {
+      label: "Negociações abertas",
+      value: String(negociacoesAbertas.length),
+      href: "/backoffice/negociacoes",
+      description: "Acordo não equivale a pagamento",
+    },
+    {
+      label: "Empresas visíveis",
+      value: String(empresasCount.count ?? 0),
+      href: "/backoffice/empresas",
+      description: "Escopo filtrado por RLS/tenant",
+    },
+    {
+      label: "Instrumentos vigentes",
+      value: String(instrumentosCount.count ?? 0),
+      href: "/backoffice/instrumentos",
+      description: "Base normativa rastreável",
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <PageHeader
         title="Executive Command Center"
         description={
@@ -463,23 +542,22 @@ export default async function BackofficeDashboardPage() {
         }
       />
 
-      <section
-        aria-labelledby="executive-pulse-heading"
-        className="grid gap-4 xl:grid-cols-[1.25fr_0.9fr_0.9fr]"
-      >
+      <section aria-labelledby="executive-pulse-heading" className="grid min-w-0 gap-3 xl:grid-cols-3">
         <div className="xl:col-span-3">
-          <div className="mb-3 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />
-            <h2 id="executive-pulse-heading" className="text-sm font-semibold">
-              Zone A — Executive Pulse
+          <div className="mb-2 flex flex-col gap-1">
+            <h2 id="executive-pulse-heading" className="text-lg font-semibold">
+              Visão executiva
             </h2>
+            <p className="text-sm text-muted-foreground">
+              Três sinais financeiros, sem potencial ou forecast misturados ao recebido.
+            </p>
           </div>
         </div>
         <ExecutiveKpi
           hero
           label="Recebido confirmado"
           value={formatCurrency(totalPago, true)}
-          period="Ledger de pagamentos, todo o histórico visível"
+          period={`${periodoLabel} · ledger confirmado`}
           context="Dinheiro efetivamente registrado em pagamentos. Não inclui potencial, forecast ou oportunidade."
           tone="positive"
           href="/backoffice/financeiro"
@@ -494,7 +572,7 @@ export default async function BackofficeDashboardPage() {
           hero
           label="Exposição em cobrança"
           value={formatCurrency(valorEmCobranca, true)}
-          period="Cobranças não encerradas"
+          period="Posição atual · cobranças não encerradas"
           context="Valor de cobranças abertas, suspensas, negociando, contestadas ou em escalonamento. Não é receita recebida."
           href="/backoffice/cobrancas"
           comparison={compareCurrency(cobrancasMesAtual, cobrancasMesAnterior)}
@@ -512,43 +590,14 @@ export default async function BackofficeDashboardPage() {
         />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-4">
-        <ExecutiveKpi
-          label="Receita identificada"
-          value={formatCurrency(valorIdentificado, true)}
-          period="Obrigações válidas"
-          context="Valor de referência upstream; não é dívida nem recebido."
-          href="/backoffice/receita"
-        />
-        <ExecutiveKpi
-          label="Negociações abertas"
-          value={String(negociacoesAbertas.length)}
-          period="Status aberto/em negociação"
-          context="Acordo não equivale a pagamento."
-          href="/backoffice/negociacoes"
-        />
-        <ExecutiveKpi
-          label="Empresas visíveis"
-          value={String(empresasCount.count ?? 0)}
-          period="Escopo atual"
-          context="Empresas filtradas por RLS/tenant."
-          href="/backoffice/empresas"
-        />
-        <ExecutiveKpi
-          label="Instrumentos vigentes"
-          value={String(instrumentosCount.count ?? 0)}
-          period="Status active"
-          context="Base normativa rastreável."
-          href="/backoffice/instrumentos"
-        />
-      </section>
+      <OperationalContextStrip items={operationalContext} />
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+      <section className="grid min-w-0 gap-4 xl:grid-cols-[1fr_1fr]">
         <ChartFrame
-          title="Zone B — Performance & Risk"
-          question="Onde a exposição aberta está concentrada e em que faixa de vencimento?"
-          metric="Soma de valor_cobranca de cobranças não encerradas"
-          period="Posição atual"
+          title="Performance e risco"
+          question="Onde a exposição aberta está concentrada e como ela se distribui por vencimento?"
+          metric="valor_cobranca de cobranças não encerradas"
+          period="posição atual"
           action={
             <Button
               variant="outline"
@@ -567,37 +616,37 @@ export default async function BackofficeDashboardPage() {
             </ul>
           }
         >
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid min-w-0 gap-6 lg:grid-cols-2">
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <h3 className="text-sm font-semibold">Aging de cobrança</h3>
               </div>
-              <BarList items={aging} total={valorEmCobranca} />
+              <ExposureList items={aging} total={valorEmCobranca} />
             </div>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <Building className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <h3 className="text-sm font-semibold">Concentração por empresa</h3>
               </div>
-              <BarList items={concentration} total={valorEmCobranca} />
+              <ExposureList items={concentration} total={valorEmCobranca} mode="adaptive" />
             </div>
           </div>
         </ChartFrame>
 
-        <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
-          <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 border-y border-border-subtle py-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="flex flex-col gap-1">
-              <h2 className="text-base font-semibold">Zone D — Executive Intelligence</h2>
+              <h2 className="text-lg font-semibold">Inteligência operacional</h2>
               <p className="text-sm text-muted-foreground">
-                Leituras determinísticas, sem IA generativa e sem causalidade inventada.
+                Leituras observadas, sem causalidade inventada.
               </p>
             </div>
             <StatusBadge label="Determinístico" tone="info" />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-md border border-border-subtle p-3">
+          <div className="grid gap-2">
+            <div className="rounded-md bg-card px-3 py-2">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <CircleDollarSign className="h-4 w-4 text-success" aria-hidden="true" />
                 Recebimento do mês
@@ -606,7 +655,7 @@ export default async function BackofficeDashboardPage() {
                 {compareCurrency(recebidoMesAtual, recebidoMesAnterior)}.
               </p>
             </div>
-            <div className="rounded-md border border-border-subtle p-3">
+            <div className="rounded-md bg-card px-3 py-2">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <Receipt className="h-4 w-4 text-primary" aria-hidden="true" />
                 Cobrança do mês
@@ -615,7 +664,7 @@ export default async function BackofficeDashboardPage() {
                 {compareCurrency(cobrancasMesAtual, cobrancasMesAnterior)} por vencimento.
               </p>
             </div>
-            <div className="rounded-md border border-border-subtle p-3">
+            <div className="rounded-md bg-card px-3 py-2">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
                 Principal risco
@@ -626,38 +675,29 @@ export default async function BackofficeDashboardPage() {
                   : "Não há exposição vencida visível no escopo atual."}
               </p>
             </div>
-            <div className="rounded-md border border-border-subtle p-3">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
-                Invariante preservado
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Oportunidade, cobertura, obrigação e dívida permanecem separadas nos labels.
-              </p>
-            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+      <section className="grid min-w-0 gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <DecisionQueue items={decisions} />
 
-        <section className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+        <section className="flex flex-col gap-4 border-y border-border-subtle py-4">
           <div className="flex flex-col gap-1">
-            <h2 className="text-base font-semibold">Contexto operacional</h2>
+            <h2 className="text-base font-semibold">Escala operacional</h2>
             <p className="text-sm text-muted-foreground">
-              Volume visível que explica a escala da operação sem competir com os KPIs executivos.
+              Volume autorizado que ajuda a interpretar o painel.
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex items-start gap-3 rounded-md border border-border-subtle p-3">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="flex items-start gap-3 rounded-md bg-card px-3 py-2">
               <Users className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <div>
                 <p className="text-sm font-semibold tabular-nums">{usersCount.count ?? 0}</p>
                 <p className="text-xs text-muted-foreground">Usuários visíveis</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 rounded-md border border-border-subtle p-3">
+            <div className="flex items-start gap-3 rounded-md bg-card px-3 py-2">
               <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <div>
                 <p className="text-sm font-semibold tabular-nums">
@@ -666,14 +706,14 @@ export default async function BackofficeDashboardPage() {
                 <p className="text-xs text-muted-foreground">Memberships ativas</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 rounded-md border border-border-subtle p-3">
+            <div className="flex items-start gap-3 rounded-md bg-card px-3 py-2">
               <Handshake className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <div>
                 <p className="text-sm font-semibold tabular-nums">{negociacoes.length}</p>
                 <p className="text-xs text-muted-foreground">Negociações totais visíveis</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 rounded-md border border-border-subtle p-3">
+            <div className="flex items-start gap-3 rounded-md bg-card px-3 py-2">
               <Building className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <div>
                 <p className="text-sm font-semibold tabular-nums">{sindicatosCount.count ?? 0}</p>
@@ -697,7 +737,7 @@ export default async function BackofficeDashboardPage() {
         </section>
       </section>
 
-      <section className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+      <section className="flex flex-col gap-4 rounded-md border bg-card p-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-semibold">Atividade recente auditável</h2>
           <p className="text-sm text-muted-foreground">

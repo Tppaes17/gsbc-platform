@@ -36,11 +36,11 @@ export default async function BackofficeLayout({
     : (user.memberships[0]?.tenantName ?? "Portal do Sindicato");
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r bg-sidebar p-4 md:flex md:flex-col md:gap-6">
-        <div className="px-2">
-          <p className="text-lg font-semibold text-sidebar-foreground">GSBC</p>
-          <p className="text-xs text-muted-foreground">{tenantLabel}</p>
+    <div className="flex min-h-screen bg-muted/25">
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r border-sidebar-border bg-sidebar px-4 py-5 md:flex md:flex-col md:gap-6">
+        <div className="border-b border-sidebar-border px-2 pb-4">
+          <p className="text-base font-bold tracking-normal text-sidebar-foreground">GSBC</p>
+          <p className="mt-1 text-xs font-medium text-muted-foreground">{tenantLabel}</p>
         </div>
         <SidebarNav isPlatformStaff={user.isPlatformStaff} isOwner={user.isOwner} />
       </aside>

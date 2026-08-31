@@ -43,7 +43,7 @@ export function SidebarNav({
   })).filter((group) => group.items.length > 0);
 
   return (
-    <nav aria-label="Navegação do backoffice" className="flex flex-col gap-5">
+    <nav aria-label="Navegação do backoffice" className="flex flex-col gap-4">
       {groups.map((group) => {
         const hasActiveItem = group.items.some((item) =>
           isRouteActive(pathname, item.href),
@@ -54,7 +54,7 @@ export function SidebarNav({
             <div
               id={`nav-group-${group.id}`}
               className={cn(
-                "mb-1.5 px-3 text-[0.68rem] font-semibold uppercase leading-none tracking-normal",
+                "mb-1 px-3 text-[0.7rem] font-semibold leading-none tracking-normal",
                 hasActiveItem ? "text-sidebar-foreground" : "text-muted-foreground",
               )}
             >
@@ -72,13 +72,13 @@ export function SidebarNav({
                     onClick={onNavigate}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "flex min-h-9 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                      "flex min-h-8 items-center gap-2 rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/60",
+                        ? "border-sidebar-accent bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/82 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
                     )}
                   >
-                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span className="truncate">{item.label}</span>
                   </Link>
                 );
