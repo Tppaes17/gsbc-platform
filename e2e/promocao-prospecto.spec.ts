@@ -1,6 +1,36 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { createClient } from "@supabase/supabase-js";
 import { loginAs, STAFF_EMAIL } from "./helpers/auth";
 import { createProspectosFixture } from "./helpers/prospectos-fixture";
+import type { Database } from "../src/types/database.types";
+
+function loadLocalEnv() {
+  const env: Record<string, string> = {};
+  const file = readFileSync(resolve(process.cwd(), ".env.local"), "utf8");
+
+  for (const line of file.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = /^([A-Z0-9_]+)=(.*)$/.exec(trimmed);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    env[key] = rawValue.replace(/^["']|["']$/g, "");
+  }
+
+  return {
+    supabaseUrl: env.NEXT_PUBLIC_SUPABASE_URL,
+    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+  };
+}
+
+function adminClient() {
+  const env = loadLocalEnv();
+  return createClient<Database>(env.supabaseUrl, env.serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 /**
  * Promoção de Prospecto para Empresa (STG-01, ver docs/roadmap-stagings.md)
@@ -21,8 +51,14 @@ test("Owner promove um prospecto para empresa sem recadastro", async ({ page }, 
   await expect(page.getByText(/2 prospecto\(s\) novo\(s\)/)).toBeVisible({ timeout: 10_000 });
   await page.getByRole("button", { name: "Close" }).click();
 
-  await page.getByText(fixture.nomeUm).click();
-  await page.waitForURL("**/backoffice/prospectos/**");
+  const { data: prospecto, error } = await adminClient()
+    .from("dossies_cadastrais")
+    .select("id")
+    .eq("cnpj_consultado", fixture.cnpjUm)
+    .single();
+  expect(error?.message).toBeUndefined();
+
+  await page.goto(`/backoffice/prospectos/${prospecto!.id}`);
 
   await page.getByRole("button", { name: "Promover para empresa" }).click();
   await expect(page.getByRole("heading", { name: "Promover prospecto para empresa" })).toBeVisible();

@@ -24,7 +24,7 @@ test.describe("Visão da equipe GSBC (staff)", () => {
       "Instrumentos",
       "Cobranças",
       "Negociações",
-      "Financeiro",
+      "Pagamentos",
       "Usuários",
       "Auditoria",
     ]) {
@@ -65,7 +65,7 @@ test.describe("Visão do sindicato (dirigente)", () => {
     await page.goto(`/backoffice/cobrancas/${SEED.cobrancaBomPreco}`);
     // Dado real da cobrança continua visível — sindicato acompanha.
     await expect(page.getByText("Status:")).toBeVisible();
-    await expect(page.getByText("Pagamentos")).toBeVisible();
+    await expect(page.getByRole("main").getByText("Pagamentos")).toBeVisible();
     // Ações exclusivas da equipe GSBC não aparecem.
     await expect(page.getByRole("button", { name: "Mudar status" })).toHaveCount(0);
     await expect(

@@ -41,11 +41,11 @@ export function MobileSidebar({
         }
       />
       <SheetContent side="left" className="w-72 p-0">
-        <SheetHeader className="border-b">
+        <SheetHeader className="border-b bg-sidebar">
           <SheetTitle>GSBC</SheetTitle>
           <SheetDescription>{tenantLabel}</SheetDescription>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto bg-sidebar p-4">
           <SidebarNav
             isPlatformStaff={isPlatformStaff}
             isOwner={isOwner}

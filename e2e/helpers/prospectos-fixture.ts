@@ -7,6 +7,8 @@ export interface ProspectosFixture {
   path: string;
   nomeUm: string;
   nomeDois: string;
+  cnpjUm: string;
+  cnpjDois: string;
   emailUm: string;
   emailDois: string;
 }
@@ -29,13 +31,15 @@ export function createProspectosFixture(testInfo: TestInfo): ProspectosFixture {
   const seed = onlyAsciiIdentifier(`${testInfo.title}-${randomUUID()}`);
   const nomeUm = `PROVEDOR E2E ${seed} UM LTDA`;
   const nomeDois = `PROVEDOR E2E ${seed} DOIS LTDA`;
+  const cnpjUm = uniqueCnpj(seed, 1);
+  const cnpjDois = uniqueCnpj(seed, 2);
   const emailUm = `contato+${seed.toLowerCase()}1@provedorteste.com.br`;
   const emailDois = `financeiro+${seed.toLowerCase()}2@provedorteste.com.br`;
 
   const rows = [
     [...PROSPECTO_COLUNAS_ESPERADAS],
     [
-      uniqueCnpj(seed, 1),
+      cnpjUm,
       nomeUm,
       "Provedores de acesso as redes de comunicacoes",
       "",
@@ -51,7 +55,7 @@ export function createProspectosFixture(testInfo: TestInfo): ProspectosFixture {
       "60000-000",
     ],
     [
-      uniqueCnpj(seed, 2),
+      cnpjDois,
       nomeDois,
       "Provedores de acesso as redes de comunicacoes",
       "6110-8/03",
@@ -77,5 +81,5 @@ export function createProspectosFixture(testInfo: TestInfo): ProspectosFixture {
   const path = testInfo.outputPath(`prospectos-${seed.toLowerCase()}.xlsx`);
   XLSX.writeFile(workbook, path);
 
-  return { path, nomeUm, nomeDois, emailUm, emailDois };
+  return { path, nomeUm, nomeDois, cnpjUm, cnpjDois, emailUm, emailDois };
 }

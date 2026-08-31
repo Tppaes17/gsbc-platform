@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { MobileSidebar } from "@/components/backoffice/mobile-sidebar";
+import { BackofficeContentFrame } from "@/components/backoffice/backoffice-content-frame";
 import { SidebarNav } from "@/components/backoffice/sidebar-nav";
-import { UserMenu } from "@/components/backoffice/user-menu";
+import { Topbar } from "@/components/backoffice/topbar";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export default async function BackofficeLayout({
@@ -36,8 +36,8 @@ export default async function BackofficeLayout({
     : (user.memberships[0]?.tenantName ?? "Portal do Sindicato");
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-64 shrink-0 border-r bg-sidebar p-4 md:flex md:flex-col md:gap-6">
+    <div className="flex min-h-screen bg-background">
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r bg-sidebar p-4 md:flex md:flex-col md:gap-6">
         <div className="px-2">
           <p className="text-lg font-semibold text-sidebar-foreground">GSBC</p>
           <p className="text-xs text-muted-foreground">{tenantLabel}</p>
@@ -46,19 +46,9 @@ export default async function BackofficeLayout({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center gap-2 border-b px-4">
-          <MobileSidebar
-            isPlatformStaff={user.isPlatformStaff}
-            isOwner={user.isOwner}
-            tenantLabel={tenantLabel}
-          />
-          <p className="text-sm font-medium md:hidden">GSBC</p>
-          <div className="ml-auto">
-            <UserMenu user={user} />
-          </div>
-        </header>
-        <main className="flex-1 overflow-x-auto p-6">
-          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+        <Topbar user={user} tenantLabel={tenantLabel} />
+        <main className="flex-1 overflow-x-auto p-4 sm:p-6">
+          <BackofficeContentFrame>{children}</BackofficeContentFrame>
         </main>
       </div>
     </div>

@@ -76,7 +76,7 @@ test("staff valida contrato financeiro e cria versão de split ativa", async ({ 
 
   try {
     await loginAs(page, STAFF_EMAIL);
-    await expect(page.getByRole("link", { name: "Contratos Financeiros" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Contratos" })).toBeVisible();
     await page.goto("/backoffice/contratos-financeiros");
 
     await page.getByLabel("Sindicato *").selectOption({ label: fixture.label });
