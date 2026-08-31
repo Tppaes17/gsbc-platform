@@ -47,7 +47,7 @@ test("sindicato vê no drawer mobile só os itens autorizados (mesma regra da si
   await page.getByRole("button", { name: "Abrir menu" }).click();
   const drawer = page.getByRole("dialog");
   await expect(drawer.getByRole("link", { name: "Empresas" })).toBeVisible();
-  await expect(drawer.getByRole("link", { name: "Empresas Prospectadas" })).toHaveCount(0);
+  await expect(drawer.getByRole("link", { name: "Oportunidades" })).toHaveCount(0);
   await expect(drawer.getByRole("link", { name: "Políticas" })).toHaveCount(0);
 });
 

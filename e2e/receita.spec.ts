@@ -154,7 +154,7 @@ test("Revenue Command Center segmenta por empresa, obrigação, período e statu
 
     await expect(page.getByText("Segmentação de receita")).toBeVisible();
     await expect(page.getByText(fixture.empresaNome)).toBeVisible();
-    await page.getByRole("link", { name: new RegExp(fixture.empresaNome) }).click();
+    await page.locator(`a[href="/backoffice/cobrancas?empresaId=${fixture.empresaId}"]`).click();
     await expect(page).toHaveURL(new RegExp(`empresaId=${fixture.empresaId}`));
     await expect(page.getByText("Filtrado por empresa")).toBeVisible();
 
@@ -195,7 +195,11 @@ test("sindicato também vê o Revenue Command Center (transparência, regra 6)",
 
 test("nav lateral tem o item Receita pros dois papéis", async ({ page }) => {
   await loginAs(page, STAFF_EMAIL);
-  await expect(page.getByRole("link", { name: "Receita" })).toBeVisible();
+  await expect(
+    page
+      .getByRole("navigation", { name: "Navegação do backoffice" })
+      .getByRole("link", { name: "Receita", exact: true }),
+  ).toBeVisible();
 });
 
 test("drill-down de status na tela de cobranças mostra indicador de filtro", async ({

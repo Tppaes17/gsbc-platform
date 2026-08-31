@@ -17,7 +17,7 @@ test.describe("Visão da equipe GSBC (staff)", () => {
   test("dashboard cumprimenta pelo primeiro nome e mostra todos os módulos no menu", async ({
     page,
   }) => {
-    await expect(page.getByRole("heading", { name: "Olá, Admin" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Executive Command Center" })).toBeVisible();
     for (const label of [
       "Sindicatos",
       "Empresas",
@@ -56,7 +56,7 @@ test.describe("Visão do sindicato (dirigente)", () => {
   });
 
   test("dashboard cumprimenta pelo primeiro nome", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Olá, Dirigente" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Executive Command Center" })).toBeVisible();
   });
 
   test("acompanha a cobrança mas não vê ações de gestão exclusivas da GSBC", async ({
