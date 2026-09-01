@@ -27,6 +27,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <a
+          href="#main-content"
+          className="sr-only fixed left-3 top-3 z-[100] rounded-md bg-background px-3 py-2 text-sm font-semibold text-foreground shadow-sm outline-none ring-2 ring-ring focus:not-sr-only"
+        >
+          Pular para o conteúdo principal
+        </a>
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster />
       </body>

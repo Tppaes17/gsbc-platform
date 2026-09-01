@@ -39,15 +39,26 @@ export default async function BackofficeLayout({
     <div className="flex min-h-screen bg-muted/25">
       <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r border-sidebar-border bg-sidebar px-4 py-5 md:flex md:flex-col md:gap-6">
         <div className="border-b border-sidebar-border px-2 pb-4">
-          <p className="text-base font-bold tracking-normal text-sidebar-foreground">GSBC</p>
-          <p className="mt-1 text-xs font-medium text-muted-foreground">{tenantLabel}</p>
+          <p className="text-base font-bold tracking-normal text-sidebar-foreground">
+            GSBC
+          </p>
+          <p className="mt-1 text-xs font-medium text-muted-foreground">
+            {tenantLabel}
+          </p>
         </div>
-        <SidebarNav isPlatformStaff={user.isPlatformStaff} isOwner={user.isOwner} />
+        <SidebarNav
+          isPlatformStaff={user.isPlatformStaff}
+          isOwner={user.isOwner}
+        />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar user={user} tenantLabel={tenantLabel} />
-        <main className="flex-1 overflow-x-auto p-4 sm:p-6">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 overflow-x-auto p-4 sm:p-6"
+        >
           <BackofficeContentFrame>{children}</BackofficeContentFrame>
         </main>
       </div>

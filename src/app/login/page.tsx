@@ -26,13 +26,17 @@ const PILARES = [
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="grid min-h-screen lg:grid-cols-2"
+    >
       <section className="relative hidden overflow-hidden bg-brand-ink lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(202,214,222,0.12),_transparent_55%)]" />
         <div className="relative flex flex-col gap-10">
           <SiteLogo dark />
           <div className="flex flex-col gap-4">
-            <span className="text-xs font-semibold tracking-[0.2em] text-brand-teal uppercase">
+            <span className="text-xs font-semibold tracking-[0.2em] text-brand-gold-light uppercase">
               Backoffice operacional
             </span>
             <h1 className="max-w-md text-3xl font-bold tracking-tight text-white">
@@ -63,7 +67,7 @@ export default function LoginPage() {
               key={pilar.label}
               className="flex items-center gap-3 text-sm text-brand-ice/90"
             >
-              <pilar.icon className="h-4 w-4 shrink-0 text-brand-teal" />
+              <pilar.icon className="h-4 w-4 shrink-0 text-brand-gold-light" />
               {pilar.label}
             </li>
           ))}
@@ -92,6 +96,6 @@ export default function LoginPage() {
           </p>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

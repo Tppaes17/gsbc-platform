@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:e2e": "playwright test",
+    "test:a11y": "playwright test e2e/accessibility-wave-7.spec.ts",
     "test:e2e:reset": "supabase db reset && playwright test",
     "test:phase0": "playwright test e2e/phase0-security.spec.ts e2e/phase0-backup-restore.spec.ts",
     "check:phase0": "npm run lint && npx tsc --noEmit && npx supabase migration list --local && npm run test:phase0 && git diff --check",
@@ -42,6 +43,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
