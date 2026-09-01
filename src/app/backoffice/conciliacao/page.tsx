@@ -28,7 +28,7 @@ type ReconciliationStatus =
 
 const reconciliationStatusLabel: Record<ReconciliationStatus, string> = {
   pending: "Pendente",
-  provider_reported: "Provider reportou",
+  provider_reported: "Pagamento reportado externamente",
   reconciling: "Conciliando",
   partial: "Parcial",
   mismatch: "Divergente",
@@ -174,7 +174,7 @@ export default async function ConciliacaoPage() {
               <thead className="border-b text-xs text-muted-foreground">
                 <tr>
                   <th className="py-2 pr-4 font-medium">Criada em</th>
-                  <th className="py-2 pr-4 font-medium">Provider</th>
+                  <th className="py-2 pr-4 font-medium">Origem externa</th>
                   <th className="py-2 pr-4 font-medium">Status</th>
                   <th className="py-2 pr-4 font-medium">Valores</th>
                   <th className="py-2 pr-4 font-medium">Split / repasse</th>
@@ -208,7 +208,7 @@ export default async function ConciliacaoPage() {
                       <td className="py-3 pr-4 text-muted-foreground">
                         Bruto {formatCurrency(reconciliation.gross_amount)}
                         <br />
-                        Taxa {formatCurrency(reconciliation.provider_fee_amount)}
+                        Taxa externa {formatCurrency(reconciliation.provider_fee_amount)}
                         <br />
                         Líquido {formatCurrency(reconciliation.net_amount)}
                       </td>

@@ -1,7 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { DetailHeader } from "@/components/design-system/detail-header";
-import { PageSection } from "@/components/design-system/page-section";
+import {
+  EntityRelationshipSection,
+  EntitySummaryStrip,
+  EntityWorkspace,
+  EntityWorkspaceNav,
+  EntityWorkspaceSection,
+} from "@/components/design-system/entity-workspace";
+import { formatBrl } from "@/components/design-system/financial-cell";
 import { Timeline, type TimelineItem } from "@/components/design-system/timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCurrentUser } from "@/lib/auth/session";
@@ -356,6 +363,8 @@ export default async function CobrancaDetailPage({
   });
 
   const valorReferencia = valorReferenciaCobranca(cobranca.valor_cobranca, negociacaoExistente);
+  const totalPago = pagamentos.reduce((sum, p) => sum + p.valor, 0);
+  const saldoAtual = Math.max(valorReferencia - totalPago, 0);
   const temAcordoComDesconto =
     negociacaoExistente?.status === "aceita" &&
     negociacaoExistente.valor_atual !== null &&
@@ -384,8 +393,21 @@ export default async function CobrancaDetailPage({
     });
   }
 
+  const navItems = [
+    { id: "overview", label: "Visão geral" },
+    { id: "cadastro", label: "Cadastro" },
+    { id: "financeiro", label: "Financeiro", meta: pagamentos.length },
+    ...(user.isPlatformStaff ? [{ id: "cobranca-provider", label: "Cobrança digital" }] : []),
+    ...(user.isPlatformStaff ? [{ id: "regua", label: "Régua" }] : []),
+    { id: "contestacao", label: "Contestação", meta: contestacao ? 1 : 0 },
+    { id: "escalonamento", label: "Escalonamento", meta: escalonamento ? 1 : 0 },
+    { id: "notificacoes", label: "Notificações", meta: notificacoes?.length ?? 0 },
+    ...(user.isPlatformStaff ? [{ id: "copilot", label: "Copilot" }] : []),
+    { id: "historico", label: "Histórico", meta: timelineItems.length },
+  ];
+
   return (
-    <div className="flex flex-col gap-6">
+    <EntityWorkspace>
       <DetailHeader
         title={empresa?.nome_fantasia ?? empresa?.razao_social ?? "Cobrança"}
         subtitle={`${obrigacao?.descricao ?? "—"} · ${cobranca.tenants?.name ?? "—"}`}
@@ -396,19 +418,13 @@ export default async function CobrancaDetailPage({
         metadata={[
           {
             label: temAcordoComDesconto ? "Valor original" : "Valor total",
-            value: cobranca.valor_cobranca.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }),
+            value: formatBrl(cobranca.valor_cobranca),
           },
           ...(temAcordoComDesconto
             ? [
                 {
                   label: "Valor acordado (negociação)",
-                  value: valorReferencia.toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  }),
+                  value: formatBrl(valorReferencia),
                 },
               ]
             : []),
@@ -420,55 +436,114 @@ export default async function CobrancaDetailPage({
         }
       />
 
-      <div className="flex flex-wrap items-center gap-4">
-        {empresa ? (
-          <Link
-            href={`/backoffice/empresas/${empresa.id}`}
-            className="text-sm text-primary hover:underline"
-          >
-            Ver ficha da empresa
-          </Link>
-        ) : null}
-        {obrigacao?.instrumento_id ? (
-          <Link
-            href={`/backoffice/instrumentos/${obrigacao.instrumento_id}`}
-            className="text-sm text-primary hover:underline"
-          >
-            Ver instrumento de origem
-          </Link>
-        ) : null}
-        {user.isPlatformStaff ? (
-          negociacaoExistente ? (
+      <EntityWorkspaceNav items={navItems} />
+
+      <EntityWorkspaceSection
+        id="overview"
+        title="Visão geral"
+        description="Contexto da cobrança sem tratá-la como dívida confirmada além do status registrado."
+      >
+        <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+          <EntityRelationshipSection>
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Relação operacional
+            </p>
+            <div className="mt-2 grid gap-3 text-sm sm:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Empresa</p>
+                {empresa ? (
+                  <Link
+                    href={`/backoffice/empresas/${empresa.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {empresa.nome_fantasia ?? empresa.razao_social}
+                  </Link>
+                ) : (
+                  <p className="font-medium">—</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Obrigação de origem</p>
+                <p className="font-medium">{obrigacao?.descricao ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Sindicato</p>
+                <p className="font-medium">{cobranca.tenants?.name ?? "—"}</p>
+              </div>
+            </div>
+          </EntityRelationshipSection>
+
+          <EntityRelationshipSection>
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Próxima ação
+            </p>
+            <div className="mt-2 flex flex-col gap-2">
+              {user.isPlatformStaff && !negociacaoExistente ? (
+                <IniciarNegociacaoAction cobrancaId={cobranca.id} responsaveis={responsaveis} />
+              ) : negociacaoExistente ? (
+                <Link
+                  href={`/backoffice/negociacoes/${negociacaoExistente.id}`}
+                  className="text-sm font-medium hover:underline"
+                >
+                  Ver negociação vinculada
+                </Link>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma ação disponível para este perfil.</p>
+              )}
+              {user.isPlatformStaff ? (
+                <NotificacaoAction
+                  cobrancaId={cobranca.id}
+                  destinatarioEmail={contatoPrincipal?.email ?? null}
+                  empresaNome={empresa?.nome_fantasia ?? empresa?.razao_social ?? "empresa"}
+                  tenantNome={cobranca.tenants?.name ?? "GSBC"}
+                  obrigacaoDescricao={obrigacao?.descricao ?? "—"}
+                  valorCobranca={cobranca.valor_cobranca}
+                  vencimento={cobranca.vencimento}
+                />
+              ) : null}
+            </div>
+          </EntityRelationshipSection>
+        </div>
+
+        <EntitySummaryStrip
+          items={[
+            { label: "Valor de referência", value: formatBrl(valorReferencia) },
+            { label: "Pago", value: formatBrl(totalPago), tone: "positive" },
+            {
+              label: "Saldo",
+              value: formatBrl(saldoAtual),
+              tone: saldoAtual > 0 ? "warning" : "muted",
+            },
+            { label: "Vencimento", value: cobranca.vencimento ?? "—" },
+          ]}
+        />
+
+        <div className="flex flex-wrap items-center gap-4">
+          {obrigacao?.instrumento_id ? (
             <Link
-              href={`/backoffice/negociacoes/${negociacaoExistente.id}`}
+              href={`/backoffice/instrumentos/${obrigacao.instrumento_id}`}
               className="text-sm text-primary hover:underline"
             >
-              Ver negociação
+              Ver instrumento de origem
             </Link>
-          ) : (
-            <IniciarNegociacaoAction cobrancaId={cobranca.id} responsaveis={responsaveis} />
-          )
-        ) : null}
-        {user.isPlatformStaff ? (
-          <NotificacaoAction
-            cobrancaId={cobranca.id}
-            destinatarioEmail={contatoPrincipal?.email ?? null}
-            empresaNome={empresa?.nome_fantasia ?? empresa?.razao_social ?? "empresa"}
-            tenantNome={cobranca.tenants?.name ?? "GSBC"}
-            obrigacaoDescricao={obrigacao?.descricao ?? "—"}
-            valorCobranca={cobranca.valor_cobranca}
-            vencimento={cobranca.vencimento}
-          />
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </EntityWorkspaceSection>
 
-      <EditCobrancaForm
-        cobranca={cobranca}
-        responsaveis={responsaveis}
-        readOnly={!user.isPlatformStaff}
-      />
+      <EntityWorkspaceSection
+        id="cadastro"
+        title="Cadastro"
+        description="Dados editáveis separados da leitura operacional."
+      >
+        <EditCobrancaForm
+          cobranca={cobranca}
+          responsaveis={responsaveis}
+          readOnly={!user.isPlatformStaff}
+        />
+      </EntityWorkspaceSection>
 
-      <PageSection
+      <EntityWorkspaceSection
+        id="financeiro"
         title="Financeiro"
         action={
           user.isPlatformStaff ? (
@@ -476,74 +551,85 @@ export default async function CobrancaDetailPage({
               cobrancaId={cobranca.id}
               empresaNome={empresa?.nome_fantasia ?? empresa?.razao_social ?? "—"}
               obrigacaoDescricao={obrigacao?.descricao ?? "—"}
-              saldoAtual={Math.max(
-                valorReferencia - pagamentos.reduce((sum, p) => sum + p.valor, 0),
-                0,
-              )}
+              saldoAtual={saldoAtual}
             />
           ) : undefined
         }
       >
         <PagamentosList pagamentos={pagamentos} valorReferencia={valorReferencia} />
-      </PageSection>
+      </EntityWorkspaceSection>
 
       {user.isPlatformStaff ? (
-        <PaymentChargesSection cobrancaId={cobranca.id} charges={paymentCharges ?? []} />
+        <EntityWorkspaceSection id="cobranca-provider" title="Cobrança digital">
+          <PaymentChargesSection cobrancaId={cobranca.id} charges={paymentCharges ?? []} />
+        </EntityWorkspaceSection>
       ) : null}
 
       {user.isPlatformStaff ? (
-        <ReguaCobrancaSection
+        <EntityWorkspaceSection id="regua" title="Régua de cobrança">
+          <ReguaCobrancaSection
+            cobrancaId={cobranca.id}
+            enrollment={enrollment}
+            steps={enrollmentSteps ?? []}
+            execucoes={execucoes}
+          />
+        </EntityWorkspaceSection>
+      ) : null}
+
+      <EntityWorkspaceSection id="contestacao" title="Contestação">
+        <ContestacaoSection
           cobrancaId={cobranca.id}
-          enrollment={enrollment}
-          steps={enrollmentSteps ?? []}
-          execucoes={execucoes}
+          contestacao={contestacao}
+          eventos={contestacaoEventos}
+          evidencias={contestacaoEvidencias}
+          canManage={user.isPlatformStaff}
         />
-      ) : null}
+      </EntityWorkspaceSection>
 
-      <ContestacaoSection
-        cobrancaId={cobranca.id}
-        contestacao={contestacao}
-        eventos={contestacaoEventos}
-        evidencias={contestacaoEvidencias}
-        canManage={user.isPlatformStaff}
-      />
+      <EntityWorkspaceSection id="escalonamento" title="Escalonamento">
+        <EscalonamentoSection
+          cobrancaId={cobranca.id}
+          escalonamento={
+            escalonamento
+              ? {
+                  id: escalonamento.id,
+                  status: escalonamento.status,
+                  motivo: escalonamento.motivo,
+                  motivoDecisao: escalonamento.motivo_decisao,
+                  iniciadoEm: escalonamento.iniciado_em,
+                  aprovadoEm: escalonamento.aprovado_em,
+                  concluidoEm: escalonamento.concluido_em,
+                }
+              : null
+          }
+          eventos={escalonamentoEventos}
+          documentos={escalonamentoDocumentos}
+          envios={escalonamentoEnvios}
+          canManage={user.isPlatformStaff}
+          canApprove={isEscalationApprover(user)}
+        />
+      </EntityWorkspaceSection>
 
-      <EscalonamentoSection
-        cobrancaId={cobranca.id}
-        escalonamento={
-          escalonamento
-            ? {
-                id: escalonamento.id,
-                status: escalonamento.status,
-                motivo: escalonamento.motivo,
-                motivoDecisao: escalonamento.motivo_decisao,
-                iniciadoEm: escalonamento.iniciado_em,
-                aprovadoEm: escalonamento.aprovado_em,
-                concluidoEm: escalonamento.concluido_em,
-              }
-            : null
-        }
-        eventos={escalonamentoEventos}
-        documentos={escalonamentoDocumentos}
-        envios={escalonamentoEnvios}
-        canManage={user.isPlatformStaff}
-        canApprove={isEscalationApprover(user)}
-      />
-
-      <NotificacoesList notificacoes={notificacoes ?? []} />
+      <EntityWorkspaceSection id="notificacoes" title="Notificações">
+        <NotificacoesList notificacoes={notificacoes ?? []} />
+      </EntityWorkspaceSection>
 
       {user.isPlatformStaff ? (
-        <CollectionsCopilotSection cobrancaId={cobranca.id} aiConfigured={isAiConfigured()} />
+        <EntityWorkspaceSection id="copilot" title="Copilot">
+          <CollectionsCopilotSection cobrancaId={cobranca.id} aiConfigured={isAiConfigured()} />
+        </EntityWorkspaceSection>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Timeline</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Timeline items={timelineItems} />
-        </CardContent>
-      </Card>
-    </div>
+      <EntityWorkspaceSection id="historico" title="Histórico">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Timeline</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Timeline items={timelineItems} />
+          </CardContent>
+        </Card>
+      </EntityWorkspaceSection>
+    </EntityWorkspace>
   );
 }

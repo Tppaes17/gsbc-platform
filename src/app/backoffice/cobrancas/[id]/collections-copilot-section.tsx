@@ -99,7 +99,7 @@ export function CollectionsCopilotSection({
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-medium">
           Collections Copilot
-          <span className="ml-2 text-xs font-normal text-muted-foreground">(STG-12)</span>
+          <span className="ml-2 text-xs font-normal text-muted-foreground">Assistente de leitura</span>
         </CardTitle>
         {aiConfigured ? (
           <Button variant="outline" size="sm" onClick={handleSugerir} disabled={isPending}>
@@ -113,7 +113,8 @@ export function CollectionsCopilotSection({
           <EmptyState
             icon={Sparkles}
             title="IA não configurada"
-            description="Defina ANTHROPIC_API_KEY para ativar o Collections Copilot. Sem essa chave, nenhuma chamada de IA é feita."
+            description="O assistente de leitura ainda não está disponível neste ambiente."
+            density="compact"
           />
         ) : !acaoSugerida ? (
           <EmptyState

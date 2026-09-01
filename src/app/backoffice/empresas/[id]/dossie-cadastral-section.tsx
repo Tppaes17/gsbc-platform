@@ -115,8 +115,7 @@ export function DossieCadastralSection({
           <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
             Enriquecimento web (site, e-mails, telefone, decisores, LinkedIn)
             ainda não está configurado — a consulta usa só a Receita
-            Federal por enquanto. Configure <code>LEADCNPJ_API_KEY</code>{" "}
-            para ativar a Fase 2.
+            Federal por enquanto.
           </p>
         ) : null}
 
@@ -125,6 +124,7 @@ export function DossieCadastralSection({
             icon={ShieldCheck}
             title="Nenhuma consulta realizada ainda"
             description="Consulte a Receita Federal (via BrasilAPI/Minha Receita) e, se configurado, o enriquecimento web (LeadCNPJ) para validar o cadastro desta empresa."
+            density="compact"
           />
         ) : (
           <>

@@ -17,7 +17,7 @@ export interface PaymentChargeActionState {
 export async function criarChargeAction(cobrancaId: string, tipo: PaymentChargeTipo): Promise<PaymentChargeActionState> {
   const user = await requireCurrentUser();
   if (!user.isPlatformStaff) {
-    return { error: "Apenas a equipe GSBC pode gerar cobranças via provider.", success: false };
+    return { error: "Apenas a equipe GSBC pode gerar cobranças digitais.", success: false };
   }
 
   const supabase = await createClient();
@@ -94,7 +94,7 @@ export async function simularWebhookAction(
 ): Promise<PaymentChargeActionState> {
   const user = await requireCurrentUser();
   if (!user.isPlatformStaff) {
-    return { error: "Apenas a equipe GSBC pode simular eventos de webhook.", success: false };
+    return { error: "Apenas a equipe GSBC pode simular confirmações de pagamento.", success: false };
   }
 
   const supabase = await createClient();
@@ -118,7 +118,7 @@ export async function simularWebhookAction(
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    return { error: payload.error ?? "Falha ao simular o webhook.", success: false };
+    return { error: payload.error ?? "Falha ao enviar a confirmação simulada.", success: false };
   }
 
   revalidatePath(`/backoffice/cobrancas/${charge.cobranca_id}`);

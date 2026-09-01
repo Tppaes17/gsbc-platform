@@ -14,24 +14,24 @@ import { SEED } from "./helpers/seed-ids";
  * Rodada 19 — ferramenta operacional, não transparência).
  */
 
-test("staff GSBC vê a seção de cobrança via provider com aviso de simulação", async ({ page }) => {
+test("staff GSBC vê a seção de cobrança digital com aviso de simulação", async ({ page }) => {
   await loginAs(page, STAFF_EMAIL);
   await page.goto(`/backoffice/cobrancas/${SEED.cobrancaBomPreco}`);
 
-  await expect(page.getByText("Cobrança via provider de pagamento").first()).toBeVisible();
+  await expect(page.getByText("Cobrança digital").first()).toBeVisible();
   await expect(
-    page.getByText("Nenhum provider de pagamento real está conectado"),
+    page.getByText("Nenhum meio de pagamento real está conectado"),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Gerar Pix" })).toBeVisible();
 });
 
-test("sindicato não vê a seção de cobrança via provider (gestão exclusiva da GSBC)", async ({
+test("sindicato não vê a seção de cobrança digital (gestão exclusiva da GSBC)", async ({
   page,
 }) => {
   await loginAs(page, SINDICATO_EMAIL);
   await page.goto(`/backoffice/cobrancas/${SEED.cobrancaBomPreco}`);
 
-  await expect(page.getByText("Cobrança via provider de pagamento")).toHaveCount(0);
+  await expect(page.getByText("Cobrança digital")).toHaveCount(0);
 });
 
 test("webhook rejeita assinatura inválida", async ({ request }) => {

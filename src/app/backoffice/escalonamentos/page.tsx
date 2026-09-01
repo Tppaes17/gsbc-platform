@@ -24,7 +24,7 @@ export default async function EscalonamentosPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Escalonamentos"
-        description="Notificação extrajudicial de cobranças que esgotaram a régua automática (STG-09). Aprovação exclusiva do papel Jurídico antes de qualquer documento sair."
+        description="Notificação extrajudicial de cobranças que esgotaram a régua automática. Aprovação exclusiva do papel Jurídico antes de qualquer documento sair."
       />
 
       <div className="grid gap-4 sm:grid-cols-3">

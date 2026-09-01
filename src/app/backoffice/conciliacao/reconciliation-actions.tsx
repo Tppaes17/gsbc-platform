@@ -232,7 +232,7 @@ export function CompensationEventForm({
         </div>
         <div className="flex flex-col gap-1">
           <Label htmlFor={`providerReference-${reconciliationId}`} className="text-xs">
-            Ref. provider
+            Referência externa
           </Label>
           <Input id={`providerReference-${reconciliationId}`} name="providerReference" className="h-7 text-xs" />
         </div>

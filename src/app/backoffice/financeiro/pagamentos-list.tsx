@@ -26,7 +26,7 @@ const FORMA_LABEL = Object.fromEntries(
 
 const CONCILIACAO_LABEL: Record<string, string> = {
   pending: "Pendente",
-  provider_reported: "Provider reportado",
+  provider_reported: "Pagamento reportado externamente",
   reconciling: "Conciliando",
   partial: "Parcial",
   mismatch: "Divergência",

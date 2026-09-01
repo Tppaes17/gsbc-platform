@@ -1,6 +1,15 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { DetailHeader } from "@/components/design-system/detail-header";
+import {
+  EntityRelationshipSection,
+  EntitySummaryStrip,
+  EntityWorkspace,
+  EntityWorkspaceNav,
+  EntityWorkspaceSection,
+} from "@/components/design-system/entity-workspace";
 import type { TimelineItem } from "@/components/design-system/timeline";
+import { formatBrl } from "@/components/design-system/financial-cell";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { valorReferenciaCobranca } from "@/lib/finance/referencia";
 import { createClient } from "@/lib/supabase/server";
@@ -41,10 +50,6 @@ const NEGOCIACAO_TIPO_LABEL = Object.fromEntries(
 const FORMA_PAGAMENTO_LABEL = Object.fromEntries(
   formaPagamentoOptions.map((o) => [o.value, o.label]),
 );
-
-function formatCurrency(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 export default async function EmpresaDetailPage({
   params,
@@ -253,8 +258,8 @@ export default async function EmpresaDetailPage({
 
   const timelineFromObrigacoes: TimelineItem[] = (obrigacoesRaw ?? []).map((o) => ({
     id: `obrigacao-${o.id}`,
-    label: `Obrigação — ${o.descricao}`,
-    description: "Obrigação cadastrada.",
+    label: "Obrigação cadastrada",
+    description: o.descricao,
     timestamp: o.created_at,
   }));
 
@@ -269,8 +274,8 @@ export default async function EmpresaDetailPage({
       : `criada — ${COBRANCA_STATUS_LABEL[evento.to_status] ?? evento.to_status}`;
     return {
       id: `cobranca-evento-${evento.id}`,
-      label: `Cobrança (${obrigacao?.descricao ?? "—"}) — ${statusLabel}`,
-      description: [evento.reason, author ? `por ${author.full_name}` : null]
+      label: `Cobrança: ${statusLabel}`,
+      description: [obrigacao?.descricao, evento.reason, author ? `por ${author.full_name}` : null]
         .filter(Boolean)
         .join(" · ") || undefined,
       timestamp: evento.created_at,
@@ -288,11 +293,11 @@ export default async function EmpresaDetailPage({
     const obrigacao = Array.isArray(cobranca?.obrigacoes)
       ? cobranca?.obrigacoes[0]
       : cobranca?.obrigacoes;
-    const valorLabel = evento.valor !== null ? ` — ${formatCurrency(evento.valor)}` : "";
+    const valorLabel = evento.valor !== null ? ` · ${formatBrl(evento.valor)}` : "";
     return {
       id: `negociacao-evento-${evento.id}`,
-      label: `Negociação (${obrigacao?.descricao ?? "—"}) — ${NEGOCIACAO_TIPO_LABEL[evento.tipo] ?? evento.tipo}${valorLabel}`,
-      description: [evento.condicoes, author ? `por ${author.full_name}` : null]
+      label: `${NEGOCIACAO_TIPO_LABEL[evento.tipo] ?? evento.tipo}${valorLabel}`,
+      description: [obrigacao?.descricao, evento.condicoes, author ? `por ${author.full_name}` : null]
         .filter(Boolean)
         .join(" · ") || undefined,
       timestamp: evento.created_at,
@@ -307,8 +312,9 @@ export default async function EmpresaDetailPage({
       : cobranca?.obrigacoes;
     return {
       id: `pagamento-${p.id}`,
-      label: `Pagamento (${obrigacao?.descricao ?? "—"}) — ${formatCurrency(p.valor)}`,
+      label: `Pagamento registrado · ${formatBrl(p.valor)}`,
       description: [
+        obrigacao?.descricao,
         FORMA_PAGAMENTO_LABEL[p.forma_pagamento] ?? p.forma_pagamento,
         p.observacao,
         registrador ? `registrado por ${registrador.full_name}` : null,
@@ -338,8 +344,30 @@ export default async function EmpresaDetailPage({
     ...timelineFromDocumentos,
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
+  const navItems = [
+    { id: "overview", label: "Visão geral" },
+    { id: "compliance", label: "Compliance", meta: obrigacoes.length },
+    { id: "receita", label: "Receita", meta: cobrancas.length },
+    { id: "financeiro", label: "Financeiro" },
+    { id: "contatos", label: "Contatos", meta: contatos?.length ?? 0 },
+    { id: "documentos", label: "Documentos", meta: documentos.length },
+    { id: "historico", label: "Histórico", meta: timelineConsolidada.length },
+    { id: "cadastro", label: "Cadastro" },
+  ];
+
+  const proximaAtencao =
+    cobrancasComReferencia.find(
+      (c) =>
+        !!c.vencimento &&
+        c.vencimento < hoje &&
+        !STATUS_ENCERRADO.includes(c.status) &&
+        c.referencia - c.pago > 0,
+    ) ??
+    cobrancasComReferencia.find((c) => c.status === "negotiating" || c.status === "overdue") ??
+    null;
+
   return (
-    <div className="flex flex-col gap-6">
+    <EntityWorkspace>
       <DetailHeader
         title={empresa.nome_fantasia ?? empresa.razao_social}
         subtitle={`${empresa.razao_social} · ${empresa.tenants?.name ?? "—"}`}
@@ -350,43 +378,134 @@ export default async function EmpresaDetailPage({
         metadata={[{ label: "CNPJ", value: empresa.cnpj }]}
       />
 
-      <EditEmpresaForm empresa={empresa} readOnly={!user.isPlatformStaff} />
+      <EntityWorkspaceNav items={navItems} />
 
-      {user.isOwner ? (
-        <DossieCadastralSection
-          empresaId={empresa.id}
-          dossie={dossie}
-          evidencias={dossieEvidencias}
-          enriquecimentoWebConfigurado={enriquecimentoWebConfigurado}
+      <EntityWorkspaceSection
+        id="overview"
+        title="Visão geral"
+        description="Contexto operacional desta empresa, sem misturar oportunidade, obrigação, cobrança e pagamento."
+      >
+        <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+          <EntityRelationshipSection>
+            <div className="flex flex-col gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase text-muted-foreground">
+                  Relação operacional
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  Empresa → Instrumento → Obrigação → Cobrança → Negociação → Pagamento.
+                </p>
+              </div>
+              <div className="grid gap-3 text-sm sm:grid-cols-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Sindicato</p>
+                  <p className="font-medium">{empresa.tenants?.name ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Segmento</p>
+                  <p className="font-medium">{empresa.segmento ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">CNPJ</p>
+                  <p className="font-medium tabular-nums">{empresa.cnpj}</p>
+                </div>
+              </div>
+            </div>
+          </EntityRelationshipSection>
+
+          <EntityRelationshipSection>
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Atenção
+            </p>
+            {proximaAtencao ? (
+              <div className="mt-2 flex flex-col gap-1 text-sm">
+                <Link
+                  href={`/backoffice/cobrancas/${proximaAtencao.id}`}
+                  className="font-medium hover:underline"
+                >
+                  Cobrança requer acompanhamento
+                </Link>
+                <p className="text-muted-foreground">
+                  {formatBrl(Math.max(proximaAtencao.referencia - proximaAtencao.pago, 0))}
+                  {" em aberto"}
+                  {proximaAtencao.vencimento ? ` · vencimento ${proximaAtencao.vencimento}` : ""}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Nenhuma exposição vencida foi identificada.
+              </p>
+            )}
+          </EntityRelationshipSection>
+        </div>
+
+        <EntitySummaryStrip
+          items={[
+            { label: "Obrigações", value: obrigacoes.length },
+            { label: "Cobranças", value: cobrancas.length },
+            { label: "Pago", value: formatBrl(totalPago), tone: "positive" },
+            {
+              label: "Exposição",
+              value: formatBrl(saldoEmAberto),
+              tone: saldoEmAberto > 0 ? "warning" : "muted",
+            },
+          ]}
         />
-      ) : null}
+      </EntityWorkspaceSection>
 
-      <ContatosSection
-        empresaId={empresa.id}
-        contatos={contatos ?? []}
-        canManage={user.isPlatformStaff}
-      />
+      <EntityWorkspaceSection id="compliance" title="Compliance">
+        {user.isOwner ? (
+          <DossieCadastralSection
+            empresaId={empresa.id}
+            dossie={dossie}
+            evidencias={dossieEvidencias}
+            enriquecimentoWebConfigurado={enriquecimentoWebConfigurado}
+          />
+        ) : null}
+        <EmpresaObrigacoesList obrigacoes={obrigacoes} />
+      </EntityWorkspaceSection>
 
-      <EmpresaObrigacoesList obrigacoes={obrigacoes} />
+      <EntityWorkspaceSection id="receita" title="Receita">
+        <EmpresaCobrancasList cobrancas={cobrancas} />
+        <EmpresaNegociacoesList negociacoes={negociacoes} />
+      </EntityWorkspaceSection>
 
-      <EmpresaCobrancasList cobrancas={cobrancas} />
+      <EntityWorkspaceSection id="financeiro" title="Financeiro">
+        <EmpresaFinanceiroSummary
+          totalCobrado={totalCobrado}
+          totalPago={totalPago}
+          saldoEmAberto={saldoEmAberto}
+          vencidasCount={vencidasCount}
+        />
+      </EntityWorkspaceSection>
 
-      <EmpresaNegociacoesList negociacoes={negociacoes} />
+      <EntityWorkspaceSection id="contatos" title="Contatos">
+        <ContatosSection
+          empresaId={empresa.id}
+          contatos={contatos ?? []}
+          canManage={user.isPlatformStaff}
+        />
+      </EntityWorkspaceSection>
 
-      <EmpresaFinanceiroSummary
-        totalCobrado={totalCobrado}
-        totalPago={totalPago}
-        saldoEmAberto={saldoEmAberto}
-        vencidasCount={vencidasCount}
-      />
+      <EntityWorkspaceSection id="documentos" title="Documentos">
+        <DocumentosSection
+          empresaId={empresa.id}
+          documentos={documentos}
+          canManage={user.isPlatformStaff}
+        />
+      </EntityWorkspaceSection>
 
-      <DocumentosSection
-        empresaId={empresa.id}
-        documentos={documentos}
-        canManage={user.isPlatformStaff}
-      />
+      <EntityWorkspaceSection
+        id="cadastro"
+        title="Cadastro"
+        description="Edição cadastral separada da leitura operacional."
+      >
+        <EditEmpresaForm empresa={empresa} readOnly={!user.isPlatformStaff} />
+      </EntityWorkspaceSection>
 
-      <TimelineConsolidada items={timelineConsolidada} />
-    </div>
+      <EntityWorkspaceSection id="historico" title="Histórico">
+        <TimelineConsolidada items={timelineConsolidada} />
+      </EntityWorkspaceSection>
+    </EntityWorkspace>
   );
 }

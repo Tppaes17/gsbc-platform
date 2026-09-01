@@ -404,7 +404,7 @@ export function ContestacaoSection({
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-medium">
           Contestação
-          <span className="ml-2 text-xs font-normal text-muted-foreground">(STG-04)</span>
+          <span className="ml-2 text-xs font-normal text-muted-foreground">Análise formal</span>
         </CardTitle>
         {canManage && podeAbrirNova ? <AbrirContestacaoDialog cobrancaId={cobrancaId} /> : null}
       </CardHeader>

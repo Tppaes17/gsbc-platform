@@ -120,7 +120,7 @@ export default async function ContratosFinanceirosPage() {
                   <th className="py-2 pr-4 font-medium">Vigência</th>
                   <th className="py-2 pr-4 font-medium">Status</th>
                   <th className="py-2 pr-4 font-medium">Split ativo</th>
-                  <th className="py-2 pr-4 font-medium">Taxas provider</th>
+                  <th className="py-2 pr-4 font-medium">Taxas externas</th>
                 </tr>
               </thead>
               <tbody className="divide-y">

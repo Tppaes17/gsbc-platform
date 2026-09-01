@@ -57,7 +57,7 @@ export function DecidirDescontoDialog({
               {aprovado
                 ? "A negociação vira acordo firmado e a cobrança passa pra 'Acordo firmado'."
                 : "A negociação volta para 'Em negociação' — a equipe pode renegociar o valor."}{" "}
-              Política STG-11 (Policy Engine): esta decisão fica registrada com justificativa,
+              Política de aprovação: esta decisão fica registrada com justificativa,
               nunca é automática (regra 8 — IA não tem autoridade).
             </DialogDescription>
           </DialogHeader>

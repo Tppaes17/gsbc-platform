@@ -229,7 +229,7 @@ export function OportunidadeSection({
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-medium">
           Opportunity Engine
-          <span className="ml-2 text-xs font-normal text-muted-foreground">(STG-10)</span>
+          <span className="ml-2 text-xs font-normal text-muted-foreground">Avaliação de oportunidade</span>
         </CardTitle>
         {podeReavaliar ? (
           <AvaliarButton dossieId={dossieId} jaAvaliada={Boolean(oportunidade)} />

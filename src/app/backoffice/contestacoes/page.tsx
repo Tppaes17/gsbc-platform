@@ -64,7 +64,7 @@ export default async function ContestacoesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Contestações"
-        description="Volume, causas e resultado das contestações abertas contra cobranças (STG-04). Uma contestação aberta pausa a cobrança automaticamente até ser resolvida."
+        description="Volume, causas e resultado das contestações abertas contra cobranças. Uma contestação aberta pausa a cobrança automaticamente até ser resolvida."
       />
 
       <div className="grid gap-4 sm:grid-cols-4">

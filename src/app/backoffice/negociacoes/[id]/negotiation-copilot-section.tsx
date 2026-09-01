@@ -64,7 +64,7 @@ export function NegotiationCopilotSection({
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-medium">
           Negotiation Copilot
-          <span className="ml-2 text-xs font-normal text-muted-foreground">(STG-12)</span>
+          <span className="ml-2 text-xs font-normal text-muted-foreground">Assistente de leitura</span>
         </CardTitle>
         {aiConfigured ? (
           <Button variant="outline" size="sm" onClick={handleGerar} disabled={isPending}>
@@ -78,7 +78,8 @@ export function NegotiationCopilotSection({
           <EmptyState
             icon={Sparkles}
             title="IA não configurada"
-            description="Defina ANTHROPIC_API_KEY para ativar o Negotiation Copilot. Sem essa chave, nenhuma chamada de IA é feita."
+            description="O assistente de leitura ainda não está disponível neste ambiente."
+            density="compact"
           />
         ) : !output ? (
           <EmptyState

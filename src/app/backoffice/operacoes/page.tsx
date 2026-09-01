@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { AlertTriangle, CheckCircle2, ListTodo } from "lucide-react";
+import { ListTodo } from "lucide-react";
 import { PageHeader } from "@/components/design-system/page-header";
 import { EmptyState } from "@/components/design-system/empty-state";
-import { MetricCard } from "@/components/design-system/metric-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -55,27 +54,26 @@ export default async function OperacoesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Central operacional"
-        description="O que a equipe GSBC precisa fazer hoje — tarefas da régua de cobrança, falhas de automação, escalonamentos, pagamentos vencidos e negociações paradas. Atualizada a cada varredura do cron (STG-03)."
+        description="O que a equipe GSBC precisa fazer hoje — tarefas da régua de cobrança, falhas de automação, escalonamentos, pagamentos vencidos e negociações paradas."
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <MetricCard
-          label="Fila total"
-          value={String(itens.length)}
-          icon={ListTodo}
-        />
-        <MetricCard
-          label="Vencidos"
-          value={String(vencidos.length)}
-          icon={AlertTriangle}
-          tone={vencidos.length > 0 ? "negative" : "default"}
-        />
-        <MetricCard
-          label="Concluídos hoje"
-          value={String(concluidosHojeRaw?.length ?? 0)}
-          icon={CheckCircle2}
-          tone="positive"
-        />
+      <div className="grid gap-px overflow-hidden rounded-md border bg-border sm:grid-cols-3">
+        {[
+          { label: "Fila total", value: itens.length, tone: "text-foreground" },
+          {
+            label: "Vencidos",
+            value: vencidos.length,
+            tone: vencidos.length > 0 ? "text-destructive" : "text-foreground",
+          },
+          { label: "Concluídos hoje", value: concluidosHojeRaw?.length ?? 0, tone: "text-emerald-700" },
+        ].map((metric) => (
+          <div key={metric.label} className="bg-card px-4 py-3">
+            <p className="text-xs font-medium uppercase text-muted-foreground">{metric.label}</p>
+            <p className={`mt-1 text-xl font-semibold tabular-nums ${metric.tone}`}>
+              {metric.value}
+            </p>
+          </div>
+        ))}
       </div>
 
       <Card>
@@ -84,7 +82,8 @@ export default async function OperacoesPage() {
             <EmptyState
               icon={ListTodo}
               title="Fila vazia"
-              description="Nenhuma ação pendente no momento — a próxima varredura do cron pode trazer novas tarefas conforme a operação avança."
+              description="Nenhuma ação pendente no momento. Novas tarefas aparecem quando a operação exigir intervenção humana."
+              density="compact"
             />
           ) : (
             <div className="flex flex-col">

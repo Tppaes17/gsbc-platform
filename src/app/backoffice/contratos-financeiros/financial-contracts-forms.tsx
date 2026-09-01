@@ -149,7 +149,7 @@ export function FinancialContractsForms({
                 <Input id="terceirosPercent" name="terceirosPercent" inputMode="decimal" defaultValue="0" required />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="providerFeePercent">Provider % *</Label>
+                <Label htmlFor="providerFeePercent">Taxa externa % *</Label>
                 <Input id="providerFeePercent" name="providerFeePercent" inputMode="decimal" defaultValue="0" required />
               </div>
               <div className="flex flex-col gap-2 sm:col-span-2">

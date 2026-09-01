@@ -185,3 +185,6 @@ This wave does not authorize or start Revenue Core work. From a visual Wave 2.1 
 `AWAITING PRODUCT OWNER VISUAL APPROVAL`
 
 Wave 3 was not started. No commit, push, merge, deploy, migration, or database change was performed.
+
+## 45. Gate History Update
+Em 2026-09-01, o artefato de execução da Wave 4 registrou a evolução formal do gate: Wave 2.1 Human Visual Gate `APPROVED`. Este registro preserva o histórico anterior de aprovação técnica seguida de espera por validação humana.

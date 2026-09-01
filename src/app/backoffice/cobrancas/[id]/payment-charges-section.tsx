@@ -54,7 +54,7 @@ export function PaymentChargesSection({
   function handleCriar(tipo: "pix" | "boleto") {
     startTransition(async () => {
       const result = await criarChargeAction(cobrancaId, tipo);
-      if (!result.error) toast.success("Cobrança gerada (simulação).");
+      if (!result.error) toast.success("Cobrança gerada em ambiente de teste.");
       else toast.error(result.error);
     });
   }
@@ -62,21 +62,21 @@ export function PaymentChargesSection({
   function handleSimular(chargeId: string, status: "PAGA" | "EXPIRADA" | "CANCELADA" | "ESTORNADA") {
     startTransition(async () => {
       const result = await simularWebhookAction(chargeId, status);
-      if (!result.error) toast.success("Webhook simulado enviado.");
+      if (!result.error) toast.success("Confirmação simulada enviada.");
       else toast.error(result.error);
     });
   }
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-sm font-medium">
-          Cobrança via provider de pagamento
+          Cobrança digital
           <span className="ml-2 text-xs font-normal text-muted-foreground">
-            (STG-06 — SIMULAÇÃO, nenhum provider real conectado)
+            Ambiente de teste
           </span>
         </CardTitle>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleCriar("pix")}>
             <QrCode className="h-4 w-4" />
             Gerar Pix
@@ -91,7 +91,7 @@ export function PaymentChargesSection({
         <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-muted-foreground">
           <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
           <span>
-            Nenhum provider de pagamento real está conectado. Estas cobranças são
+            Nenhum meio de pagamento real está conectado. Estas cobranças são
             simuladas — nenhum QR code ou boleto aqui pode ser pago de verdade.
           </span>
         </div>
@@ -100,7 +100,8 @@ export function PaymentChargesSection({
           <EmptyState
             icon={QrCode}
             title="Nenhuma cobrança gerada"
-            description="Gere um Pix ou boleto simulado para testar o fluxo de confirmação de pagamento via webhook."
+            description="Gere um Pix ou boleto em ambiente de teste para validar o fluxo de confirmação de pagamento."
+            density="compact"
           />
         ) : (
           <ul className="flex flex-col gap-3">

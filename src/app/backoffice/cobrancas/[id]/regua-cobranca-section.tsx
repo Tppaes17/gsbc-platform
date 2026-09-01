@@ -122,7 +122,7 @@ export function ReguaCobrancaSection({
 
   const timelineItems: TimelineItem[] = execucoes.map((e) => ({
     id: e.id,
-    label: `${e.step?.descricao ?? "Step"} — ${EXECUTION_STATUS_LABEL[e.status] ?? e.status}`,
+    label: `${e.step?.descricao ?? "Etapa"} — ${EXECUTION_STATUS_LABEL[e.status] ?? e.status}`,
     description: e.last_error ?? `Canal: ${e.step?.canal ?? "—"}`,
     timestamp: e.executed_at ?? e.scheduled_for,
   }));
@@ -132,11 +132,11 @@ export function ReguaCobrancaSection({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-sm font-medium">
           Régua de cobrança
           <span className="ml-2 text-xs font-normal text-muted-foreground">
-            (envio automático por cron — STG-02)
+            Sequência assistida
           </span>
         </CardTitle>
         {podeIniciarNova ? (
@@ -152,6 +152,7 @@ export function ReguaCobrancaSection({
             icon={PlayCircle}
             title="Nenhuma régua iniciada"
             description="Inicia uma sequência automática de e-mail inicial, follow-up e tarefas de contato até a cobrança ser resolvida ou escalada — para de agir sozinha assim que houver pagamento, negociação em andamento, suspensão ou cancelamento."
+            density="compact"
           />
         ) : (
           <>
@@ -164,7 +165,7 @@ export function ReguaCobrancaSection({
                 />
               </div>
               <span className="text-muted-foreground">
-                Step atual: {enrollment.current_step_ordem} de {steps.length}
+                Etapa atual: {enrollment.current_step_ordem} de {steps.length}
               </span>
               {enrollment.paused_reason ? (
                 <span className="text-muted-foreground">{enrollment.paused_reason}</span>
@@ -215,7 +216,7 @@ export function ReguaCobrancaSection({
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Nenhum step executado ainda — o próximo roda na próxima varredura do cron.
+                Nenhuma etapa executada ainda. A próxima ação aparece quando a régua avançar.
               </p>
             )}
           </>

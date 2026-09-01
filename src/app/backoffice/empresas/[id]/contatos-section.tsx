@@ -149,7 +149,7 @@ export function ContatosSection({
             {contatos.map((contato) => (
               <li
                 key={contato.id}
-                className="flex flex-col gap-2 border-b pb-3 text-sm last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 border-b pb-3 text-sm last:border-b-0 last:pb-0 lg:flex-row lg:items-center lg:justify-between"
               >
                 <div className="flex flex-col">
                   <span className="font-medium">
@@ -166,7 +166,7 @@ export function ContatosSection({
                       .join(" · ")}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
                   <StatusBadge
                     label={PORTAL_STATUS_LABEL[contato.portal_access_status] ?? contato.portal_access_status}
                     tone={PORTAL_STATUS_TONE[contato.portal_access_status] ?? "neutral"}
@@ -175,6 +175,7 @@ export function ContatosSection({
                     <Button
                       variant="outline"
                       size="sm"
+                      className="w-full lg:w-auto"
                       disabled={isGranting}
                       onClick={() => handleConcederAcesso(contato.id)}
                     >

@@ -257,7 +257,7 @@ test("staff reprocessa conciliação manual depois de contrato e split existirem
     const compensationForm = page.getByTestId(`compensation-form-${manual!.id}`);
     await compensationForm.getByLabel("Evento").selectOption("refund");
     await compensationForm.getByLabel("Valor").fill("500");
-    await compensationForm.getByLabel("Ref. provider").fill(`refund_${fixture.tenantId.slice(0, 8)}`);
+    await compensationForm.getByLabel("Referência externa").fill(`refund_${fixture.tenantId.slice(0, 8)}`);
     await compensationForm.getByPlaceholder("Justificativa obrigatória").fill("Estorno informado após repasse pago");
     await compensationForm.getByRole("button", { name: "Registrar evento" }).click();
     await expect(page.getByText("Falha em revisão")).toBeVisible();

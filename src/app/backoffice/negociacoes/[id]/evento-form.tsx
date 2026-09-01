@@ -35,7 +35,7 @@ const VALOR_OBRIGATORIO = new Set(["proposta_gsbc", "contraproposta_empresa", "a
 const TIPO_CONSEQUENCIA: Record<string, string> = {
   proposta_gsbc: "Registra um valor proposto pela GSBC — não altera o status da negociação.",
   contraproposta_empresa: "Registra um valor contraproposto pela empresa — não altera o status da negociação.",
-  aceite: "Marca a proposta como aceita. Se o valor for menor que o original da cobrança, exige aprovação de desconto do Owner antes de virar acordo firmado (Policy Engine, STG-11).",
+  aceite: "Marca a proposta como aceita. Se o valor for menor que o original da cobrança, exige aprovação de desconto do Owner antes de virar acordo firmado.",
   recusa: "Marca a proposta como recusada — a negociação continua aberta pra uma nova rodada.",
   observacao: "Registra uma observação sem valor associado — não altera o status da negociação.",
 };

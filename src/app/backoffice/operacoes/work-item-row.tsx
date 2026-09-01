@@ -95,15 +95,15 @@ export function WorkItemRow({
 
   return (
     <div className="flex flex-col gap-3 border-b py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-col gap-1">
+      <div className="min-w-0 flex flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge
-            label={TIPO_LABEL[item.tipo] ?? item.tipo}
-            tone="neutral"
-          />
           <StatusBadge
             label={PRIORIDADE_LABEL[item.prioridade] ?? item.prioridade}
             tone={PRIORIDADE_TONE[item.prioridade] ?? "neutral"}
+          />
+          <StatusBadge
+            label={TIPO_LABEL[item.tipo] ?? item.tipo}
+            tone="neutral"
           />
           {item.status === "adiado" ? <StatusBadge label="Adiado" tone="warning" /> : null}
         </div>
@@ -115,7 +115,7 @@ export function WorkItemRow({
           <span className="text-sm font-medium">{item.titulo}</span>
         )}
         {item.descricao ? (
-          <span className="text-xs text-muted-foreground">{item.descricao}</span>
+          <span className="max-w-3xl text-xs text-muted-foreground">{item.descricao}</span>
         ) : null}
         {item.due_at ? (
           <span
@@ -128,12 +128,12 @@ export function WorkItemRow({
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Select
           value={item.assigned_to ?? "none"}
           onValueChange={handleAtribuir}
         >
-          <SelectTrigger className="w-40" size="sm">
+          <SelectTrigger className="w-full sm:w-40" size="sm">
             <SelectValue placeholder="Atribuir">
               {(value: string | null) =>
                 value && value !== "none"
@@ -151,13 +151,15 @@ export function WorkItemRow({
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={handleAdiar} disabled={isPending}>
-          Adiar
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleConcluir} disabled={isPending}>
-          <CheckCircle2 className="h-4 w-4" />
-          Concluir
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleAdiar} disabled={isPending}>
+            Adiar
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleConcluir} disabled={isPending}>
+            <CheckCircle2 className="h-4 w-4" />
+            Concluir
+          </Button>
+        </div>
       </div>
     </div>
   );

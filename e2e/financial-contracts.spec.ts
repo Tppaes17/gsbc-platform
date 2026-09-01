@@ -92,7 +92,7 @@ test("staff valida contrato financeiro e cria versão de split ativa", async ({ 
     await page.getByLabel("GSBC % *").fill("25");
     await page.getByLabel("Sindicato % *").fill("70");
     await page.getByLabel("Terceiros % *").fill("5");
-    await page.getByLabel("Provider % *").fill("2.5");
+    await page.getByLabel("Taxa externa % *").fill("2.5");
     await page.getByLabel("Taxa fixa").fill("1,25");
     await page.getByLabel("Observação").last().fill("Split versionado por E2E");
     await page.getByRole("button", { name: "Criar versão" }).click();

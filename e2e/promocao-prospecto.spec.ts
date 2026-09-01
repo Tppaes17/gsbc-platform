@@ -70,8 +70,10 @@ test("Owner promove um prospecto para empresa sem recadastro", async ({ page }, 
   await expect(page.getByText(fixture.emailUm).first()).toBeVisible();
 
   await page.goto("/backoffice/empresas");
+  await page.getByPlaceholder("Buscar por razão social, nome fantasia ou CNPJ...").fill(fixture.nomeUm);
   await expect(page.getByText(fixture.nomeUm).first()).toBeVisible();
 
   await page.goto("/backoffice/prospectos");
+  await page.getByPlaceholder("Buscar prospectos...").fill(fixture.nomeUm);
   await expect(page.getByText(fixture.nomeUm)).toHaveCount(0);
 });

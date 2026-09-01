@@ -72,7 +72,7 @@ const AUDIT_ACTION_LABEL: Record<string, string> = {
   "oportunidade.validada": "Oportunidade validada",
   "oportunidade.descartada": "Oportunidade descartada",
   "pagamento.registrado": "Pagamento registrado",
-  "payment_charge.criada": "Cobrança via provider criada",
+  "payment_charge.criada": "Cobrança digital criada",
   "policy.ativada": "Política ativada",
   "policy.desativada": "Política desativada",
   "portal.acesso_concedido": "Acesso ao portal concedido",

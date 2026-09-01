@@ -488,10 +488,10 @@ export function EscalonamentoSection({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-sm font-medium">
           Escalonamento e notificação extrajudicial
-          <span className="ml-2 text-xs font-normal text-muted-foreground">(STG-09)</span>
+          <span className="ml-2 text-xs font-normal text-muted-foreground">Fluxo jurídico</span>
         </CardTitle>
         {canManage && podeIniciarNovo ? <IniciarEscalonamentoDialog cobrancaId={cobrancaId} /> : null}
       </CardHeader>
@@ -501,6 +501,7 @@ export function EscalonamentoSection({
             icon={Gavel}
             title="Nenhum escalonamento em andamento"
             description="Quando a sequência automática de cobrança se esgota sem resultado, a cobrança fica elegível — inicie aqui pra abrir o processo de notificação extrajudicial (exige aprovação do Jurídico antes de qualquer envio)."
+            density="compact"
           />
         ) : (
           <>

@@ -43,8 +43,9 @@ test("resumo financeiro da empresa também reconcilia pelo valor acordado", asyn
   await loginAs(page, STAFF_EMAIL);
   await page.goto(`/backoffice/empresas/${SEED.empresaBomPreco}`);
 
-  await expect(page.getByText("Saldo em aberto")).toBeVisible();
-  await expect(page.getByText("R$ 0,00")).toBeVisible();
+  const financeiro = page.locator("#financeiro");
+  await expect(financeiro.getByText("Saldo em aberto")).toBeVisible();
+  await expect(financeiro.getByText("R$ 0,00")).toBeVisible();
 });
 
 test("enviar notificação por e-mail registra sucesso", async ({ page }) => {

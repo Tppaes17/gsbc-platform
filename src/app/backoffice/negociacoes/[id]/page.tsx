@@ -116,7 +116,7 @@ export default async function NegociacaoDetailPage({
       {negociacao.status === "aguardando_aprovacao" ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed p-3 text-sm">
           <div>
-            <p className="font-medium">Aguardando aprovação de desconto (STG-11 — Policy Engine)</p>
+            <p className="font-medium">Aguardando aprovação de desconto</p>
             <p className="text-xs text-muted-foreground">
               O valor aceito é menor que o valor original da cobrança — a política &quot;Desconto
               exige aprovação&quot; exige que o Owner decida antes de virar acordo firmado.

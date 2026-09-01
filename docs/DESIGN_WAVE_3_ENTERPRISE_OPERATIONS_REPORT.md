@@ -1,5 +1,7 @@
 # GSBC Design Wave 3 — Enterprise Operations Report
 
+> Gate history update, 2026-09-01: Wave 3 Technical Gate `PASS`, Operational Gate `PASS`, Visual Gate `APPROVED`, Final Gate `WAVE 3 PASS`. O histórico original de `WAVE 3 PASS WITH CONDITIONS` permanece preservado nas seções abaixo como estado no momento da execução.
+
 ## 1. Executive Result
 Wave 3 foi executada sobre a experiência operacional enterprise de tabelas, listas e superfícies de alta densidade. Resultado técnico: superfícies de referência aprovadas em desktop, tablet e mobile, com `D0-001` resolvido. Gate formal: `WAVE 3 PASS WITH CONDITIONS`, condicionado ao Human Visual Gate pendente da Wave 2.1.
 
