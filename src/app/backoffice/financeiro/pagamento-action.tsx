@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { CircleDollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ActionConsequencePanel } from "@/components/design-system/action-consequence-panel";
 import {
   Dialog,
   DialogContent,
@@ -22,8 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formaPagamentoOptions, parseCurrency } from "@/lib/validation/pagamento";
-import { registerPagamentoAction, type RegisterPagamentoState } from "./actions";
+import {
+  formaPagamentoOptions,
+  parseCurrency,
+} from "@/lib/validation/pagamento";
+import {
+  registerPagamentoAction,
+  type RegisterPagamentoState,
+} from "./actions";
 
 const initialState: RegisterPagamentoState = { error: null, success: false };
 
@@ -68,7 +75,9 @@ export function RegistrarPagamentoAction({
 
   const valorInformado = parseCurrency(valorDigitado);
   const valorValido = !Number.isNaN(valorInformado) && valorInformado > 0;
-  const saldoResultante = valorValido ? Math.max(saldoAtual - valorInformado, 0) : saldoAtual;
+  const saldoResultante = valorValido
+    ? Math.max(saldoAtual - valorInformado, 0)
+    : saldoAtual;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -80,7 +89,7 @@ export function RegistrarPagamentoAction({
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="cobrancaId" value={cobrancaId} />
           <input type="hidden" name="formaPagamento" value={forma} />
@@ -88,8 +97,8 @@ export function RegistrarPagamentoAction({
           <DialogHeader>
             <DialogTitle>Registrar pagamento</DialogTitle>
             <DialogDescription>
-              Cada pagamento fica registrado de forma imutável. A cobrança
-              muda para &ldquo;Parcialmente paga&rdquo; ou &ldquo;Paga&rdquo;
+              Cada pagamento fica registrado de forma imutável. A cobrança muda
+              para &ldquo;Parcialmente paga&rdquo; ou &ldquo;Paga&rdquo;
               automaticamente conforme o valor acumulado.
             </DialogDescription>
           </DialogHeader>
@@ -101,7 +110,9 @@ export function RegistrarPagamentoAction({
             </div>
             <div className="flex items-baseline justify-between gap-4 text-sm">
               <span className="text-muted-foreground">Obrigação</span>
-              <span className="font-medium text-foreground">{obrigacaoDescricao}</span>
+              <span className="font-medium text-foreground">
+                {obrigacaoDescricao}
+              </span>
             </div>
           </div>
 
@@ -126,26 +137,66 @@ export function RegistrarPagamentoAction({
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4 py-2">
-              <dt className="text-sm font-medium text-foreground">Saldo após este pagamento</dt>
+              <dt className="text-sm font-medium text-foreground">
+                Saldo após este pagamento
+              </dt>
               <dd className="text-base font-semibold tabular-nums text-foreground">
                 {formatCurrency(saldoResultante)}
               </dd>
             </div>
           </dl>
 
+          <ActionConsequencePanel
+            title="Impacto operacional"
+            items={[
+              {
+                label: "Registro",
+                value: "Cria evento de pagamento manual",
+                emphasis: true,
+              },
+              {
+                label: "Não representa",
+                value: "Confirmação de PSP, repasse ou quitação jurídica",
+              },
+              {
+                label: "Status previsto",
+                value:
+                  valorValido && valorInformado >= saldoAtual
+                    ? "Paga"
+                    : "Parcialmente paga",
+              },
+              {
+                label: "Reversibilidade",
+                value: "Correção financeira exige evento posterior auditável",
+              },
+              {
+                label: "Auditoria",
+                value: "Valor, data, forma e usuário ficam rastreados",
+              },
+            ]}
+          />
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="dataPagamento">Data do pagamento *</Label>
-            <Input id="dataPagamento" name="dataPagamento" type="date" required />
+            <Input
+              id="dataPagamento"
+              name="dataPagamento"
+              type="date"
+              required
+            />
           </div>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="formaSelect">Forma de pagamento *</Label>
-            <Select value={forma} onValueChange={(value) => setForma(value as string)}>
+            <Select
+              value={forma}
+              onValueChange={(value) => setForma(value as string)}
+            >
               <SelectTrigger id="formaSelect" className="w-full">
                 <SelectValue>
                   {(value: string | null) =>
-                    formaPagamentoOptions.find((opt) => opt.value === value)?.label ??
-                    value
+                    formaPagamentoOptions.find((opt) => opt.value === value)
+                      ?.label ?? value
                   }
                 </SelectValue>
               </SelectTrigger>
@@ -161,7 +212,11 @@ export function RegistrarPagamentoAction({
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="observacao">Observação</Label>
-            <Input id="observacao" name="observacao" placeholder="Ex.: Comprovante enviado por e-mail" />
+            <Input
+              id="observacao"
+              name="observacao"
+              placeholder="Ex.: Comprovante enviado por e-mail"
+            />
           </div>
 
           {state.error ? (
@@ -172,7 +227,7 @@ export function RegistrarPagamentoAction({
 
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Salvando..." : "Confirmar pagamento"}
+              {isPending ? "Salvando..." : "Registrar pagamento manual"}
             </Button>
           </DialogFooter>
         </form>

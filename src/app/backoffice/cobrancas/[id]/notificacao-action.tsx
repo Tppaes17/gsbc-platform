@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ActionConsequencePanel } from "@/components/design-system/action-consequence-panel";
 import {
   Dialog,
   DialogContent,
@@ -43,8 +44,14 @@ function montarPreview(params: {
   vencimento: string | null;
   mensagemExtra: string;
 }) {
-  const { empresaNome, tenantNome, obrigacaoDescricao, valorCobranca, vencimento, mensagemExtra } =
-    params;
+  const {
+    empresaNome,
+    tenantNome,
+    obrigacaoDescricao,
+    valorCobranca,
+    vencimento,
+    mensagemExtra,
+  } = params;
   const valorFormatado = formatCurrency(valorCobranca);
   const vencimentoFormatado = formatDate(vencimento);
   const mensagem = mensagemExtra.trim();
@@ -98,7 +105,11 @@ export function NotificacaoAction({
 
   if (!destinatarioEmail) {
     return (
-      <Button variant="outline" disabled title="Cadastre um contato com e-mail nesta empresa">
+      <Button
+        variant="outline"
+        disabled
+        title="Cadastre um contato com e-mail nesta empresa"
+      >
         <Mail className="h-4 w-4" />
         Enviar notificação
       </Button>
@@ -125,7 +136,7 @@ export function NotificacaoAction({
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="cobrancaId" value={cobrancaId} />
 
@@ -140,7 +151,9 @@ export function NotificacaoAction({
           <div className="flex flex-col gap-1 rounded-md border bg-muted/30 p-3 text-sm">
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-muted-foreground">Destinatário</span>
-              <span className="font-medium text-foreground">{destinatarioEmail}</span>
+              <span className="font-medium text-foreground">
+                {destinatarioEmail}
+              </span>
             </div>
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-muted-foreground">Canal</span>
@@ -154,6 +167,33 @@ export function NotificacaoAction({
             </div>
           </div>
 
+          <ActionConsequencePanel
+            items={[
+              {
+                label: "Efeito externo",
+                value: "Envia e-mail para o contato cadastrado",
+                emphasis: true,
+              },
+              {
+                label: "Efeito financeiro",
+                value: "Não registra pagamento nem baixa a cobrança",
+              },
+              {
+                label: "Reversibilidade",
+                value:
+                  "Envio não pode ser desfeito; nova correção exige novo contato",
+              },
+              {
+                label: "Auditoria",
+                value: "Tentativa, destinatário e resultado ficam registrados",
+              },
+              {
+                label: "Falha parcial",
+                value: "Erro de envio preserva a cobrança sem avançar status",
+              },
+            ]}
+          />
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="mensagem">Mensagem adicional (opcional)</Label>
             <Textarea
@@ -166,7 +206,9 @@ export function NotificacaoAction({
           </div>
 
           <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Conteúdo (preview)</Label>
+            <Label className="text-xs text-muted-foreground">
+              Conteúdo (preview)
+            </Label>
             <pre className="max-h-48 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs whitespace-pre-wrap text-foreground">
               {preview}
             </pre>
@@ -180,7 +222,7 @@ export function NotificacaoAction({
 
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Enviando..." : "Enviar"}
+              {isPending ? "Enviando..." : "Enviar e registrar tentativa"}
             </Button>
           </DialogFooter>
         </form>

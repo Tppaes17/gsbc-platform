@@ -1,7 +1,14 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Download, FileWarning, Gavel, PlusCircle, Send, ShieldCheck } from "lucide-react";
+import {
+  Download,
+  FileWarning,
+  Gavel,
+  PlusCircle,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,9 +32,16 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/design-system/empty-state";
+import { ActionConsequencePanel } from "@/components/design-system/action-consequence-panel";
 import { StatusBadge } from "@/components/design-system/status-badge";
-import { Timeline, type TimelineItem } from "@/components/design-system/timeline";
-import { canalEnvioOptions, deliveryStatusOptions } from "@/lib/validation/escalonamento";
+import {
+  Timeline,
+  type TimelineItem,
+} from "@/components/design-system/timeline";
+import {
+  canalEnvioOptions,
+  deliveryStatusOptions,
+} from "@/lib/validation/escalonamento";
 import {
   decidirAprovacaoAction,
   gerarDocumentoAction,
@@ -49,7 +63,10 @@ const STATUS_LABEL: Record<string, string> = {
   concluida: "Concluída",
 };
 
-const STATUS_TONE: Record<string, "positive" | "neutral" | "warning" | "negative" | "info"> = {
+const STATUS_TONE: Record<
+  string,
+  "positive" | "neutral" | "warning" | "negative" | "info"
+> = {
   em_revisao: "neutral",
   aguardando_aprovacao: "warning",
   rejeitada: "negative",
@@ -110,7 +127,10 @@ interface EnvioData {
 
 function IniciarEscalonamentoDialog({ cobrancaId }: { cobrancaId: string }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, isPending] = useActionState(iniciarEscalonamentoAction, initialState);
+  const [state, formAction, isPending] = useActionState(
+    iniciarEscalonamentoAction,
+    initialState,
+  );
 
   useEffect(() => {
     if (state.success) {
@@ -130,19 +150,44 @@ function IniciarEscalonamentoDialog({ cobrancaId }: { cobrancaId: string }) {
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="cobrancaId" value={cobrancaId} />
           <DialogHeader>
             <DialogTitle>Iniciar escalonamento</DialogTitle>
             <DialogDescription>
               Abre o caso pra revisão — ainda não envia nada. Notificação
-              extrajudicial só sai depois de aprovação do Jurídico e emissão
-              do documento formal.
+              extrajudicial só sai depois de aprovação do Jurídico e emissão do
+              documento formal.
             </DialogDescription>
           </DialogHeader>
+          <ActionConsequencePanel
+            items={[
+              {
+                label: "Efeito imediato",
+                value: "Abre caso em revisão",
+                emphasis: true,
+              },
+              { label: "Efeito externo", value: "Nenhum envio nesta etapa" },
+              {
+                label: "Autoridade",
+                value:
+                  "Aprovação jurídica obrigatória antes de documento/envio",
+              },
+              {
+                label: "Reversibilidade",
+                value: "Pode ser rejeitado ou concluido com evento posterior",
+              },
+              {
+                label: "Auditoria",
+                value: "Motivo e usuário ficam no histórico do escalonamento",
+              },
+            ]}
+          />
           <div className="flex flex-col gap-2">
-            <Label htmlFor="motivo">Motivo (critérios de escalonamento) *</Label>
+            <Label htmlFor="motivo">
+              Motivo (critérios de escalonamento) *
+            </Label>
             <Textarea id="motivo" name="motivo" rows={3} required />
           </div>
           {state.error ? (
@@ -152,7 +197,7 @@ function IniciarEscalonamentoDialog({ cobrancaId }: { cobrancaId: string }) {
           ) : null}
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Salvando..." : "Iniciar"}
+              {isPending ? "Salvando..." : "Abrir revisão"}
             </Button>
           </DialogFooter>
         </form>
@@ -161,8 +206,15 @@ function IniciarEscalonamentoDialog({ cobrancaId }: { cobrancaId: string }) {
   );
 }
 
-function SubmeterParaAprovacaoButton({ escalonamentoId }: { escalonamentoId: string }) {
-  const [state, formAction, isPending] = useActionState(submeterParaAprovacaoAction, initialState);
+function SubmeterParaAprovacaoButton({
+  escalonamentoId,
+}: {
+  escalonamentoId: string;
+}) {
+  const [state, formAction, isPending] = useActionState(
+    submeterParaAprovacaoAction,
+    initialState,
+  );
 
   useEffect(() => {
     if (state.success) toast.success("Submetido para aprovação do Jurídico.");
@@ -180,10 +232,17 @@ function SubmeterParaAprovacaoButton({ escalonamentoId }: { escalonamentoId: str
   );
 }
 
-function DecidirAprovacaoDialog({ escalonamentoId }: { escalonamentoId: string }) {
+function DecidirAprovacaoDialog({
+  escalonamentoId,
+}: {
+  escalonamentoId: string;
+}) {
   const [open, setOpen] = useState(false);
   const [aprovado, setAprovado] = useState<"true" | "false">("true");
-  const [state, formAction, isPending] = useActionState(decidirAprovacaoAction, initialState);
+  const [state, formAction, isPending] = useActionState(
+    decidirAprovacaoAction,
+    initialState,
+  );
 
   useEffect(() => {
     if (state.success) {
@@ -203,7 +262,7 @@ function DecidirAprovacaoDialog({ escalonamentoId }: { escalonamentoId: string }
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="escalonamentoId" value={escalonamentoId} />
           <DialogHeader>
@@ -213,6 +272,31 @@ function DecidirAprovacaoDialog({ escalonamentoId }: { escalonamentoId: string }
               só pode ser gerada depois de aprovada.
             </DialogDescription>
           </DialogHeader>
+          <ActionConsequencePanel
+            items={[
+              {
+                label: "Decisão",
+                value:
+                  aprovado === "true"
+                    ? "Autoriza gerar documento"
+                    : "Bloqueia o fluxo",
+                emphasis: true,
+              },
+              {
+                label: "Efeito externo",
+                value: "Não envia comunicação nesta etapa",
+              },
+              { label: "Autoridade", value: "Exige papel Jurídico" },
+              {
+                label: "Reversibilidade",
+                value: "Nova mudança exige novo evento justificado",
+              },
+              {
+                label: "Auditoria",
+                value: "Decisão e justificativa ficam registradas",
+              },
+            ]}
+          />
           <div className="flex gap-2">
             <Button
               type="button"
@@ -252,49 +336,180 @@ function DecidirAprovacaoDialog({ escalonamentoId }: { escalonamentoId: string }
   );
 }
 
-function GerarDocumentoButton({ escalonamentoId }: { escalonamentoId: string }) {
-  const [state, formAction, isPending] = useActionState(gerarDocumentoAction, initialState);
+function GerarDocumentoButton({
+  escalonamentoId,
+}: {
+  escalonamentoId: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction, isPending] = useActionState(
+    gerarDocumentoAction,
+    initialState,
+  );
 
   useEffect(() => {
-    if (state.success) toast.success("Documento gerado.");
+    if (state.success) {
+      toast.success("Documento gerado.");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOpen(false);
+    }
     if (state.error) toast.error(state.error);
   }, [state.success, state.error]);
 
   return (
-    <form action={formAction}>
-      <input type="hidden" name="escalonamentoId" value={escalonamentoId} />
-      <Button type="submit" size="sm" disabled={isPending}>
-        <FileWarning className="h-4 w-4" />
-        {isPending ? "Gerando..." : "Gerar documento (PDF)"}
-      </Button>
-    </form>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button type="button" size="sm" disabled={isPending}>
+            <FileWarning className="h-4 w-4" />
+            Gerar documento (PDF)
+          </Button>
+        }
+      />
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+        <form action={formAction} className="flex flex-col gap-4">
+          <input type="hidden" name="escalonamentoId" value={escalonamentoId} />
+          <DialogHeader>
+            <DialogTitle>Gerar documento formal</DialogTitle>
+            <DialogDescription>
+              Cria a versão do documento aprovada para este escalonamento.
+            </DialogDescription>
+          </DialogHeader>
+          <ActionConsequencePanel
+            items={[
+              {
+                label: "Efeito imediato",
+                value: "Gera documento versionado",
+                emphasis: true,
+              },
+              { label: "Efeito externo", value: "Não envia a notificação" },
+              {
+                label: "Proximo passo",
+                value: "Envio exige acao separada e auditada",
+              },
+              {
+                label: "Reversibilidade",
+                value: "Nova versao exige nova geracao",
+              },
+              {
+                label: "Auditoria",
+                value: "Documento e template ficam vinculados ao escalonamento",
+              },
+            ]}
+          />
+          {state.error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {state.error}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Gerando..." : "Gerar documento"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function RegistrarEnvioEmailButton({ escalonamentoId }: { escalonamentoId: string }) {
-  const [state, formAction, isPending] = useActionState(registrarEnvioEmailAction, initialState);
+function RegistrarEnvioEmailButton({
+  escalonamentoId,
+}: {
+  escalonamentoId: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction, isPending] = useActionState(
+    registrarEnvioEmailAction,
+    initialState,
+  );
 
   useEffect(() => {
-    if (state.success) toast.success("Notificação enviada por e-mail.");
+    if (state.success) {
+      toast.success("Notificação enviada por e-mail.");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOpen(false);
+    }
     if (state.error) toast.error(state.error);
   }, [state.success, state.error]);
 
   return (
-    <form action={formAction}>
-      <input type="hidden" name="escalonamentoId" value={escalonamentoId} />
-      <Button type="submit" variant="outline" size="sm" disabled={isPending}>
-        <Send className="h-4 w-4" />
-        {isPending ? "Enviando..." : "Enviar por e-mail"}
-      </Button>
-    </form>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isPending}
+          >
+            <Send className="h-4 w-4" />
+            Enviar por e-mail
+          </Button>
+        }
+      />
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+        <form action={formAction} className="flex flex-col gap-4">
+          <input type="hidden" name="escalonamentoId" value={escalonamentoId} />
+          <DialogHeader>
+            <DialogTitle>Enviar notificação extrajudicial</DialogTitle>
+            <DialogDescription>
+              Esta ação tenta enviar o documento formal pelo canal cadastrado.
+            </DialogDescription>
+          </DialogHeader>
+          <ActionConsequencePanel
+            items={[
+              {
+                label: "Efeito externo",
+                value: "Dispara e-mail de notificação extrajudicial",
+                emphasis: true,
+              },
+              {
+                label: "Pré-condição",
+                value: "Documento emitido para este escalonamento",
+              },
+              {
+                label: "Entrega",
+                value: "Falha de envio não conta como entrega válida",
+              },
+              {
+                label: "Reversibilidade",
+                value: "Envio externo não pode ser desfeito",
+              },
+              {
+                label: "Auditoria",
+                value: "Tentativa, canal, erro ou sucesso ficam registrados",
+              },
+            ]}
+          />
+          {state.error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {state.error}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Enviando..." : "Enviar e registrar tentativa"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function RegistrarEnvioFisicoDialog({ escalonamentoId }: { escalonamentoId: string }) {
+function RegistrarEnvioFisicoDialog({
+  escalonamentoId,
+}: {
+  escalonamentoId: string;
+}) {
   const [open, setOpen] = useState(false);
   const [canal, setCanal] = useState<string>("correio_ar");
   const [deliveryStatus, setDeliveryStatus] = useState<string>("desconhecido");
-  const [state, formAction, isPending] = useActionState(registrarEnvioFisicoAction, initialState);
+  const [state, formAction, isPending] = useActionState(
+    registrarEnvioFisicoAction,
+    initialState,
+  );
 
   useEffect(() => {
     if (state.success) {
@@ -314,7 +529,7 @@ function RegistrarEnvioFisicoDialog({ escalonamentoId }: { escalonamentoId: stri
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="escalonamentoId" value={escalonamentoId} />
           <input type="hidden" name="canal" value={canal} />
@@ -322,17 +537,44 @@ function RegistrarEnvioFisicoDialog({ escalonamentoId }: { escalonamentoId: stri
           <DialogHeader>
             <DialogTitle>Registrar envio por canal físico</DialogTitle>
             <DialogDescription>
-              Pra carta com AR ou protocolo de cartório — anexe o comprovante
-              ou informe uma referência externa auditável.
+              Pra carta com AR ou protocolo de cartório — anexe o comprovante ou
+              informe uma referência externa auditável.
             </DialogDescription>
           </DialogHeader>
+          <ActionConsequencePanel
+            items={[
+              {
+                label: "Efeito externo",
+                value: "Registra envio por canal físico",
+                emphasis: true,
+              },
+              {
+                label: "Entrega válida",
+                value: DELIVERY_LABEL[deliveryStatus] ?? deliveryStatus,
+              },
+              {
+                label: "Prazo operacional",
+                value: "Usa a data/política gravada no registro de envio",
+              },
+              {
+                label: "Falha parcial",
+                value: "Sem evidência suficiente, a entrega não fica válida",
+              },
+              {
+                label: "Auditoria",
+                value:
+                  "Canal, destinatário, status e evidência ficam rastreados",
+              },
+            ]}
+          />
           <div className="flex flex-col gap-2">
             <Label htmlFor="canalSelect">Canal *</Label>
             <Select value={canal} onValueChange={(v) => setCanal(v as string)}>
               <SelectTrigger id="canalSelect" className="w-full">
                 <SelectValue>
                   {(value: string | null) =>
-                    canalEnvioOptions.find((o) => o.value === value)?.label ?? value
+                    canalEnvioOptions.find((o) => o.value === value)?.label ??
+                    value
                   }
                 </SelectValue>
               </SelectTrigger>
@@ -351,11 +593,15 @@ function RegistrarEnvioFisicoDialog({ escalonamentoId }: { escalonamentoId: stri
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="deliveryStatusSelect">Status de entrega *</Label>
-            <Select value={deliveryStatus} onValueChange={(v) => setDeliveryStatus(v as string)}>
+            <Select
+              value={deliveryStatus}
+              onValueChange={(v) => setDeliveryStatus(v as string)}
+            >
               <SelectTrigger id="deliveryStatusSelect" className="w-full">
                 <SelectValue>
                   {(value: string | null) =>
-                    deliveryStatusOptions.find((o) => o.value === value)?.label ?? value
+                    deliveryStatusOptions.find((o) => o.value === value)
+                      ?.label ?? value
                   }
                 </SelectValue>
               </SelectTrigger>
@@ -394,7 +640,8 @@ function RegistrarEnvioFisicoDialog({ escalonamentoId }: { escalonamentoId: stri
               className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-2.5 file:py-1 file:text-sm"
             />
             <p className="text-xs text-muted-foreground">
-              Use arquivo ou referência externa. Pelo menos uma evidência é obrigatória.
+              Use arquivo ou referência externa. Pelo menos uma evidência é
+              obrigatória.
             </p>
           </div>
           {state.error ? (
@@ -404,7 +651,7 @@ function RegistrarEnvioFisicoDialog({ escalonamentoId }: { escalonamentoId: stri
           ) : null}
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Enviando..." : "Registrar"}
+              {isPending ? "Registrando..." : "Registrar evidência"}
             </Button>
           </DialogFooter>
         </form>
@@ -413,7 +660,11 @@ function RegistrarEnvioFisicoDialog({ escalonamentoId }: { escalonamentoId: stri
   );
 }
 
-function RegistrarResultadoDialog({ escalonamentoId }: { escalonamentoId: string }) {
+function RegistrarResultadoDialog({
+  escalonamentoId,
+}: {
+  escalonamentoId: string;
+}) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(
     registrarResultadoEscalonamentoAction,
@@ -431,7 +682,7 @@ function RegistrarResultadoDialog({ escalonamentoId }: { escalonamentoId: string
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button size="sm">Registrar resultado</Button>} />
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="escalonamentoId" value={escalonamentoId} />
           <DialogHeader>
@@ -441,6 +692,25 @@ function RegistrarResultadoDialog({ escalonamentoId }: { escalonamentoId: string
               status&quot; depois de decidir o próximo passo.
             </DialogDescription>
           </DialogHeader>
+          <ActionConsequencePanel
+            items={[
+              {
+                label: "Efeito imediato",
+                value: "Adiciona resultado ao histórico",
+                emphasis: true,
+              },
+              {
+                label: "Cobrança",
+                value: "Não altera status financeiro automaticamente",
+              },
+              { label: "Pagamento", value: "Não registra recebimento" },
+              { label: "Reversibilidade", value: "Correção exige novo evento" },
+              {
+                label: "Auditoria",
+                value: "Descrição, usuário e data ficam registrados",
+              },
+            ]}
+          />
           <div className="flex flex-col gap-2">
             <Label htmlFor="descricaoResultado">Resultado *</Label>
             <Textarea
@@ -484,16 +754,23 @@ export function EscalonamentoSection({
   canManage: boolean;
   canApprove: boolean;
 }) {
-  const podeIniciarNovo = !escalonamento || escalonamento.status === "rejeitada" || escalonamento.status === "concluida";
+  const podeIniciarNovo =
+    !escalonamento ||
+    escalonamento.status === "rejeitada" ||
+    escalonamento.status === "concluida";
 
   return (
     <Card>
       <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-sm font-medium">
           Escalonamento e notificação extrajudicial
-          <span className="ml-2 text-xs font-normal text-muted-foreground">Fluxo jurídico</span>
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            Fluxo jurídico
+          </span>
         </CardTitle>
-        {canManage && podeIniciarNovo ? <IniciarEscalonamentoDialog cobrancaId={cobrancaId} /> : null}
+        {canManage && podeIniciarNovo ? (
+          <IniciarEscalonamentoDialog cobrancaId={cobrancaId} />
+        ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {!escalonamento ? (
@@ -509,7 +786,9 @@ export function EscalonamentoSection({
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Status:</span>
                 <StatusBadge
-                  label={STATUS_LABEL[escalonamento.status] ?? escalonamento.status}
+                  label={
+                    STATUS_LABEL[escalonamento.status] ?? escalonamento.status
+                  }
                   tone={STATUS_TONE[escalonamento.status] ?? "neutral"}
                 />
               </div>
@@ -526,12 +805,16 @@ export function EscalonamentoSection({
             {canManage ? (
               <div className="flex flex-wrap gap-2">
                 {escalonamento.status === "em_revisao" ? (
-                  <SubmeterParaAprovacaoButton escalonamentoId={escalonamento.id} />
+                  <SubmeterParaAprovacaoButton
+                    escalonamentoId={escalonamento.id}
+                  />
                 ) : null}
 
                 {escalonamento.status === "aguardando_aprovacao" ? (
                   canApprove ? (
-                    <DecidirAprovacaoDialog escalonamentoId={escalonamento.id} />
+                    <DecidirAprovacaoDialog
+                      escalonamentoId={escalonamento.id}
+                    />
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       Aguardando decisão do papel Jurídico.
@@ -543,22 +826,31 @@ export function EscalonamentoSection({
                   <GerarDocumentoButton escalonamentoId={escalonamento.id} />
                 ) : null}
 
-                {escalonamento.status === "documento_emitido" || escalonamento.status === "enviada" ? (
+                {escalonamento.status === "documento_emitido" ||
+                escalonamento.status === "enviada" ? (
                   <>
-                    <RegistrarEnvioEmailButton escalonamentoId={escalonamento.id} />
-                    <RegistrarEnvioFisicoDialog escalonamentoId={escalonamento.id} />
+                    <RegistrarEnvioEmailButton
+                      escalonamentoId={escalonamento.id}
+                    />
+                    <RegistrarEnvioFisicoDialog
+                      escalonamentoId={escalonamento.id}
+                    />
                   </>
                 ) : null}
 
                 {escalonamento.status === "enviada" ? (
-                  <RegistrarResultadoDialog escalonamentoId={escalonamento.id} />
+                  <RegistrarResultadoDialog
+                    escalonamentoId={escalonamento.id}
+                  />
                 ) : null}
               </div>
             ) : null}
 
             {documentos.length > 0 ? (
               <div>
-                <h3 className="mb-2 text-xs font-medium text-muted-foreground">Documentos emitidos</h3>
+                <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+                  Documentos emitidos
+                </h3>
                 <ul className="flex flex-col gap-2">
                   {documentos.map((doc) => (
                     <li
@@ -568,7 +860,8 @@ export function EscalonamentoSection({
                       <div className="flex flex-col">
                         <span>{doc.nomeArquivo}</span>
                         <span className="text-xs text-muted-foreground">
-                          Template v{doc.templateVersao} · {new Date(doc.createdAt).toLocaleDateString("pt-BR")}
+                          Template v{doc.templateVersao} ·{" "}
+                          {new Date(doc.createdAt).toLocaleDateString("pt-BR")}
                         </span>
                       </div>
                       {doc.url ? (
@@ -578,7 +871,12 @@ export function EscalonamentoSection({
                           nativeButton={false}
                           aria-label={`Baixar ${doc.nomeArquivo}`}
                           render={
-                            <a href={doc.url} target="_blank" rel="noreferrer" download>
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              download
+                            >
                               <Download className="h-4 w-4" />
                             </a>
                           }
@@ -592,7 +890,9 @@ export function EscalonamentoSection({
 
             {envios.length > 0 ? (
               <div>
-                <h3 className="mb-2 text-xs font-medium text-muted-foreground">Evidências de envio</h3>
+                <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+                  Evidências de envio
+                </h3>
                 <ul className="flex flex-col gap-2">
                   {envios.map((envio) => (
                     <li
@@ -601,18 +901,30 @@ export function EscalonamentoSection({
                     >
                       <div className="flex flex-col">
                         <span>
-                          {CANAL_LABEL[envio.canal] ?? envio.canal} → {envio.destinatario}
+                          {CANAL_LABEL[envio.canal] ?? envio.canal} →{" "}
+                          {envio.destinatario}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {DELIVERY_LABEL[envio.deliveryStatus] ?? envio.deliveryStatus}
-                          {envio.deliveryPolicyVersion ? ` · Policy v${envio.deliveryPolicyVersion}` : ""}
-                          {envio.deliveryValid ? " · válido operacionalmente" : " · não válido"}
-                          {envio.evidenciaReferencia ? ` · ${envio.evidenciaReferencia}` : ""}
+                          {DELIVERY_LABEL[envio.deliveryStatus] ??
+                            envio.deliveryStatus}
+                          {envio.deliveryPolicyVersion
+                            ? ` · Policy v${envio.deliveryPolicyVersion}`
+                            : ""}
+                          {envio.deliveryValid
+                            ? " · válido operacionalmente"
+                            : " · não válido"}
+                          {envio.evidenciaReferencia
+                            ? ` · ${envio.evidenciaReferencia}`
+                            : ""}
                           {envio.erro ? ` · ${envio.erro}` : ""} ·{" "}
-                          {new Date(envio.policyRelevantTimestamp ?? envio.enviadoEm).toLocaleDateString("pt-BR")}
+                          {new Date(
+                            envio.policyRelevantTimestamp ?? envio.enviadoEm,
+                          ).toLocaleDateString("pt-BR")}
                         </span>
                         {envio.observacao ? (
-                          <span className="text-xs text-muted-foreground">{envio.observacao}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {envio.observacao}
+                          </span>
                         ) : null}
                       </div>
                       {envio.comprovanteUrl ? (
@@ -622,7 +934,12 @@ export function EscalonamentoSection({
                           nativeButton={false}
                           aria-label={`Baixar comprovante de envio para ${envio.destinatario}`}
                           render={
-                            <a href={envio.comprovanteUrl} target="_blank" rel="noreferrer" download>
+                            <a
+                              href={envio.comprovanteUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              download
+                            >
                               <Download className="h-4 w-4" />
                             </a>
                           }
@@ -635,7 +952,9 @@ export function EscalonamentoSection({
             ) : null}
 
             <div>
-              <h3 className="mb-2 text-xs font-medium text-muted-foreground">Histórico do escalonamento</h3>
+              <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+                Histórico do escalonamento
+              </h3>
               <Timeline items={eventos} />
             </div>
           </>

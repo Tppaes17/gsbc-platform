@@ -53,7 +53,15 @@ test("enviar notificação por e-mail registra sucesso", async ({ page }) => {
   await page.goto(`/backoffice/cobrancas/${SEED.cobrancaBomPreco}`);
 
   await page.getByRole("button", { name: "Enviar notificação" }).click();
-  await page.getByRole("button", { name: "Enviar" }).click();
+  await expect(page.getByText("Efeito externo")).toBeVisible();
+  await expect(
+    page.getByText("Não registra pagamento nem baixa a cobrança"),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Enviar e registrar tentativa" })
+    .click();
   await expect(page.getByText("Notificação enviada.")).toBeVisible();
-  await expect(page.getByText("Enviada", { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText("Enviada", { exact: true }).first(),
+  ).toBeVisible();
 });

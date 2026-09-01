@@ -1,9 +1,18 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { Banknote, CalendarClock, CheckCircle2, PlayCircle, RotateCcw, SearchCheck, XCircle } from "lucide-react";
+import {
+  Banknote,
+  CalendarClock,
+  CheckCircle2,
+  PlayCircle,
+  RotateCcw,
+  SearchCheck,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ActionConsequencePanel } from "@/components/design-system/action-consequence-panel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,8 +35,15 @@ function ActionError({ error }: { error: string | null }) {
   );
 }
 
-export function RetryReconciliationButton({ reconciliationId }: { reconciliationId: string }) {
-  const [state, formAction, isPending] = useActionState(retryManualReconciliationAction, initialState);
+export function RetryReconciliationButton({
+  reconciliationId,
+}: {
+  reconciliationId: string;
+}) {
+  const [state, formAction, isPending] = useActionState(
+    retryManualReconciliationAction,
+    initialState,
+  );
 
   useEffect(() => {
     if (state.success) {
@@ -38,6 +54,28 @@ export function RetryReconciliationButton({ reconciliationId }: { reconciliation
   return (
     <form action={formAction} className="flex flex-col items-start gap-2">
       <input type="hidden" name="reconciliationId" value={reconciliationId} />
+      <ActionConsequencePanel
+        title="Reprocessamento"
+        items={[
+          {
+            label: "Efeito",
+            value: "Reexecuta a conciliação manual",
+            emphasis: true,
+          },
+          {
+            label: "Idempotência",
+            value: "Não deve duplicar pagamento, split ou baixa",
+          },
+          {
+            label: "Falha",
+            value: "Mantém revisão manual se o erro persistir",
+          },
+          {
+            label: "Auditoria",
+            value: "Tentativa de reprocessamento fica registrada",
+          },
+        ]}
+      />
       <Button
         type="submit"
         size="sm"
@@ -59,7 +97,10 @@ export function DivergenceStatusButtons({
   divergenceId: string;
   status: string;
 }) {
-  const [state, formAction, isPending] = useActionState(updateDivergenceStatusAction, initialState);
+  const [state, formAction, isPending] = useActionState(
+    updateDivergenceStatusAction,
+    initialState,
+  );
 
   useEffect(() => {
     if (state.success) {
@@ -112,7 +153,10 @@ export function RepasseTransitionForm({
   repasseId: string;
   status: string;
 }) {
-  const [state, formAction, isPending] = useActionState(transitionFinancialRepasseAction, initialState);
+  const [state, formAction, isPending] = useActionState(
+    transitionFinancialRepasseAction,
+    initialState,
+  );
 
   useEffect(() => {
     if (state.success) {
@@ -125,23 +169,42 @@ export function RepasseTransitionForm({
   }
 
   return (
-    <form action={formAction} className="mt-2 grid gap-2 rounded-lg border bg-muted/20 p-2">
+    <form
+      action={formAction}
+      className="mt-2 grid gap-2 rounded-lg border bg-muted/20 p-2"
+    >
       <input type="hidden" name="repasseId" value={repasseId} />
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
           <Label htmlFor={`scheduledFor-${repasseId}`} className="text-xs">
             Agendar
           </Label>
-          <Input id={`scheduledFor-${repasseId}`} name="scheduledFor" type="date" className="h-7 text-xs" />
+          <Input
+            id={`scheduledFor-${repasseId}`}
+            name="scheduledFor"
+            type="date"
+            className="h-7 text-xs"
+          />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor={`externalTransferId-${repasseId}`} className="text-xs">
+          <Label
+            htmlFor={`externalTransferId-${repasseId}`}
+            className="text-xs"
+          >
             Ref. externa
           </Label>
-          <Input id={`externalTransferId-${repasseId}`} name="externalTransferId" className="h-7 text-xs" />
+          <Input
+            id={`externalTransferId-${repasseId}`}
+            name="externalTransferId"
+            className="h-7 text-xs"
+          />
         </div>
       </div>
-      <Input name="reason" placeholder="Justificativa operacional" className="h-7 text-xs" />
+      <Input
+        name="reason"
+        placeholder="Justificativa operacional"
+        className="h-7 text-xs"
+      />
       <div className="flex flex-wrap gap-2">
         <Button
           type="submit"
@@ -166,11 +229,25 @@ export function RepasseTransitionForm({
           <Banknote className="h-3 w-3" />
           Pago
         </Button>
-        <Button type="submit" size="xs" variant="outline" name="status" value="failed" disabled={isPending}>
+        <Button
+          type="submit"
+          size="xs"
+          variant="outline"
+          name="status"
+          value="failed"
+          disabled={isPending}
+        >
           <XCircle className="h-3 w-3" />
           Falhou
         </Button>
-        <Button type="submit" size="xs" variant="outline" name="status" value="cancelled" disabled={isPending}>
+        <Button
+          type="submit"
+          size="xs"
+          variant="outline"
+          name="status"
+          value="cancelled"
+          disabled={isPending}
+        >
           Cancelar
         </Button>
       </div>
@@ -186,7 +263,10 @@ export function CompensationEventForm({
   reconciliationId: string;
   grossAmount: number;
 }) {
-  const [state, formAction, isPending] = useActionState(registerCompensationEventAction, initialState);
+  const [state, formAction, isPending] = useActionState(
+    registerCompensationEventAction,
+    initialState,
+  );
 
   useEffect(() => {
     if (state.success) {
@@ -201,6 +281,35 @@ export function CompensationEventForm({
       data-testid={`compensation-form-${reconciliationId}`}
     >
       <input type="hidden" name="reconciliationId" value={reconciliationId} />
+      <ActionConsequencePanel
+        title="Compensação financeira"
+        items={[
+          {
+            label: "Efeito",
+            value: "Cria evento financeiro posterior",
+            emphasis: true,
+          },
+          {
+            label: "Não altera",
+            value: "Pagamento original, webhook ou split histórico",
+          },
+          {
+            label: "Valor base",
+            value: grossAmount.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            }),
+          },
+          {
+            label: "Reversibilidade",
+            value: "Nova correcao exige outro evento auditável",
+          },
+          {
+            label: "Auditoria",
+            value: "Tipo, valor, referencia e justificativa ficam registrados",
+          },
+        ]}
+      />
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
           <Label htmlFor={`eventType-${reconciliationId}`} className="text-xs">
@@ -231,13 +340,25 @@ export function CompensationEventForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor={`providerReference-${reconciliationId}`} className="text-xs">
+          <Label
+            htmlFor={`providerReference-${reconciliationId}`}
+            className="text-xs"
+          >
             Referência externa
           </Label>
-          <Input id={`providerReference-${reconciliationId}`} name="providerReference" className="h-7 text-xs" />
+          <Input
+            id={`providerReference-${reconciliationId}`}
+            name="providerReference"
+            className="h-7 text-xs"
+          />
         </div>
       </div>
-      <Textarea name="reason" rows={2} placeholder="Justificativa obrigatória" className="text-xs" />
+      <Textarea
+        name="reason"
+        rows={2}
+        placeholder="Justificativa obrigatória"
+        className="text-xs"
+      />
       <Button
         type="submit"
         size="xs"

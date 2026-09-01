@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ActionConsequencePanel } from "@/components/design-system/action-consequence-panel";
 import {
   Dialog,
   DialogContent,
@@ -30,14 +31,23 @@ import {
 import { negociacaoEventoTipoOptions } from "@/lib/validation/negociacao";
 
 const initialState: RegisterEventoState = { error: null, success: false };
-const VALOR_OBRIGATORIO = new Set(["proposta_gsbc", "contraproposta_empresa", "aceite"]);
+const VALOR_OBRIGATORIO = new Set([
+  "proposta_gsbc",
+  "contraproposta_empresa",
+  "aceite",
+]);
 
 const TIPO_CONSEQUENCIA: Record<string, string> = {
-  proposta_gsbc: "Registra um valor proposto pela GSBC — não altera o status da negociação.",
-  contraproposta_empresa: "Registra um valor contraproposto pela empresa — não altera o status da negociação.",
-  aceite: "Marca a proposta como aceita. Se o valor for menor que o original da cobrança, exige aprovação de desconto do Owner antes de virar acordo firmado.",
-  recusa: "Marca a proposta como recusada — a negociação continua aberta pra uma nova rodada.",
-  observacao: "Registra uma observação sem valor associado — não altera o status da negociação.",
+  proposta_gsbc:
+    "Registra um valor proposto pela GSBC — não altera o status da negociação.",
+  contraproposta_empresa:
+    "Registra um valor contraproposto pela empresa — não altera o status da negociação.",
+  aceite:
+    "Marca a proposta como aceita. Se o valor for menor que o original da cobrança, exige aprovação de desconto do Owner antes de virar acordo firmado.",
+  recusa:
+    "Marca a proposta como recusada — a negociação continua aberta pra uma nova rodada.",
+  observacao:
+    "Registra uma observação sem valor associado — não altera o status da negociação.",
 };
 
 export function EventoForm({ negociacaoId }: { negociacaoId: string }) {
@@ -71,7 +81,7 @@ export function EventoForm({ negociacaoId }: { negociacaoId: string }) {
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="negociacaoId" value={negociacaoId} />
           <input type="hidden" name="tipo" value={tipo} />
@@ -85,12 +95,16 @@ export function EventoForm({ negociacaoId }: { negociacaoId: string }) {
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="tipoSelect">Tipo *</Label>
-            <Select value={tipo} onValueChange={(value) => setTipo(value as string)}>
+            <Select
+              value={tipo}
+              onValueChange={(value) => setTipo(value as string)}
+            >
               <SelectTrigger id="tipoSelect" className="w-full">
                 <SelectValue>
                   {(value: string | null) =>
-                    negociacaoEventoTipoOptions.find((opt) => opt.value === value)
-                      ?.label ?? value
+                    negociacaoEventoTipoOptions.find(
+                      (opt) => opt.value === value,
+                    )?.label ?? value
                   }
                 </SelectValue>
               </SelectTrigger>
@@ -103,15 +117,55 @@ export function EventoForm({ negociacaoId }: { negociacaoId: string }) {
               </SelectContent>
             </Select>
             {TIPO_CONSEQUENCIA[tipo] ? (
-              <p className="text-xs text-muted-foreground">{TIPO_CONSEQUENCIA[tipo]}</p>
+              <p className="text-xs text-muted-foreground">
+                {TIPO_CONSEQUENCIA[tipo]}
+              </p>
             ) : null}
           </div>
+
+          <ActionConsequencePanel
+            items={[
+              {
+                label: "Movimento",
+                value:
+                  negociacaoEventoTipoOptions.find((opt) => opt.value === tipo)
+                    ?.label ?? tipo,
+                emphasis: true,
+              },
+              {
+                label: "Valor",
+                value: VALOR_OBRIGATORIO.has(tipo)
+                  ? "Obrigatório para proposta, contraproposta ou aceite"
+                  : "Opcional",
+              },
+              {
+                label: "Acordo",
+                value:
+                  tipo === "aceite"
+                    ? "Pode depender de aprovação de desconto"
+                    : "Não firma acordo",
+              },
+              {
+                label: "Pagamento",
+                value: "Não registra recebimento nem altera conciliação",
+              },
+              {
+                label: "Auditoria",
+                value: "Evento entra na timeline da negociacao",
+              },
+            ]}
+          />
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="valor">
               Valor {VALOR_OBRIGATORIO.has(tipo) ? "*" : ""}
             </Label>
-            <Input id="valor" name="valor" inputMode="decimal" placeholder="0,00" />
+            <Input
+              id="valor"
+              name="valor"
+              inputMode="decimal"
+              placeholder="0,00"
+            />
           </div>
 
           <div className="flex flex-col gap-2">
