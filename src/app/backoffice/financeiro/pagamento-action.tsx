@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ActionConsequencePanel } from "@/components/design-system/action-consequence-panel";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -226,6 +227,9 @@ export function RegistrarPagamentoAction({
           ) : null}
 
           <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>
+              Cancelar
+            </DialogClose>
             <Button type="submit" disabled={isPending}>
               {isPending ? "Salvando..." : "Registrar pagamento manual"}
             </Button>

@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { getCurrentPortalContato } from "@/lib/auth/portal-session";
 import { portalLogoutAction } from "../login/actions";
 
-export default async function PortalLayout({ children }: { children: ReactNode }) {
+export default async function PortalLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const contato = await getCurrentPortalContato();
 
   if (!contato) {
@@ -16,7 +20,9 @@ export default async function PortalLayout({ children }: { children: ReactNode }
     <div className="flex min-h-screen flex-col">
       <header className="flex h-14 items-center justify-between border-b px-4 sm:px-6">
         <div>
-          <p className="text-sm font-semibold">Portal de Regularização Empresarial</p>
+          <p className="text-sm font-semibold">
+            Portal de Regularização Empresarial
+          </p>
           <p className="text-xs text-muted-foreground">{contato.empresaNome}</p>
         </div>
         <form action={portalLogoutAction}>
@@ -26,7 +32,13 @@ export default async function PortalLayout({ children }: { children: ReactNode }
           </Button>
         </form>
       </header>
-      <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-6">{children}</main>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-6"
+      >
+        {children}
+      </main>
     </div>
   );
 }

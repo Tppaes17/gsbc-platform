@@ -19,11 +19,13 @@ import {
 import { ExecutiveKpi } from "@/components/design-system/executive-kpi";
 import { PageHeader } from "@/components/design-system/page-header";
 import { StatusBadge } from "@/components/design-system/status-badge";
-import { Timeline, type TimelineItem } from "@/components/design-system/timeline";
+import {
+  Timeline,
+  type TimelineItem,
+} from "@/components/design-system/timeline";
 import { Button } from "@/components/ui/button";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils";
 
 const COBRANCA_STATUS_ENCERRADO = new Set(["paid", "cancelled", "closed"]);
 const COBRANCA_STATUS_NAO_VALIDADO = new Set(["draft", "pending_validation"]);
@@ -173,9 +175,21 @@ function isCobrancaVencida(cobranca: CobrancaRow, now: Date) {
 function agingBuckets(cobrancas: CobrancaRow[], now: Date) {
   const buckets = [
     { label: "A vencer", value: 0, href: "/backoffice/cobrancas" },
-    { label: "1-30 dias", value: 0, href: "/backoffice/cobrancas?status=overdue" },
-    { label: "31-60 dias", value: 0, href: "/backoffice/cobrancas?status=overdue" },
-    { label: "60+ dias", value: 0, href: "/backoffice/cobrancas?status=overdue" },
+    {
+      label: "1-30 dias",
+      value: 0,
+      href: "/backoffice/cobrancas?status=overdue",
+    },
+    {
+      label: "31-60 dias",
+      value: 0,
+      href: "/backoffice/cobrancas?status=overdue",
+    },
+    {
+      label: "60+ dias",
+      value: 0,
+      href: "/backoffice/cobrancas?status=overdue",
+    },
     { label: "Sem vencimento", value: 0, href: "/backoffice/cobrancas" },
   ];
 
@@ -213,8 +227,10 @@ function topConcentration(cobrancas: CobrancaRow[]) {
 }
 
 function workItemHref(item: WorkItemRow) {
-  if (item.entity_type === "cobranca") return `/backoffice/cobrancas/${item.entity_id}`;
-  if (item.entity_type === "negociacao") return `/backoffice/negociacoes/${item.entity_id}`;
+  if (item.entity_type === "cobranca")
+    return `/backoffice/cobrancas/${item.entity_id}`;
+  if (item.entity_type === "negociacao")
+    return `/backoffice/negociacoes/${item.entity_id}`;
   return "/backoffice/operacoes";
 }
 
@@ -250,7 +266,8 @@ function buildDecisionItems({
     .filter((item) => item.status === "aberto" || item.status === "adiado")
     .sort((a, b) => {
       const priority =
-        (PRIORIDADE_ORDEM[a.prioridade] ?? 1) - (PRIORIDADE_ORDEM[b.prioridade] ?? 1);
+        (PRIORIDADE_ORDEM[a.prioridade] ?? 1) -
+        (PRIORIDADE_ORDEM[b.prioridade] ?? 1);
       if (priority !== 0) return priority;
       if (!a.due_at) return 1;
       if (!b.due_at) return -1;
@@ -262,15 +279,23 @@ function buildDecisionItems({
       return {
         id: `work-item-${item.id}`,
         title: item.titulo,
-        reason: item.motivo ?? item.descricao ?? "Item operacional requer revisão.",
+        reason:
+          item.motivo ?? item.descricao ?? "Item operacional requer revisão.",
         href: workItemHref(item),
         source: "Central Operacional",
-        risk: item.prioridade === "high" ? "Prioridade alta" : "Prioridade operacional",
+        risk:
+          item.prioridade === "high"
+            ? "Prioridade alta"
+            : "Prioridade operacional",
         sla: item.due_at
           ? `${overdue ? "Vencido em" : "Vence em"} ${new Date(item.due_at).toLocaleDateString("pt-BR")}`
           : "Sem prazo registrado",
         owner: "Equipe GSBC",
-        tone: overdue ? "critical" : item.prioridade === "high" ? "warning" : "neutral",
+        tone: overdue
+          ? "critical"
+          : item.prioridade === "high"
+            ? "warning"
+            : "neutral",
       } satisfies DecisionQueueItem;
     });
 
@@ -302,9 +327,13 @@ function ExposureList({
       <div className="flex items-center justify-between gap-4 rounded-md bg-background px-3 py-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{item.label}</p>
-          <p className="text-xs text-muted-foreground">Exposição concentrada no escopo atual</p>
+          <p className="text-xs text-muted-foreground">
+            Exposição concentrada no escopo atual
+          </p>
         </div>
-        <p className="shrink-0 text-base font-semibold tabular-nums">{formatCurrency(item.value)}</p>
+        <p className="shrink-0 text-base font-semibold tabular-nums">
+          {formatCurrency(item.value)}
+        </p>
       </div>
     );
 
@@ -321,9 +350,11 @@ function ExposureList({
     <div className="flex flex-col gap-2">
       {items.map((item) => {
         const width =
-          total > 0 ? Math.max((item.value / total) * 100, item.value > 0 ? 4 : 0) : 0;
+          total > 0
+            ? Math.max((item.value / total) * 100, item.value > 0 ? 4 : 0)
+            : 0;
         const row = (
-          <div className={cn("flex flex-col gap-1", item.value === 0 ? "opacity-55" : null)}>
+          <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="truncate font-medium">{item.label}</span>
               <span className="shrink-0 font-medium tabular-nums text-muted-foreground">
@@ -337,7 +368,11 @@ function ExposureList({
         );
 
         return item.href ? (
-          <Link key={item.label} href={item.href} className="block hover:text-primary">
+          <Link
+            key={item.label}
+            href={item.href}
+            className="block hover:text-primary"
+          >
             {row}
           </Link>
         ) : (
@@ -354,7 +389,10 @@ function OperationalContextStrip({
   items: { label: string; value: string; href: string; description: string }[];
 }) {
   return (
-    <section aria-label="Contexto operacional" className="border-y border-border-subtle py-3">
+    <section
+      aria-label="Contexto operacional"
+      className="border-y border-border-subtle py-3"
+    >
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
         {items.map((item) => (
           <Link key={item.label} href={item.href} className="group min-w-0">
@@ -381,7 +419,9 @@ export default async function BackofficeDashboardPage() {
   const supabase = await createClient();
   const now = new Date();
   const currentMonth = monthRange(now);
-  const previousMonth = monthRange(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+  const previousMonth = monthRange(
+    new Date(now.getFullYear(), now.getMonth() - 1, 1),
+  );
 
   const [
     sindicatosCount,
@@ -418,7 +458,9 @@ export default async function BackofficeDashboardPage() {
     supabase.from("pagamentos").select("valor, data_pagamento, created_at"),
     supabase
       .from("escalonamentos")
-      .select("id, status, motivo, cobranca_id, empresas(razao_social, nome_fantasia)")
+      .select(
+        "id, status, motivo, cobranca_id, empresas(razao_social, nome_fantasia)",
+      )
       .order("iniciado_em", { ascending: false })
       .limit(10),
     supabase
@@ -443,7 +485,9 @@ export default async function BackofficeDashboardPage() {
   const escalonamentos = (escalonamentosRaw.data ?? []) as EscalonamentoRow[];
   const workItems = (workItemsRaw.data ?? []) as WorkItemRow[];
 
-  const obrigacoesValidas = obrigacoes.filter((o) => !OBRIGACAO_STATUS_EXCLUIDO.has(o.status));
+  const obrigacoesValidas = obrigacoes.filter(
+    (o) => !OBRIGACAO_STATUS_EXCLUIDO.has(o.status),
+  );
   const valorIdentificado = obrigacoesValidas.reduce(
     (sum, o) => sum + (o.valor_referencia ?? 0),
     0,
@@ -452,21 +496,39 @@ export default async function BackofficeDashboardPage() {
   const cobrancasValidadas = cobrancas.filter(
     (c) => !COBRANCA_STATUS_NAO_VALIDADO.has(c.status),
   );
-  const valorEmCobranca = cobrancasAbertas.reduce((sum, c) => sum + c.valor_cobranca, 0);
+  const valorEmCobranca = cobrancasAbertas.reduce(
+    (sum, c) => sum + c.valor_cobranca,
+    0,
+  );
   const cobrancasVencidas = cobrancas.filter((c) => isCobrancaVencida(c, now));
-  const valorVencido = cobrancasVencidas.reduce((sum, c) => sum + c.valor_cobranca, 0);
+  const valorVencido = cobrancasVencidas.reduce(
+    (sum, c) => sum + c.valor_cobranca,
+    0,
+  );
   const totalPago = pagamentos.reduce((sum, p) => sum + p.valor, 0);
   const recebidoMesAtual = pagamentos
-    .filter((p) => inRange(p.data_pagamento, currentMonth.start, currentMonth.next))
+    .filter((p) =>
+      inRange(p.data_pagamento, currentMonth.start, currentMonth.next),
+    )
     .reduce((sum, p) => sum + p.valor, 0);
   const recebidoMesAnterior = pagamentos
-    .filter((p) => inRange(p.data_pagamento, previousMonth.start, previousMonth.next))
+    .filter((p) =>
+      inRange(p.data_pagamento, previousMonth.start, previousMonth.next),
+    )
     .reduce((sum, p) => sum + p.valor, 0);
   const cobrancasMesAtual = cobrancasValidadas
-    .filter((c) => c.vencimento && inRange(c.vencimento, currentMonth.start, currentMonth.next))
+    .filter(
+      (c) =>
+        c.vencimento &&
+        inRange(c.vencimento, currentMonth.start, currentMonth.next),
+    )
     .reduce((sum, c) => sum + c.valor_cobranca, 0);
   const cobrancasMesAnterior = cobrancasValidadas
-    .filter((c) => c.vencimento && inRange(c.vencimento, previousMonth.start, previousMonth.next))
+    .filter(
+      (c) =>
+        c.vencimento &&
+        inRange(c.vencimento, previousMonth.start, previousMonth.next),
+    )
     .reduce((sum, c) => sum + c.valor_cobranca, 0);
   const negociacoesAbertas = negociacoes.filter((n) =>
     ["aberta", "em_negociacao"].includes(n.status),
@@ -480,14 +542,16 @@ export default async function BackofficeDashboardPage() {
     now,
   });
 
-  const atividadeRecente: TimelineItem[] = (recentAuditLogs.data ?? []).map((log) => ({
-    id: log.id,
-    label: auditLabel(log.action),
-    description: log.entity_id
-      ? `${log.entity_type} #${log.entity_id.slice(0, 8)}`
-      : log.entity_type,
-    timestamp: log.created_at,
-  }));
+  const atividadeRecente: TimelineItem[] = (recentAuditLogs.data ?? []).map(
+    (log) => ({
+      id: log.id,
+      label: auditLabel(log.action),
+      description: log.entity_id
+        ? `${log.entity_type} #${log.entity_id.slice(0, 8)}`
+        : log.entity_type,
+      timestamp: log.created_at,
+    }),
+  );
 
   const periodoLabel = now.toLocaleDateString("pt-BR", {
     month: "long",
@@ -543,14 +607,18 @@ export default async function BackofficeDashboardPage() {
         }
       />
 
-      <section aria-labelledby="executive-pulse-heading" className="grid min-w-0 gap-3 xl:grid-cols-3">
+      <section
+        aria-labelledby="executive-pulse-heading"
+        className="grid min-w-0 gap-3 xl:grid-cols-3"
+      >
         <div className="xl:col-span-3">
           <div className="mb-2 flex flex-col gap-1">
             <h2 id="executive-pulse-heading" className="text-lg font-semibold">
               Visão executiva
             </h2>
             <p className="text-sm text-muted-foreground">
-              Três sinais financeiros, sem potencial ou forecast misturados ao recebido.
+              Três sinais financeiros, sem potencial ou forecast misturados ao
+              recebido.
             </p>
           </div>
         </div>
@@ -577,7 +645,11 @@ export default async function BackofficeDashboardPage() {
           context="Valor de cobranças abertas, suspensas, negociando, contestadas ou em escalonamento. Não é receita recebida."
           href="/backoffice/cobrancas"
           comparison={compareCurrency(cobrancasMesAtual, cobrancasMesAnterior)}
-          supporting={<span>{cobrancasAbertas.length} cobrança(s) abertas no escopo.</span>}
+          supporting={
+            <span>
+              {cobrancasAbertas.length} cobrança(s) abertas no escopo.
+            </span>
+          }
         />
         <ExecutiveKpi
           hero
@@ -587,7 +659,11 @@ export default async function BackofficeDashboardPage() {
           context="Risco operacional baseado em cobranças não encerradas. Prazo jurídico não é inferido."
           tone={valorVencido > 0 ? "critical" : "default"}
           href="/backoffice/cobrancas?status=overdue"
-          supporting={<span>{cobrancasVencidas.length} cobrança(s) com risco de atraso.</span>}
+          supporting={
+            <span>
+              {cobrancasVencidas.length} cobrança(s) com risco de atraso.
+            </span>
+          }
         />
       </section>
 
@@ -620,17 +696,29 @@ export default async function BackofficeDashboardPage() {
           <div className="grid min-w-0 gap-6 lg:grid-cols-2">
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Clock
+                  className="h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
                 <h3 className="text-sm font-semibold">Aging de cobrança</h3>
               </div>
               <ExposureList items={aging} total={valorEmCobranca} />
             </div>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <Building className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-sm font-semibold">Concentração por empresa</h3>
+                <Building
+                  className="h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <h3 className="text-sm font-semibold">
+                  Concentração por empresa
+                </h3>
               </div>
-              <ExposureList items={concentration} total={valorEmCobranca} mode="adaptive" />
+              <ExposureList
+                items={concentration}
+                total={valorEmCobranca}
+                mode="adaptive"
+              />
             </div>
           </div>
         </ChartFrame>
@@ -638,7 +726,9 @@ export default async function BackofficeDashboardPage() {
         <div className="flex flex-col gap-4 border-y border-border-subtle py-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold">Inteligência operacional</h2>
+              <h2 className="text-lg font-semibold">
+                Inteligência operacional
+              </h2>
               <p className="text-sm text-muted-foreground">
                 Leituras observadas, sem causalidade inventada.
               </p>
@@ -649,7 +739,10 @@ export default async function BackofficeDashboardPage() {
           <div className="grid gap-2">
             <div className="rounded-md bg-card px-3 py-2">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <CircleDollarSign className="h-4 w-4 text-success" aria-hidden="true" />
+                <CircleDollarSign
+                  className="h-4 w-4 text-success"
+                  aria-hidden="true"
+                />
                 Recebimento do mês
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -662,12 +755,16 @@ export default async function BackofficeDashboardPage() {
                 Cobrança do mês
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                {compareCurrency(cobrancasMesAtual, cobrancasMesAnterior)} por vencimento.
+                {compareCurrency(cobrancasMesAtual, cobrancasMesAnterior)} por
+                vencimento.
               </p>
             </div>
             <div className="rounded-md bg-card px-3 py-2">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
+                <AlertTriangle
+                  className="h-4 w-4 text-destructive"
+                  aria-hidden="true"
+                />
                 Principal risco
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -692,32 +789,56 @@ export default async function BackofficeDashboardPage() {
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="flex items-start gap-3 rounded-md bg-card px-3 py-2">
-              <Users className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <Users
+                className="h-4 w-4 text-muted-foreground"
+                aria-hidden="true"
+              />
               <div>
-                <p className="text-sm font-semibold tabular-nums">{usersCount.count ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Usuários visíveis</p>
+                <p className="text-sm font-semibold tabular-nums">
+                  {usersCount.count ?? 0}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Usuários visíveis
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3 rounded-md bg-card px-3 py-2">
-              <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <FileText
+                className="h-4 w-4 text-muted-foreground"
+                aria-hidden="true"
+              />
               <div>
                 <p className="text-sm font-semibold tabular-nums">
                   {membershipsCount.count ?? 0}
                 </p>
-                <p className="text-xs text-muted-foreground">Memberships ativas</p>
+                <p className="text-xs text-muted-foreground">
+                  Memberships ativas
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3 rounded-md bg-card px-3 py-2">
-              <Handshake className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <Handshake
+                className="h-4 w-4 text-muted-foreground"
+                aria-hidden="true"
+              />
               <div>
-                <p className="text-sm font-semibold tabular-nums">{negociacoes.length}</p>
-                <p className="text-xs text-muted-foreground">Negociações totais visíveis</p>
+                <p className="text-sm font-semibold tabular-nums">
+                  {negociacoes.length}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Negociações totais visíveis
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3 rounded-md bg-card px-3 py-2">
-              <Building className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <Building
+                className="h-4 w-4 text-muted-foreground"
+                aria-hidden="true"
+              />
               <div>
-                <p className="text-sm font-semibold tabular-nums">{sindicatosCount.count ?? 0}</p>
+                <p className="text-sm font-semibold tabular-nums">
+                  {sindicatosCount.count ?? 0}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {user.isPlatformStaff ? "Sindicatos ativos" : "Meu sindicato"}
                 </p>
@@ -731,7 +852,8 @@ export default async function BackofficeDashboardPage() {
             nativeButton={false}
             render={
               <Link href="/backoffice/receita">
-                Ver análise de receita <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                Ver análise de receita{" "}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             }
           />
@@ -740,9 +862,12 @@ export default async function BackofficeDashboardPage() {
 
       <section className="flex flex-col gap-4 rounded-md border bg-card p-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold">Atividade recente auditável</h2>
+          <h2 className="text-base font-semibold">
+            Atividade recente auditável
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Eventos reais do audit log no escopo autorizado. Correções históricas devem ocorrer por novos eventos.
+            Eventos reais do audit log no escopo autorizado. Correções
+            históricas devem ocorrer por novos eventos.
           </p>
         </div>
         <Timeline items={atividadeRecente} />

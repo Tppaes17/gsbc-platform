@@ -16,9 +16,20 @@ export function Container({
   );
 }
 
-export function Eyebrow({ children }: { children: ReactNode }) {
+export function Eyebrow({
+  children,
+  dark = false,
+}: {
+  children: ReactNode;
+  dark?: boolean;
+}) {
   return (
-    <span className="text-xs font-semibold tracking-[0.2em] text-brand-teal uppercase">
+    <span
+      className={cn(
+        "text-xs font-semibold tracking-[0.2em] uppercase",
+        dark ? "text-brand-gold-light" : "text-brand-teal",
+      )}
+    >
       {children}
     </span>
   );
@@ -50,7 +61,7 @@ export function SectionHeading({
         align === "center" && "mx-auto items-center text-center",
       )}
     >
-      {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
+      {eyebrow ? <Eyebrow dark={dark}>{eyebrow}</Eyebrow> : null}
       <Heading
         className={cn(
           "text-3xl font-bold tracking-tight sm:text-4xl",
@@ -60,7 +71,12 @@ export function SectionHeading({
         {title}
       </Heading>
       {description ? (
-        <p className={cn("text-base", dark ? "text-brand-ice/85" : "text-brand-slate")}>
+        <p
+          className={cn(
+            "text-base",
+            dark ? "text-brand-ice/85" : "text-brand-slate",
+          )}
+        >
           {description}
         </p>
       ) : null}

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 interface TableToolbarProps {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
+  searchLabel?: string;
   searchPlaceholder?: string;
   filters?: ReactNode;
   count?: number;
@@ -25,6 +26,7 @@ interface TableToolbarProps {
 export function TableToolbar({
   searchValue,
   onSearchChange,
+  searchLabel = "Buscar registros",
   searchPlaceholder = "Buscar...",
   filters,
   count,
@@ -35,12 +37,20 @@ export function TableToolbar({
   className,
 }: TableToolbarProps) {
   const hasSearch = onSearchChange !== undefined;
-  const hasActiveFilter = Boolean(searchValue) || Boolean(onReset && selectedCount);
+  const hasActiveFilter =
+    Boolean(searchValue) || Boolean(onReset && selectedCount);
 
   return (
-    <div className={cn("flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center", className)}>
+    <div
+      className={cn(
+        "flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center",
+        className,
+      )}
+    >
       {hasSearch ? (
         <Input
+          type="search"
+          aria-label={searchLabel}
           value={searchValue ?? ""}
           onChange={(e) => onSearchChange?.(e.target.value)}
           placeholder={searchPlaceholder}

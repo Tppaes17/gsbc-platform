@@ -171,7 +171,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-brand-ink/78" />
         <Container className="relative flex min-h-[calc(100svh-4rem)] flex-col justify-center gap-8 py-14 sm:py-18 lg:py-20">
           <div className="flex max-w-3xl flex-col gap-5">
-            <Eyebrow>Plataforma SaaS para entidades sindicais</Eyebrow>
+            <Eyebrow dark>Plataforma SaaS para entidades sindicais</Eyebrow>
             <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl lg:text-6xl">
               Compliance, receita e operação sindical em uma plataforma
               governada
@@ -204,15 +204,15 @@ export default function HomePage() {
           </div>
           <div className="grid max-w-3xl gap-3 text-sm text-brand-ice sm:grid-cols-3">
             <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-brand-teal" />
+              <ShieldCheck className="h-4 w-4 text-brand-gold-light" />
               Multi-tenant
             </span>
             <span className="inline-flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-brand-teal" />
+              <ClipboardList className="h-4 w-4 text-brand-gold-light" />
               Histórico auditável
             </span>
             <span className="inline-flex items-center gap-2">
-              <Scale className="h-4 w-4 text-brand-teal" />
+              <Scale className="h-4 w-4 text-brand-gold-light" />
               Decisão humana
             </span>
           </div>
@@ -419,7 +419,7 @@ export default function HomePage() {
 
       <section className="bg-brand-navy py-14 text-white sm:py-20">
         <Container className="flex flex-col gap-6">
-          <Eyebrow>Próximo passo</Eyebrow>
+          <Eyebrow dark>Próximo passo</Eyebrow>
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <h2 className="text-3xl font-semibold leading-tight text-white sm:text-4xl">
