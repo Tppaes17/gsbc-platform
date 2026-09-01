@@ -9,9 +9,8 @@ export function SiteFooter() {
         <div className="flex max-w-sm flex-col gap-4">
           <SiteLogo dark />
           <p className="text-sm text-brand-ice/80">
-            Regularização extrajudicial, gestão de benefícios e tecnologia a
-            serviço do trabalhador — uma nova frente de parceria com o
-            movimento sindical.
+            Plataforma de compliance, receita e operação para entidades
+            sindicais, com isolamento por tenant, permissões e trilha auditável.
           </p>
         </div>
 
@@ -35,13 +34,22 @@ export function SiteFooter() {
             <span className="text-xs font-semibold tracking-wider text-white uppercase">
               Parceria
             </span>
-            <Link href="/diagnostico" className="text-sm text-brand-ice/80 hover:text-white">
-              Diagnóstico gratuito
+            <Link
+              href="/diagnostico"
+              className="text-sm text-brand-ice/80 hover:text-white"
+            >
+              Solicitar demonstração
             </Link>
-            <Link href="/contato" className="text-sm text-brand-ice/80 hover:text-white">
+            <Link
+              href="/contato"
+              className="text-sm text-brand-ice/80 hover:text-white"
+            >
               Contato
             </Link>
-            <Link href="/login" className="text-sm text-brand-ice/80 hover:text-white">
+            <Link
+              href="/login"
+              className="text-sm text-brand-ice/80 hover:text-white"
+            >
               Acessar plataforma
             </Link>
           </div>

@@ -3,19 +3,24 @@ import type { Metadata } from "next";
 import {
   ArrowRight,
   Bell,
-  Brain,
   ClipboardCheck,
   Globe,
   LayoutDashboard,
   ShieldCheck,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Container, FeatureCard, SectionHeading, StatCard } from "@/components/site/ui";
+import {
+  Container,
+  FeatureCard,
+  SectionHeading,
+  StatCard,
+} from "@/components/site/ui";
 
 export const metadata: Metadata = {
   title: "Tecnologia — GSBC",
   description:
-    "Plataforma digital própria: automação de notificações, IA para análise preditiva, dashboard em tempo real e trilha de auditoria completa.",
+    "Plataforma digital própria para cobrança, negociação, conciliação, governança e trilha de auditoria.",
 };
 
 const features = [
@@ -26,16 +31,16 @@ const features = [
       "Cada mudança de status de uma cobrança ou negociação gera um evento registrado — a base para comunicação estruturada em cada etapa.",
   },
   {
-    icon: Brain,
-    title: "IA para análise preditiva",
+    icon: UserCheck,
+    title: "Decisão humana assistida",
     description:
-      "Priorização de casos com maior probabilidade de regularização, direcionando o esforço da equipe para onde ele rende mais.",
+      "Leituras assistivas e sugestões operacionais não executam desconto, cobrança, pagamento ou ato jurídico sem validação humana.",
   },
   {
     icon: LayoutDashboard,
-    title: "Dashboard em tempo real",
+    title: "Command Center operacional",
     description:
-      "Visão consolidada de cobranças, negociações e acordos em andamento, com o valor total em cobrança sempre à vista.",
+      "Visão consolidada de cobranças, negociações, exposição vencida, aging e decisões pendentes com base nos dados atuais do sistema.",
   },
   {
     icon: Globe,
@@ -74,9 +79,18 @@ export default function TecnologiaPage() {
 
       <section className="bg-brand-navy py-12">
         <Container className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-          <StatCard value="30–40%" label="Redução de trabalho operacional manual" />
-          <StatCard value="100%" label="Cobranças e negociações com histórico auditável" />
-          <StatCard value="1" label="Plataforma única para toda a operação" />
+          <StatCard
+            value="5"
+            label="Capacidades centrais: compliance, receita, financeiro, governança e inteligência executiva"
+          />
+          <StatCard
+            value="1"
+            label="Tenant por entidade contratante no escopo inicial"
+          />
+          <StatCard
+            value="0"
+            label="Decisões críticas executadas autonomamente por IA"
+          />
         </Container>
       </section>
 
@@ -112,7 +126,7 @@ export default function TecnologiaPage() {
               nativeButton={false}
               render={
                 <Link href="/diagnostico">
-                  Ainda não é parceiro? Solicitar diagnóstico
+                  Ainda não é parceiro? Solicitar demonstração
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               }

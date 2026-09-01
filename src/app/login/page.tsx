@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Eye, Handshake, ShieldCheck } from "lucide-react";
+import Image from "next/image";
+import { ClipboardList, LockKeyhole, ShieldCheck } from "lucide-react";
 import { SiteLogo } from "@/components/site/logo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
@@ -11,15 +12,15 @@ export const metadata: Metadata = {
 const PILARES = [
   {
     icon: ShieldCheck,
-    label: "Cobrança extrajudicial e compliance auditável",
+    label: "Isolamento por tenant e acesso por papel",
   },
   {
-    icon: Handshake,
-    label: "Negociação de passivos com transparência de ponta a ponta",
+    icon: ClipboardList,
+    label: "Cobrança, negociação e conciliação com histórico",
   },
   {
-    icon: Eye,
-    label: "O sindicato acompanha cada etapa da operação",
+    icon: LockKeyhole,
+    label: "Ações críticas com consequência antes da confirmação",
   },
 ];
 
@@ -35,19 +36,33 @@ export default function LoginPage() {
               Backoffice operacional
             </span>
             <h1 className="max-w-md text-3xl font-bold tracking-tight text-white">
-              Cobrança, negociação e compliance sindical em um só lugar
+              Entre na plataforma de compliance, receita e operação sindical
             </h1>
             <p className="max-w-sm text-base text-brand-ice/85">
-              Regularização extrajudicial, gestão de benefícios e tecnologia a
-              serviço do trabalhador — a mesma missão da GSBC, agora na
-              ferramenta que a equipe opera todos os dias.
+              Acesso restrito para equipes autorizadas operarem entidades,
+              obrigações, cobranças, pagamentos, políticas e auditoria no mesmo
+              contexto.
             </p>
+          </div>
+          <div className="overflow-hidden rounded-lg border border-white/10 bg-white shadow-sm">
+            <Image
+              src="/product-proof/login-transition.png"
+              alt="Tela real do produto GSBC usada como continuidade visual do login."
+              width={1440}
+              height={900}
+              priority
+              className="h-auto w-full"
+              sizes="50vw"
+            />
           </div>
         </div>
 
         <ul className="relative flex flex-col gap-4">
           {PILARES.map((pilar) => (
-            <li key={pilar.label} className="flex items-center gap-3 text-sm text-brand-ice/90">
+            <li
+              key={pilar.label}
+              className="flex items-center gap-3 text-sm text-brand-ice/90"
+            >
               <pilar.icon className="h-4 w-4 shrink-0 text-brand-teal" />
               {pilar.label}
             </li>

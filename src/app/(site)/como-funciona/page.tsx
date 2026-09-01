@@ -87,8 +87,12 @@ export default function ComoFuncionaPage() {
                   <etapa.icon className="hidden size-5 text-brand-slate sm:block" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <h2 className="text-lg font-semibold text-brand-ink">{etapa.title}</h2>
-                  <p className="text-sm text-brand-slate">{etapa.description}</p>
+                  <h2 className="text-lg font-semibold text-brand-ink">
+                    {etapa.title}
+                  </h2>
+                  <p className="text-sm text-brand-slate">
+                    {etapa.description}
+                  </p>
                 </div>
               </li>
             ))}
@@ -107,7 +111,7 @@ export default function ComoFuncionaPage() {
             nativeButton={false}
             render={
               <Link href="/diagnostico">
-                Solicitar diagnóstico gratuito
+                Solicitar demonstração
                 <ArrowRight className="h-4 w-4" />
               </Link>
             }

@@ -1,6 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, BadgeCheck, Eye, LayoutDashboard, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Eye,
+  LayoutDashboard,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Container, FeatureCard, SectionHeading } from "@/components/site/ui";
 
@@ -25,7 +31,7 @@ const pilares = [
   },
   {
     icon: LayoutDashboard,
-    title: "Visibilidade em tempo real",
+    title: "Visibilidade operacional",
     description:
       "A diretoria do sindicato acompanha o que está sendo entregue à categoria, sem depender de relatórios avulsos ou pedidos pontuais à equipe.",
   },
@@ -71,7 +77,7 @@ export default function BeneficiosPage() {
             nativeButton={false}
             render={
               <Link href="/diagnostico">
-                Solicitar diagnóstico gratuito
+                Solicitar demonstração
                 <ArrowRight className="h-4 w-4" />
               </Link>
             }

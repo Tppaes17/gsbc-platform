@@ -44,7 +44,7 @@ export function SiteHeader() {
           <Button
             className="bg-brand-gold text-brand-ink hover:bg-brand-gold-light"
             nativeButton={false}
-            render={<Link href="/diagnostico">Diagnóstico gratuito</Link>}
+            render={<Link href="/diagnostico">Solicitar demonstração</Link>}
           />
         </div>
 
@@ -91,7 +91,7 @@ export function SiteHeader() {
             <Button
               className="bg-brand-gold text-brand-ink hover:bg-brand-gold-light"
               nativeButton={false}
-              render={<Link href="/diagnostico">Diagnóstico gratuito</Link>}
+              render={<Link href="/diagnostico">Solicitar demonstração</Link>}
             />
           </div>
         </div>

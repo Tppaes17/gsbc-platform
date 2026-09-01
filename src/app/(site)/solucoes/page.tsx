@@ -23,7 +23,7 @@ const solucoes = [
     icon: Receipt,
     title: "Cobrança Extrajudicial",
     description:
-      "A GSBC identifica e conduz a regularização de obrigações previstas em instrumentos coletivos diretamente com as empresas, sem depender do Judiciário. Cada cobrança tem status, responsável e histórico completo de eventos, visível ao sindicato em tempo real.",
+      "A GSBC identifica e conduz a regularização de obrigações previstas em instrumentos coletivos diretamente com as empresas. Cada cobrança tem status, responsável e histórico completo de eventos, visível ao sindicato na plataforma.",
   },
   {
     icon: Handshake,
@@ -81,7 +81,9 @@ export default function SolucoesPage() {
             >
               <IconCircle icon={item.icon} tone="teal" />
               <div className="flex flex-col gap-2">
-                <h2 className="text-lg font-semibold text-brand-ink">{item.title}</h2>
+                <h2 className="text-lg font-semibold text-brand-ink">
+                  {item.title}
+                </h2>
                 <p className="text-sm text-brand-slate">{item.description}</p>
               </div>
             </div>
@@ -100,7 +102,7 @@ export default function SolucoesPage() {
             nativeButton={false}
             render={
               <Link href="/diagnostico">
-                Solicitar diagnóstico gratuito
+                Solicitar demonstração
                 <ArrowRight className="h-4 w-4" />
               </Link>
             }

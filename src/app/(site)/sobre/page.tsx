@@ -35,15 +35,18 @@ const valores = [
 const roadmap = [
   {
     fase: "Ano 1 — Fundação",
-    descricao: "8–10 sindicatos parceiros, plataforma em operação, primeiros diagnósticos e cobranças conduzidos ponta a ponta.",
+    descricao:
+      "8–10 sindicatos parceiros, plataforma em operação, primeiros diagnósticos e cobranças conduzidos ponta a ponta.",
   },
   {
     fase: "Ano 2 — Expansão",
-    descricao: "Ampliação da base de sindicatos parceiros e maturação dos módulos de negociação e gestão de benefícios.",
+    descricao:
+      "Ampliação da base de sindicatos parceiros e maturação dos módulos de negociação e gestão de benefícios.",
   },
   {
     fase: "Ano 3 — Referência Nacional",
-    descricao: "Consolidação da GSBC como referência em regularização extrajudicial e gestão de benefícios para o movimento sindical.",
+    descricao:
+      "Consolidação da GSBC como referência em regularização extrajudicial e gestão de benefícios para o movimento sindical.",
   },
 ];
 
@@ -55,13 +58,14 @@ export default function SobrePage() {
           <LogoFull dark className="mb-2 items-start text-left" />
           <Eyebrow>Quem somos</Eyebrow>
           <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Uma gestora criada para aproximar o sindicato do resultado que ele já tem direito
+            Uma gestora criada para aproximar o sindicato do resultado que ele
+            já tem direito
           </h1>
           <p className="max-w-2xl text-brand-ice/85">
-            A GSBC — Gestora Sindical de Benefícios &amp; Compliance nasceu
-            como uma nova frente de parceria com o movimento sindical:
-            regularização extrajudicial, gestão de benefícios e tecnologia a
-            serviço do trabalhador.
+            A GSBC — Gestora Sindical de Benefícios &amp; Compliance nasceu como
+            uma nova frente de parceria com o movimento sindical: regularização
+            extrajudicial, gestão de benefícios e tecnologia a serviço do
+            trabalhador.
           </p>
         </Container>
       </section>
@@ -76,7 +80,9 @@ export default function SobrePage() {
                 className="flex flex-col gap-3 rounded-2xl border border-brand-ice bg-white p-6 shadow-sm"
               >
                 <item.icon className="size-6 text-brand-teal" />
-                <h3 className="text-base font-semibold text-brand-ink">{item.title}</h3>
+                <h3 className="text-base font-semibold text-brand-ink">
+                  {item.title}
+                </h3>
                 <p className="text-sm text-brand-slate">{item.description}</p>
               </div>
             ))}
@@ -96,7 +102,9 @@ export default function SobrePage() {
                 <span className="text-sm font-semibold text-brand-gold">
                   0{index + 1}
                 </span>
-                <h3 className="text-base font-semibold text-white">{item.fase}</h3>
+                <h3 className="text-base font-semibold text-white">
+                  {item.fase}
+                </h3>
                 <p className="text-sm text-brand-ice/80">{item.descricao}</p>
               </div>
             ))}
@@ -115,7 +123,7 @@ export default function SobrePage() {
             nativeButton={false}
             render={
               <Link href="/diagnostico">
-                Solicitar diagnóstico gratuito
+                Solicitar demonstração
                 <ArrowRight className="h-4 w-4" />
               </Link>
             }
