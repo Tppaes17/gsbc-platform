@@ -48,14 +48,13 @@ export default function LoginPage() {
               contexto.
             </p>
           </div>
-          <div className="overflow-hidden rounded-lg border border-white/10 bg-white shadow-sm">
+          <div className="relative aspect-[16/10] max-h-[360px] overflow-hidden rounded-lg border border-white/10 bg-white shadow-sm">
             <Image
               src="/product-proof/login-transition.png"
               alt="Tela real do produto GSBC usada como continuidade visual do login."
-              width={1440}
-              height={900}
+              fill
               priority
-              className="h-auto w-full"
+              className="object-cover object-left-top"
               sizes="50vw"
             />
           </div>

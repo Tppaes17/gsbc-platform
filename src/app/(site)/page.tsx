@@ -134,21 +134,20 @@ function ProductProofCard({
   priority?: boolean;
 }) {
   return (
-    <article className="grid gap-4 border-t border-brand-ice/70 py-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+    <article className="grid gap-5 border-t border-brand-ice/70 py-7 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
       <div className="flex flex-col gap-2">
         <h3 className="text-lg font-semibold text-brand-ink">{proof.title}</h3>
         <p className="text-sm leading-6 text-brand-slate">
           {proof.description}
         </p>
       </div>
-      <div className="overflow-hidden rounded-lg border border-brand-ice bg-white shadow-sm">
+      <div className="relative aspect-[16/10] max-h-[430px] overflow-hidden rounded-lg border border-brand-ice bg-white shadow-sm">
         <Image
           src={proof.image}
           alt={proof.alt}
-          width={1440}
-          height={900}
+          fill
           priority={priority}
-          className="h-auto w-full"
+          className="object-cover object-left-top"
           sizes="(min-width: 1024px) 620px, 100vw"
         />
       </div>
@@ -223,8 +222,8 @@ export default function HomePage() {
         <Container className="flex flex-col gap-8">
           <SectionHeading
             eyebrow="Produto em primeiro plano"
-            title="Telas reais, dados demo e capacidades suportadas"
-            description="As imagens abaixo vêm do ambiente de demonstração usado nos testes automatizados. Elas provam o produto atual; não representam uma feature futura."
+            title="Produto real, dados demonstrativos e capacidades suportadas"
+            description="As imagens abaixo mostram superfícies atuais da plataforma com dados demonstrativos revisados. Cada tela representa uma capacidade existente do produto."
           />
           <div className="flex flex-col">
             {productProofs.map((proof, index) => (
@@ -427,8 +426,8 @@ export default function HomePage() {
               </h2>
               <p className="mt-3 text-base leading-7 text-brand-ice">
                 A demonstração mostra produto, governança, cobrança, conciliação
-                e auditoria com dados demo e sem prometer automações futuras
-                como se já fossem atuais.
+                e auditoria com dados demonstrativos, distinguindo capacidade
+                atual, governança humana e próximos passos de implantação.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">

@@ -24,7 +24,7 @@ test("home renderiza hero product-first, navegação e CTA de demonstração", a
     page.getByRole("button", { name: "Solicitar demonstração" }).first(),
   ).toBeVisible();
   await expect(
-    page.getByText("Telas reais, dados demo e capacidades suportadas"),
+    page.getByText("Produto real, dados demonstrativos e capacidades suportadas"),
   ).toBeVisible();
 });
 
@@ -100,6 +100,6 @@ test("mobile expõe proposta, prova de produto, menu e CTA", async ({
     .getByRole("link", { name: "Plataforma" })
     .click();
   await expect(
-    page.getByText("Telas reais, dados demo e capacidades suportadas"),
+    page.getByText("Produto real, dados demonstrativos e capacidades suportadas"),
   ).toBeVisible();
 });

@@ -28,7 +28,7 @@ test.describe("Wave 6 website visual QA", () => {
 
     await page
       .getByRole("heading", {
-        name: "Telas reais, dados demo e capacidades suportadas",
+        name: "Produto real, dados demonstrativos e capacidades suportadas",
       })
       .scrollIntoViewIfNeeded();
     await screenshot(page, "1440-product-proof");
@@ -69,7 +69,7 @@ test.describe("Wave 6 website visual QA", () => {
 
     await page
       .getByRole("heading", {
-        name: "Telas reais, dados demo e capacidades suportadas",
+        name: "Produto real, dados demonstrativos e capacidades suportadas",
       })
       .scrollIntoViewIfNeeded();
     await screenshot(page, "375-product-proof");
