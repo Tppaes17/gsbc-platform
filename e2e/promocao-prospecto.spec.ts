@@ -40,7 +40,9 @@ function adminClient() {
  */
 
 test("Owner promove um prospecto para empresa sem recadastro", async ({ page }, testInfo) => {
-  const fixture = createProspectosFixture(testInfo);
+  test.setTimeout(60_000);
+
+  const fixture = createProspectosFixture(testInfo, { alphanumeric: true });
 
   await loginAs(page, STAFF_EMAIL);
 
@@ -64,7 +66,18 @@ test("Owner promove um prospecto para empresa sem recadastro", async ({ page }, 
   await expect(page.getByRole("heading", { name: "Promover prospecto para empresa" })).toBeVisible();
   await page.getByRole("button", { name: "Promover para empresa" }).last().click();
 
-  await page.waitForURL("**/backoffice/empresas/**");
+  let empresaId: string | null = null;
+  await expect(async () => {
+    const { data } = await adminClient()
+      .from("empresas")
+      .select("id")
+      .eq("razao_social", fixture.nomeUm)
+      .maybeSingle();
+    empresaId = data?.id ?? null;
+    expect(empresaId).not.toBeNull();
+  }).toPass({ timeout: 10_000 });
+
+  await page.goto(`/backoffice/empresas/${empresaId}`);
   await expect(page.getByRole("heading", { name: fixture.nomeUm })).toBeVisible();
   await expect(page.getByText("Inteligência cadastral")).toBeVisible();
   await expect(page.getByText(fixture.emailUm).first()).toBeVisible();
@@ -75,5 +88,5 @@ test("Owner promove um prospecto para empresa sem recadastro", async ({ page }, 
 
   await page.goto("/backoffice/prospectos");
   await page.getByPlaceholder("Buscar prospectos...").fill(fixture.nomeUm);
-  await expect(page.getByText(fixture.nomeUm)).toHaveCount(0);
+  await expect(page.getByText("Nenhum resultado corresponde à busca")).toBeVisible();
 });

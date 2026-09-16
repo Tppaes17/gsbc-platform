@@ -10,7 +10,7 @@ import { createProspectosFixture } from "./helpers/prospectos-fixture";
  */
 
 test("Owner vê o menu Prospectos e importa uma planilha", async ({ page }, testInfo) => {
-  const fixture = createProspectosFixture(testInfo);
+  const fixture = createProspectosFixture(testInfo, { alphanumeric: true });
 
   await loginAs(page, STAFF_EMAIL);
 

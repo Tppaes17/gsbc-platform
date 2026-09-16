@@ -52,7 +52,7 @@ export function createProspectosFixture(
   const nomeUm = `PROVEDOR E2E ${seed} UM LTDA`;
   const nomeDois = `PROVEDOR E2E ${seed} DOIS LTDA`;
   const cnpjUm = options.alphanumeric ? uniqueAlphanumericCnpj(seed, 1) : uniqueCnpj(seed, 1);
-  const cnpjDois = uniqueCnpj(seed, 2);
+  const cnpjDois = options.alphanumeric ? uniqueAlphanumericCnpj(seed, 2) : uniqueCnpj(seed, 2);
   const emailUm = `contato+${seed.toLowerCase()}1@provedorteste.com.br`;
   const emailDois = `financeiro+${seed.toLowerCase()}2@provedorteste.com.br`;
 
