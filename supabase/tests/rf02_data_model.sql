@@ -338,6 +338,8 @@ begin
 end;
 $$;
 
+set local role service_role;
+
 do $$
 declare
   v_cnpj text;
