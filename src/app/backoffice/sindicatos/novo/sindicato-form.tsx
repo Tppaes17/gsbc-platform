@@ -38,7 +38,7 @@ export function SindicatoForm() {
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="cnpj">CNPJ *</Label>
-          <Input id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required />
+          <Input id="cnpj" name="cnpj" placeholder="00.000.000/E08G-12" required />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="slug">Identificador (URL) *</Label>

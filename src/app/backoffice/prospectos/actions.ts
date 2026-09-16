@@ -262,6 +262,9 @@ export async function importarProspectosAction(
 
       try {
         const consulta = await consultarEAtualizarDossie(supabase, dossie.id, dossie.cnpj_consultado, user.id);
+        if (consulta.resultado === "erro" || consulta.resultado === "formato_nao_suportado") {
+          continue;
+        }
         consultadas += 1;
         if (consulta.status === "descartado_receita") descartadas += 1;
       } catch {
@@ -385,7 +388,7 @@ export async function consultarProspectoAction(
 
   const consulta = await consultarEAtualizarDossie(supabase, dossieId, prospecto.cnpj_consultado, user.id);
 
-  if (consulta.resultado === "erro") {
+  if (consulta.resultado === "erro" || consulta.resultado === "formato_nao_suportado") {
     return { error: consulta.mensagemErro ?? "Não foi possível consultar.", success: false };
   }
 

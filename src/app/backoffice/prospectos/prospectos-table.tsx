@@ -9,6 +9,7 @@ import {
   dossieStatusOptions,
   scoreClassificacaoOptions,
 } from "@/lib/validation/dossie-cadastral";
+import { formatCnpj } from "@/lib/cnpj/cnpj";
 import type { Database } from "@/types/database.types";
 
 type ProspectoRow = Pick<
@@ -58,11 +59,6 @@ const PRIORIDADE_TONE: Record<string, "positive" | "neutral" | "warning" | "nega
   baixa: "negative",
 };
 
-function formatCnpj(cnpj: string | null) {
-  if (!cnpj || cnpj.length !== 14) return cnpj ?? "—";
-  return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
-}
-
 export function ProspectosTable({ data }: { data: ProspectoRow[] }) {
   const columns: ColumnDef<ProspectoRow>[] = [
     {
@@ -75,7 +71,7 @@ export function ProspectosTable({ data }: { data: ProspectoRow[] }) {
         >
           <span className="font-medium">{row.original.razao_social ?? "—"}</span>
           <span className="text-xs text-muted-foreground">
-            {formatCnpj(row.original.cnpj_consultado)}
+            {row.original.cnpj_consultado ? formatCnpj(row.original.cnpj_consultado) : "—"}
           </span>
         </Link>
       ),

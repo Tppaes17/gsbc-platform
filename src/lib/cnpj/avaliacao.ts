@@ -45,12 +45,18 @@ export interface AvaliacaoEncontrada {
   evidencias: EvidenciaInput[];
   score: number;
   classificacao: ReturnType<typeof classificarScore>;
-  enriquecimentoStatus: "encontrado" | "nao_configurado" | "nao_encontrado" | "erro";
+  enriquecimentoStatus:
+    | "encontrado"
+    | "nao_configurado"
+    | "nao_encontrado"
+    | "formato_nao_suportado"
+    | "erro";
 }
 
 export type AvaliacaoResultado =
   | AvaliacaoEncontrada
   | { status: "nao_encontrado" }
+  | { status: "formato_nao_suportado"; cnpj: string; mensagem: string }
   | { status: "erro"; mensagem: string };
 
 export async function avaliarCnpj(cnpjEntrada: string): Promise<AvaliacaoResultado> {
@@ -58,6 +64,9 @@ export async function avaliarCnpj(cnpjEntrada: string): Promise<AvaliacaoResulta
 
   if (resultado.status === "erro") {
     return { status: "erro", mensagem: resultado.mensagem };
+  }
+  if (resultado.status === "formato_nao_suportado") {
+    return { status: "formato_nao_suportado", cnpj: resultado.cnpj, mensagem: resultado.mensagem };
   }
   if (resultado.status === "nao_encontrado") {
     return { status: "nao_encontrado" };
@@ -217,6 +226,15 @@ export async function avaliarCnpj(cnpjEntrada: string): Promise<AvaliacaoResulta
       nivel_confianca: "nao_confirmado",
       observacao: "Empresa não localizada na base de enriquecimento web.",
     });
+  } else if (enriquecimento.status === "formato_nao_suportado") {
+    evidencias.push({
+      tipo: "outro",
+      campo: "enriquecimento_web",
+      valor: enriquecimento.cnpj,
+      fonte: FONTE_LEADCNPJ,
+      nivel_confianca: "nao_confirmado",
+      observacao: enriquecimento.mensagem,
+    });
   }
   // status "nao_configurado": Fase 2 ainda não tem chave de API
   // configurada — segue só com a Fase 1 (Receita Federal), sem erro.
@@ -279,7 +297,7 @@ export function decidirStatusDossie(
 }
 
 export interface ConsultaDossieResultado {
-  resultado: "encontrado" | "nao_encontrado" | "erro";
+  resultado: "encontrado" | "nao_encontrado" | "formato_nao_suportado" | "erro";
   status?: DossieStatus;
   mensagemErro?: string;
 }
@@ -307,6 +325,25 @@ export async function consultarEAtualizarDossie(
 
   if (resultado.status === "erro") {
     return { resultado: "erro", mensagemErro: resultado.mensagem };
+  }
+  if (resultado.status === "formato_nao_suportado") {
+    await supabase
+      .from("dossies_cadastrais")
+      .update({ ultima_consulta_em: new Date().toISOString() })
+      .eq("id", dossieId);
+
+    await supabase.from("dossie_evidencias").insert({
+      dossie_id: dossieId,
+      tipo: "cnpj",
+      campo: "cnpj",
+      valor: resultado.cnpj,
+      fonte: FONTE_BRASIL_API,
+      nivel_confianca: "nao_confirmado",
+      observacao: resultado.mensagem,
+      consultado_por: consultadoPor,
+    });
+
+    return { resultado: "formato_nao_suportado", mensagemErro: resultado.mensagem };
   }
 
   const decisao = decidirStatusDossie(resultado);

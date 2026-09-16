@@ -70,6 +70,61 @@ export async function consultarDossieCadastralAction(
     return { error: resultado.mensagem, success: false };
   }
 
+  if (resultado.status === "formato_nao_suportado") {
+    const { data: dossie, error: upsertError } = await supabase
+      .from("dossies_cadastrais")
+      .upsert(
+        {
+          tenant_id: empresa.tenant_id,
+          empresa_id: empresaId,
+          status: "pesquisa_iniciada",
+          cnpj_consultado: empresa.cnpj,
+          dados_oficiais: null,
+          dados_enriquecimento: null,
+          qsa: null,
+          score_confiabilidade: null,
+          score_classificacao: null,
+          descartado_em: null,
+          descartado_motivo: null,
+          ultima_consulta_em: new Date().toISOString(),
+          criado_por: user.id,
+        },
+        { onConflict: "empresa_id" },
+      )
+      .select("id")
+      .single();
+
+    if (upsertError || !dossie) {
+      return { error: "Não foi possível salvar o dossiê.", success: false };
+    }
+
+    await salvarEvidenciasEDossie({
+      dossieId: dossie.id,
+      userId: user.id,
+      evidencias: [
+        {
+          tipo: "cnpj",
+          campo: "cnpj",
+          valor: resultado.cnpj,
+          fonte: FONTE_BRASIL_API,
+          nivel_confianca: "nao_confirmado",
+          observacao: resultado.mensagem,
+        },
+      ],
+    });
+
+    await logAuditEvent({
+      tenantId: empresa.tenant_id,
+      action: "dossie_cadastral.consultado",
+      entityType: "empresa",
+      entityId: empresaId,
+      newData: { resultado: "formato_nao_suportado" },
+    });
+
+    revalidatePath(`/backoffice/empresas/${empresaId}`);
+    return { error: resultado.mensagem, success: false };
+  }
+
   if (resultado.status === "nao_encontrado") {
     const { data: dossie, error: upsertError } = await supabase
       .from("dossies_cadastrais")

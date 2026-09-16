@@ -1,4 +1,5 @@
 import "server-only";
+import { parseCnpj } from "@/lib/cnpj/cnpj";
 
 /**
  * Fonte de enriquecimento web (Fase 2 — Rodada 15): LeadCNPJ
@@ -34,6 +35,7 @@ export type ConsultaLeadCnpjResultado =
   | { status: "encontrado"; dados: LeadCnpjEnriquecimento }
   | { status: "nao_configurado" }
   | { status: "nao_encontrado" }
+  | { status: "formato_nao_suportado"; cnpj: string; mensagem: string }
   | { status: "erro"; mensagem: string };
 
 function primeiraString(...valores: unknown[]): string | null {
@@ -58,15 +60,24 @@ export async function enriquecerCnpjLeadCnpj(
     return { status: "nao_configurado" };
   }
 
-  const cnpj = cnpjEntrada.replace(/\D/g, "");
-  if (cnpj.length !== 14) {
-    return { status: "erro", mensagem: "CNPJ inválido — precisa ter 14 dígitos." };
+  const parsed = parseCnpj(cnpjEntrada);
+  if (!parsed.ok) {
+    return { status: "erro", mensagem: parsed.message };
+  }
+
+  if (parsed.kind === "alphanumeric") {
+    return {
+      status: "formato_nao_suportado",
+      cnpj: parsed.canonical,
+      mensagem:
+        "LeadCNPJ ainda não foi validado para consulta de CNPJ alfanumérico; o identificador foi preservado sem consulta externa.",
+    };
   }
 
   let response: Response;
   try {
     response = await fetch(
-      `https://leadcnpj.com.br/api/v1/empresa/${cnpj}?enriquecer=true`,
+      `https://leadcnpj.com.br/api/v1/empresa/${parsed.canonical}?enriquecer=true`,
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,

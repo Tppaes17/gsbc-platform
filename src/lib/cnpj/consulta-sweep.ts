@@ -79,13 +79,13 @@ export async function runConsultaProspectosSweep(): Promise<ConsultaSweepResulta
     try {
       const consulta = await consultarEAtualizarDossie(supabase, dossie.id, dossie.cnpj_consultado, null);
 
-      if (consulta.resultado === "erro") {
-        // Falha de rede/validação (ex.: CNPJ com dígito verificador
-        // inválido, ou rate limit da BrasilAPI) — não é uma decisão
-        // sobre a empresa, o status continua "pesquisa_iniciada". Mas
-        // registra a tentativa em ultima_consulta_em pra sair da
-        // frente da fila (nulls first) — sem isso, um item que sempre
-        // falha nunca deixa outros serem tentados.
+      if (consulta.resultado === "erro" || consulta.resultado === "formato_nao_suportado") {
+        // Falha de rede/validação ou provedor legado sem suporte ao
+        // formato alfanumérico — não é uma decisão sobre a empresa, o
+        // status continua "pesquisa_iniciada". Mas registra a tentativa
+        // em ultima_consulta_em pra sair da frente da fila (nulls first)
+        // — sem isso, um item que sempre falha nunca deixa outros serem
+        // tentados.
         await supabase
           .from("dossies_cadastrais")
           .update({ ultima_consulta_em: new Date().toISOString() })

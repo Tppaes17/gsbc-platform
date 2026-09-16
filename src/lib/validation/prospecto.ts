@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseCnpj } from "@/lib/cnpj/cnpj";
 
 /**
  * Template de upload de prospectos (Rodada 16) — colunas exatas
@@ -25,8 +26,8 @@ export const PROSPECTO_COLUNAS_ESPERADAS = [
 ] as const;
 
 export function normalizarCnpjPlanilha(valor: unknown): string | null {
-  const digitos = String(valor ?? "").replace(/\D/g, "");
-  return digitos.length === 14 ? digitos : null;
+  const resultado = parseCnpj(valor);
+  return resultado.ok ? resultado.canonical : null;
 }
 
 function textoOuNulo(valor: unknown): string | null {

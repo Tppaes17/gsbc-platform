@@ -1,15 +1,20 @@
 import { z } from "zod";
+import { formatCnpj, isValidCnpj } from "@/lib/cnpj/cnpj";
 
-const cnpjPattern = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/;
 const slugPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const cnpjSchema = z
+  .string()
+  .trim()
+  .refine(
+    isValidCnpj,
+    "CNPJ inválido. Informe 12 caracteres alfanuméricos e 2 dígitos verificadores.",
+  )
+  .transform(formatCnpj);
 
 export const createSindicatoSchema = z.object({
   razaoSocial: z.string().trim().min(3, "Informe a razão social completa."),
   nomeFantasia: z.string().trim().optional(),
-  cnpj: z
-    .string()
-    .trim()
-    .regex(cnpjPattern, "CNPJ deve estar no formato 00.000.000/0000-00."),
+  cnpj: cnpjSchema,
   slug: z
     .string()
     .trim()

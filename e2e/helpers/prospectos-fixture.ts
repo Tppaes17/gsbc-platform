@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import * as XLSX from "xlsx";
 import type { TestInfo } from "@playwright/test";
+import { calculateCnpjCheckDigits } from "@/lib/cnpj/cnpj";
 import { PROSPECTO_COLUNAS_ESPERADAS } from "@/lib/validation/prospecto";
 
 export interface ProspectosFixture {
@@ -23,15 +24,34 @@ function onlyAsciiIdentifier(value: string) {
 }
 
 function uniqueCnpj(seed: string, index: number) {
-  const digits = `${Date.now()}${seed}${index}`.replace(/\D/g, "").slice(-14);
-  return digits.padStart(14, String(index));
+  const base = `${Date.now()}${seed}${index}`
+    .replace(/\D/g, "")
+    .slice(-12)
+    .padStart(12, String(index));
+  const checkDigits = calculateCnpjCheckDigits(base);
+  if (!checkDigits) {
+    throw new Error(`Não foi possível gerar DV para CNPJ numérico E2E: ${base}`);
+  }
+  return `${base}${checkDigits}`;
 }
 
-export function createProspectosFixture(testInfo: TestInfo): ProspectosFixture {
+function uniqueAlphanumericCnpj(seed: string, index: number) {
+  const base = `A${seed}${index}`.padEnd(12, "0").slice(0, 12);
+  const checkDigits = calculateCnpjCheckDigits(base);
+  if (!checkDigits) {
+    throw new Error(`Não foi possível gerar DV para CNPJ alfanumérico E2E: ${base}`);
+  }
+  return `${base}${checkDigits}`;
+}
+
+export function createProspectosFixture(
+  testInfo: TestInfo,
+  options: { alphanumeric?: boolean } = {},
+): ProspectosFixture {
   const seed = onlyAsciiIdentifier(`${testInfo.title}-${randomUUID()}`);
   const nomeUm = `PROVEDOR E2E ${seed} UM LTDA`;
   const nomeDois = `PROVEDOR E2E ${seed} DOIS LTDA`;
-  const cnpjUm = uniqueCnpj(seed, 1);
+  const cnpjUm = options.alphanumeric ? uniqueAlphanumericCnpj(seed, 1) : uniqueCnpj(seed, 1);
   const cnpjDois = uniqueCnpj(seed, 2);
   const emailUm = `contato+${seed.toLowerCase()}1@provedorteste.com.br`;
   const emailDois = `financeiro+${seed.toLowerCase()}2@provedorteste.com.br`;

@@ -1,6 +1,5 @@
 import { z } from "zod";
-
-const cnpjPattern = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/;
+import { cnpjDisplayPattern, formatCnpj } from "@/lib/cnpj/cnpj";
 
 export const promoverProspectoSchema = z.object({
   dossieId: z.string().guid(),
@@ -14,8 +13,8 @@ export const promoverProspectoSchema = z.object({
 
 export type PromoverProspectoInput = z.infer<typeof promoverProspectoSchema>;
 
-export function formatarCnpj(cnpjDigitos: string): string {
-  return cnpjDigitos.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+export function formatarCnpj(cnpj: string): string {
+  return formatCnpj(cnpj);
 }
 
-export const cnpjFormatadoPattern = cnpjPattern;
+export const cnpjFormatadoPattern = cnpjDisplayPattern;

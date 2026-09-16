@@ -1,4 +1,5 @@
 import "server-only";
+import { formatCnpj, parseCnpj } from "@/lib/cnpj/cnpj";
 
 /**
  * Fonte oficial nível 1 (Receita Federal, via BrasilAPI/Minha Receita) —
@@ -37,6 +38,7 @@ export interface CnpjOficial {
 export type ConsultaCnpjResultado =
   | { status: "encontrado"; dados: CnpjOficial }
   | { status: "nao_encontrado" }
+  | { status: "formato_nao_suportado"; cnpj: string; mensagem: string }
   | { status: "erro"; mensagem: string };
 
 interface BrasilApiRawResponse {
@@ -69,15 +71,24 @@ interface BrasilApiRawResponse {
 export async function consultarCnpjOficial(
   cnpjEntrada: string,
 ): Promise<ConsultaCnpjResultado> {
-  const cnpj = cnpjEntrada.replace(/\D/g, "");
+  const parsed = parseCnpj(cnpjEntrada);
 
-  if (cnpj.length !== 14) {
-    return { status: "erro", mensagem: "CNPJ inválido — precisa ter 14 dígitos." };
+  if (!parsed.ok) {
+    return { status: "erro", mensagem: parsed.message };
+  }
+
+  if (parsed.kind === "alphanumeric") {
+    return {
+      status: "formato_nao_suportado",
+      cnpj: parsed.canonical,
+      mensagem:
+        "BrasilAPI/Minha Receita ainda não foi validada para consulta de CNPJ alfanumérico; o identificador foi preservado sem consulta externa.",
+    };
   }
 
   let response: Response;
   try {
-    response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
+    response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${parsed.canonical}`, {
       headers: {
         Accept: "application/json",
         "User-Agent": "GSBC-Plataforma/1.0 (inteligencia-cadastral)",
@@ -116,7 +127,7 @@ export async function consultarCnpjOficial(
   return {
     status: "encontrado",
     dados: {
-      cnpj: raw.cnpj,
+      cnpj: formatCnpj(raw.cnpj),
       razaoSocial: raw.razao_social,
       nomeFantasia: raw.nome_fantasia ?? null,
       situacaoCadastral: raw.descricao_situacao_cadastral ?? "DESCONHECIDA",
