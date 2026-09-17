@@ -10,15 +10,16 @@ Dados financeiros, auditoria, decisoes humanas, tenant/auth e evidencias nao sao
 
 ## Decision
 
-Propor por classe: operational transactions e auditoria RPO <=15 min/RTO <=4 h; configuracao RPO <=1 h/RTO <=4 h; RF manifests/proveniencia RPO <=1 h/RTO <=8 h; RF raw/canonical RPO <=24 h/RTO <=24-48 h; derivados sem RPO e RTO <=72 h. Objetivos completos vivem em `docs/rf-03a2b/RPO_RTO_MATRIX.md`.
+Para decisao do owner, recomendar ao operational core RPO <=15 min e RTO <=4 h. A recomendacao resulta da comparacao explicita entre RPO de 5 min/15 min/1 h/24 h e RTO de 1 h/4 h/8 h/24 h em `docs/rf-03a2b1/RECOVERY_ARCHITECTURE_OWNER_DECISION.md`. O RPO exige PITR ou protecao equivalente; o RTO e PROJECTED e nao pode ser tratado como SLA ate um restore drill completo.
+
+Objetivos de RF permanecem fora desta microfase e conservam a proposta anterior para avaliacao futura: manifests/proveniencia RPO <=1 h/RTO <=8 h; RF raw/canonical RPO <=24 h/RTO <=24-48 h; derivados sem RPO e RTO <=72 h. A matriz existente continua referencia, nao evidencia de capacidade atual.
 
 ## Trade-offs
 
-RPO curto requer PITR ou protecao equivalente e aumenta custo. RF reconstruivel aceita RTO maior, desde que raw, manifest, loader e versao anterior estejam preservados.
+RPO curto requer PITR ou protecao equivalente e aumenta custo. RTO de 4 h exige deteccao, decisao, restore, configuracao, validacao, reconciliacao e cutover ensaiados; tempo de banco isolado nao basta. RF reconstruivel aceita RTO maior, desde que raw, manifest, loader e versao anterior estejam preservados.
 
 ## Status
 
 PROPOSED — OWNER APPROVAL REQUIRED
 
-Os objetivos nao estao atualmente demonstrados.
-
+Os objetivos aguardam escolha explicita do owner e nao estao atualmente demonstrados. Aprovacao define o target; somente implementacao e teste podem provar readiness.

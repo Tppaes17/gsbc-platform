@@ -14,16 +14,18 @@ Backup logico agendado; backups diarios gerenciados; PITR; rebuild do canonical 
 
 ## Decision
 
-Exigir PITR ou protecao equivalente e restore testado para o banco operacional GSBC e para qualquer banco RF que contenha dados nao reconstruiveis. Preservar raw, manifest, checksums e versao do loader para permitir rebuild do canonical. Staging/extracted permanecem descartaveis. Proposta de engenharia: RPO/RTO GSBC <= 15 min / <= 4 h; RF canonical <= 24 h / <= 24 h, sujeitos a aprovacao do proprietario.
+Proposta para decisao do owner: adotar o pacote Balanced para o operational core, com PITR de 7 dias, backup logico completo periodico criptografado fora do failure domain principal, monitoramento da janela/lag, restore isolado obrigatorio e objetivos RPO <=15 min / RTO <=4 h. O RTO permanece objetivo nao demonstrado ate o drill. Retencao independente diaria/semanal/mensal e frequencia de drill dependem de aprovacao e medicao de custo/crescimento.
+
+Para qualquer futuro banco RF que contenha dados nao reconstruiveis, exigir protecao e restore testado equivalentes aos objetivos aprovados. Preservar raw, manifest, metadados de integridade e versao do loader para rebuild do canonical; staging/extracted permanecem descartaveis. A arquitetura RF dedicada continua fora do escopo desta decisao.
 
 ## Trade-offs
 
-PITR e retencao elevam custo, mas reduzem perda de decisoes, links e eventos. Rebuild reduz custo de backup canonical, mas aumenta RTO e depende da preservacao dos objetos e do codigo.
+PITR e retencao elevam custo, mas reduzem perda de decisoes, links e eventos. Backup independente reduz falha comum de projeto/conta, mas adiciona chaves, lifecycle, automacao e um segundo caminho de restore. Rebuild reduz custo de backup canonical, mas aumenta RTO e depende da preservacao dos objetos e do codigo.
 
 ## Status
 
-BLOCKED — INSUFFICIENT EVIDENCE
+PROPOSED — OWNER APPROVAL REQUIRED
 
-O ADR pode ser aceito somente apos aprovacao de RPO/RTO/retencao, habilitacao da protecao e restore isolado bem-sucedido.
+O pacote e a politica detalhada estao em `docs/rf-03a2b1/RECOVERY_ARCHITECTURE_OWNER_DECISION.md`. Este ADR registra uma proposta, nao uma autorizacao de compra, enablement ou restore.
 
-RF-03A.2B manteve o bloqueio. Habilitar PITR, mudar plano ou criar clone de restore sao acoes pagas/substanciais e exigem autorizacao humana previa.
+O ADR pode ser aceito arquiteturalmente apos as cinco decisoes explicitas do owner. O gate de readiness somente pode fechar apos habilitacao controlada, evidencia de recovery point, backup independente e restore isolado bem-sucedido com RPO/RTO medidos. Habilitar PITR, mudar plano ou criar clone de restore continuam acoes pagas/substanciais com autorizacao separada.
