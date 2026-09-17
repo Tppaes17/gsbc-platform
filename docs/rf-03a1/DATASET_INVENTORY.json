@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-09-17T12:55:18Z",
+  "source_status": "NOT_VERIFIED",
+  "official_catalog_url": "https://dados.gov.br/dados/conjuntos-dados/cadastro-nacional-da-pessoa-juridica---cnpj",
+  "official_share_url": "https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9",
+  "reference_period": null,
+  "file_count": null,
+  "aggregate_compressed_bytes": null,
+  "checksum_availability": "UNKNOWN",
+  "categories": [
+    { "name": "companies", "documented": true, "files": null, "compressed_bytes": null },
+    { "name": "establishments", "documented": true, "files": null, "compressed_bytes": null },
+    { "name": "partners", "documented": true, "files": null, "compressed_bytes": null },
+    { "name": "simples_mei", "documented": true, "files": null, "compressed_bytes": null },
+    { "name": "cnaes", "documented": true, "files": null, "compressed_bytes": null },
+    { "name": "municipalities", "documented": true, "files": null, "compressed_bytes": null },
+    { "name": "legal_natures", "documented": true, "files": null, "compressed_bytes": null },
+    { "name": "countries", "documented": true, "files": null, "compressed_bytes": null },
+    { "name": "partner_qualifications", "documented": true, "files": null, "compressed_bytes": null },
+    { "name": "registration_status_reasons", "documented": true, "files": null, "compressed_bytes": null }
+  ],
+  "files": [],
+  "notes": [
+    "Categories are taken from the official layout and the RF-02 canonical model.",
+    "No filename, count or size is asserted without an observable official listing.",
+    "No unofficial mirror is accepted as production evidence."
+  ]
+}

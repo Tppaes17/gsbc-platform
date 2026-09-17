@@ -10,10 +10,10 @@ Raw/canonical podem ser reconstruidos; links, decisoes, auditoria e diffs GSBC n
 Reter tudo; apagar imediatamente; politica por classe de dado.
 
 ## Decision
-Propor retencao por classe: canonical ativo + anterior; manifests/auditoria de longo prazo; extracted/staging efemeros; raw conforme janela de reprocessamento e custo; dados GSBC nao reconstruiveis sob politica propria.
+Propor retencao por classe: canonical ativo + anterior; manifests/checksums/auditoria de longo prazo; extracted/staging efemeros; raw conforme janela aprovada de reprocessamento e custo; dados GSBC nao reconstruiveis sob politica de backup propria. Historico para futuro Diff Engine nao pode ser removido antes de uma politica explicita.
 
 ## Trade-offs
 Reprocessamento fica disponivel sem reter todo artefato indefinidamente; a politica final depende de sizing e compliance.
 
 ## Status
-Proposed - retention periods pending cost and compliance approval.
+PROPOSED — OWNER APPROVAL REQUIRED

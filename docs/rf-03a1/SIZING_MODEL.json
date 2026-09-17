@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "INSUFFICIENT_OFFICIAL_EVIDENCE",
+  "units": "bytes unless otherwise stated",
+  "measured": {
+    "rf03a_non_authoritative_cnae_sample_compressed": 22078,
+    "rf03a_non_authoritative_cnae_sample_extracted": 88215,
+    "rf03a_non_authoritative_cnae_expansion_ratio": 4.0,
+    "rf03a_parse_rows_per_second": 97168,
+    "rf03a_copy_rows_per_second": 145759,
+    "rf03a_normalized_staging_rows_per_second": 8544
+  },
+  "unknown": {
+    "official_compressed_national": null,
+    "official_extracted_national": null,
+    "largest_official_object": null,
+    "national_row_counts": null,
+    "canonical_payload": null,
+    "index_overhead": null,
+    "staging_peak": null,
+    "wal_and_temp_peak": null,
+    "publication_overlap": null,
+    "monthly_growth": null,
+    "projected_ingestion_window_seconds": null
+  },
+  "formulas": {
+    "extracted_projection": "sum(official_compressed_bytes_by_category * measured_official_expansion_ratio_by_category)",
+    "database_peak": "current_database_usage + staging + canonical_new + indexes_new + canonical_active + wal_temp + operational_margin",
+    "worker_scratch_minimum": "largest_compressed_object + largest_extracted_object + checkpoint_overhead + safety_margin",
+    "object_storage_peak_raw_current_previous": "raw_current + raw_previous + incomplete_multipart_headroom + safety_margin",
+    "ingestion_window": "download + extract + parse + copy + normalize + validate + index + analyze"
+  },
+  "rules": [
+    "The RF-03A CNAE sample is mechanical evidence only and must not be extrapolated to national capacity.",
+    "A numeric production commitment requires an official manifest and representative official multi-entity measurements.",
+    "Safety margin and retention are owner-approved inputs, not inferred constants."
+  ]
+}
