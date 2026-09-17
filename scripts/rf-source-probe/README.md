@@ -11,7 +11,8 @@ node scripts/rf-source-probe/probe.mjs \
   --timeout-ms 30000 \
   --max-bytes 2097152 \
   --max-files 500 \
-  --sample-bytes 65536
+  --sample-bytes 65536 \
+  --stability-delay-ms 5000
 ```
 
 Expected output:
@@ -24,6 +25,8 @@ rf-source-evidence/
 ```
 
 Do not edit these files. Return the entire directory for validation. A `NOT_VERIFIED` result is valid evidence of that executor's reachability and must not be changed manually.
+
+For the public Receita share, the probe derives the allowlisted public WebDAV endpoint, performs two bounded `PROPFIND` discoveries, rejects DTD/XXE, and hashes normalized metadata. It never requests ZIP contents; `--sample-bytes` is retained for CLI compatibility and is skipped when WebDAV metadata is available.
 
 Tests:
 

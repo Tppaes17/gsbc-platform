@@ -16,6 +16,7 @@ Options:
   --max-bytes <number>     Maximum listing response bytes (default: 2097152)
   --max-files <number>     Maximum files accepted from listing (default: 500)
   --sample-bytes <number>  Optional bounded Range probe (default: 0)
+  --stability-delay-ms <number>  Delay between manifest discoveries (default: 5000)
   --help                   Show this help
 `;
 }
@@ -36,6 +37,7 @@ function parseArgs(argv) {
     maxBytes: 2_097_152,
     maxFiles: 500,
     sampleBytes: 0,
+    stabilityDelayMs: 5_000,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -49,6 +51,7 @@ function parseArgs(argv) {
     else if (arg === "--max-bytes") options.maxBytes = integerOption(value, arg, { min: 1_024, max: 10_485_760 });
     else if (arg === "--max-files") options.maxFiles = integerOption(value, arg, { min: 1, max: 5_000 });
     else if (arg === "--sample-bytes") options.sampleBytes = integerOption(value, arg, { min: 0, max: 1_048_576 });
+    else if (arg === "--stability-delay-ms") options.stabilityDelayMs = integerOption(value, arg, { min: 0, max: 60_000 });
     else throw new Error(`Unknown option: ${arg}`);
     index += 1;
   }
@@ -79,7 +82,8 @@ async function main() {
 
   console.log(`Evidence written to ${output}`);
   console.log(`Source status: ${result.probe.source_status}`);
-  console.log(`Manifest SHA-256: ${result.manifest.manifest_sha256}`);
+  console.log(`Manifest SHA-256: ${result.manifest.manifest_hash}`);
+  console.log(`Inventory stability: ${result.probe.inventory_stability}`);
   if (result.probe.source_status !== "VERIFIED") process.exitCode = 2;
 }
 
