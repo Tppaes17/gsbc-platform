@@ -24,16 +24,18 @@ PITR e retencao elevam custo, mas reduzem perda de decisoes, links e eventos. Ba
 
 ## Status
 
-ACCEPTED — OWNER APPROVED PACKAGE, IMPLEMENTATION PENDING
+ACCEPTED — TEMPORARY OPTION C FOR PRE-REVENUE PHASE, PITR MANDATORY BEFORE LIVE FINANCIAL OPERATION
 
-O pacote e a politica detalhada estao em `docs/rf-03a2b1/RECOVERY_ARCHITECTURE_OWNER_DECISION.md`.
+O pacote e a politica detalhada estao em `docs/rf-03a2b1/RECOVERY_ARCHITECTURE_OWNER_DECISION.md` (pacote Balanced/PITR original) e `docs/rf-03a2b1a/RECOVERY_COST_RECONCILIATION.md` (reconciliacao de custo e opcoes por RPO).
 
 ## Owner Decision (2026-09-17)
 
-O owner aprovou o pacote Balanced completo (Decisoes 1-5 do decision pack): RPO <=15 min, RTO <=4 h, PITR de 7 dias, backup logico independente criptografado fora do failure domain principal, e autorizou a fase seguinte (restore drill) sujeita a um preflight de custo/escopo separado antes da execucao.
+O owner aprovou inicialmente o pacote Balanced completo (Decisoes 1-5 do decision pack RF-03A.2B.1): RPO <=15 min, RTO <=4 h, PITR de 7 dias, backup logico independente criptografado fora do failure domain principal.
 
-Isso autoriza a arquitetura e a implementacao de PITR/backup independente. Isso NAO autoriza ainda: (1) o restore drill em si, que exige preflight de custo/escopo proprio antes de qualquer clone/restore pago ser criado; (2) qualquer escolha de provedor/conta especifica para o backup independente ainda nao decidida.
+Apos a reconciliacao de custo (RF-03A.2B.1A) apresentar uma alternativa tecnica condicional mais barata para fase pre-receita — Pro + backup logico completo criptografado a cada 30 minutos, piso provider ~USD 25/mes, RPO<=1h somente apos benchmark e restore drill isolado passarem — perguntei diretamente se o GSBC ja tem operacao financeira real. **O owner confirmou que o GSBC ainda esta pre-receita/piloto controlado** e, dado isso, **escolheu trocar para a Opcao C temporaria** em vez do PITR ja aprovado.
 
-Enablement de PITR e upgrade de plano Supabase sao acoes de billing feitas via dashboard (Supabase Studio), fora do alcance do CLI (`supabase backups` so lista/restaura PITR ja habilitado, nao o habilita). Essa etapa depende de acesso direto do owner ao dashboard ou de execucao assistida por navegador com a sessao do owner.
+Isso substitui a decisao anterior: a arquitetura-alvo imediata passa a ser Pro + backup logico completo a cada 30 minutos para storage independente, monitorado, com RPO<=1h condicional (nao um resultado ja provado). Isso NAO autoriza ainda: (1) implementacao/enablement real de nada — plano Pro, automacao de backup, destino de storage independente e credenciais continuam por fazer; (2) confiar no RPO de 1h antes do benchmark de dump+encrypt+upload<=30min e de um restore isolado passarem; (3) o restore drill em si.
 
-O gate de readiness (RF-03A.2B) so pode fechar apos habilitacao real, evidencia de recovery point, backup independente configurado e restore isolado bem-sucedido com RPO/RTO medidos — nao apenas esta aprovacao arquitetural.
+**Gatilho obrigatorio, nao um alvo de calendario:** antes de qualquer operacao financeira ao vivo (cobranca/pagamento real, conciliacao autoritativa) ou armazenamento de evidencia legal/auditoria irreconstruivel, o GSBC DEVE migrar para PITR de 7 dias (~USD 130/mes) e passar por um restore drill isolado antes de operar. Esta migracao nao e opcional quando a condicao de gatilho for atingida.
+
+O gate de readiness (RF-03A.2B) so pode fechar apos habilitacao real (Opcao C ou PITR), evidencia de recovery point, backup independente configurado e restore isolado bem-sucedido com RPO/RTO medidos — nao apenas esta aprovacao arquitetural.

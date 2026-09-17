@@ -20,8 +20,12 @@ RPO curto requer PITR ou protecao equivalente e aumenta custo. RTO de 4 h exige 
 
 ## Status
 
-ACCEPTED — TARGET APPROVED, NOT YET DEMONSTRATED
+ACCEPTED — TEMPORARY TARGET RPO<=1H/RTO UNKNOWN FOR PRE-REVENUE PHASE; RPO<=15MIN/RTO<=4H MANDATORY BEFORE LIVE FINANCIAL OPERATION
 
-O owner aprovou RPO <=15 min e RTO <=4 h para o operational core em 2026-09-17 (decision pack RF-03A.2B.1). Esses valores sao o target aprovado, nao uma capacidade comprovada: RPO exige PITR habilitado e monitorado; RTO exige um restore drill completo, que continua nao autorizado nesta rodada e depende de preflight de custo/escopo separado.
+O owner aprovou inicialmente RPO <=15 min e RTO <=4 h para o operational core em 2026-09-17 (decision pack RF-03A.2B.1). Apos a reconciliacao de custo (RF-03A.2B.1A) confirmar que o GSBC ainda esta pre-receita/piloto controlado, o owner trocou para o alvo temporario condicional **RPO <=1 h** (RTO permanece UNKNOWN ate medicao), sustentado por Pro + backup logico completo a cada 30 minutos para storage independente — nao PITR.
+
+Este alvo de 1h e condicional, nao demonstrado: so pode ser tratado como valido apos um benchmark provar dump+encrypt+upload<=30min sem overlap e um restore isolado passar. Antes disso, o RPO/RTO efetivos permanecem UNKNOWN.
+
+**RPO<=15min/RTO<=4h com PITR de 7 dias volta a ser obrigatorio, nao opcional, antes de qualquer operacao financeira ao vivo** (cobranca/pagamento real, conciliacao autoritativa) ou armazenamento de evidencia legal/auditoria irreconstruivel — esse e o gatilho de migracao registrado em ADR-RF-016.
 
 Objetivos de RF permanecem fora desta decisao e conservam a proposta anterior para avaliacao futura: manifests/proveniencia RPO <=1 h/RTO <=8 h; RF raw/canonical RPO <=24 h/RTO <=24-48 h; derivados sem RPO e RTO <=72 h.
