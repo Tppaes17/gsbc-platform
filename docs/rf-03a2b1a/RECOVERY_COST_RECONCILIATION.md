@@ -23,7 +23,7 @@ Independent backup storage, execution/automation, monitoring, egress, taxes and 
 
 Relative to a likely Pro/Micro baseline that the SaaS may need independently, recovery adds approximately **USD 105/month**: USD 100 PITR plus USD 5 net incremental compute to move from credit-covered Micro to Small. Independent backup and operations remain additional. Relative to the current Free plan, the total recurring uplift begins at USD 130/month.
 
-No lower-cost architecture is currently proven to achieve RPO <=15 minutes. Pro native daily backups plus independent backup is the best defensible lower-cost option, but its effective RPO is up to 24 hours and it is **not technically equivalent** to PITR.
+No lower-cost architecture is currently proven to achieve RPO <=15 or <=30 minutes. For <=1 hour, a lower-cost temporary candidate exists: Pro native daily backup plus complete encrypted logical backups started every 30 minutes, retained outside the Supabase failure domain and restored in a drill. It reaches a defensible <=1-hour target only if benchmark evidence proves every dump and upload completes within 30 minutes, runs never overlap or silently skip, all critical database/configuration components are covered, and restore validation passes. Until then its effective RPO/RTO remain UNKNOWN. It is not technically equivalent to PITR.
 
 ## Evidence And Assumptions
 
@@ -111,6 +111,72 @@ Candidate frequencies of 15, 30 and 60 minutes cannot be priced or accepted with
 
 `pg_dump` can provide a database-consistent logical snapshot when correctly executed, but it is not WAL replay. It does not natively offer arbitrary points between dumps, and full-platform recovery still requires roles/configuration, Auth/provider settings, secrets, Storage objects and application validation. A 15-minute schedule is **not presumed equivalent to PITR**. Worker, encrypted storage, egress, monitoring and operator costs are UNKNOWN.
 
+### Schedule Required By Target
+
+For a full snapshot whose recovery point is its transaction start, worst-case RPO is approximately the schedule interval plus the maximum time until the snapshot is durably uploaded. Therefore:
+
+| Target RPO | Candidate schedule | Required maximum dump+encrypt+upload | Current verdict |
+| --- | ---: | ---: | --- |
+| <=15 min | every 7.5 min or faster | <=7.5 min | Operationally aggressive, unbenchmarked and not defensible for GSBC |
+| <=30 min | every 15 min | <=15 min | Possible in principle for a small database, but unproven and high-frequency load |
+| <=1 h | every 30 min | <=30 min | Plausible temporary design; must pass benchmark and restore drill |
+
+Any missed run, overlap, retry or upload failure invalidates the target unless alerting and a second valid snapshot remain within the bound. These schedules are design candidates, not achieved service levels.
+
+## Technical Feasibility Of Recovery Mechanisms
+
+### Supabase Native Backups
+
+Pro provides daily managed backups retained for seven days. They offer a complete provider-managed database recovery point, but nominal RPO is up to 24 hours. They do not restore Storage API objects and custom role passwords may require reset. Cost floor is approximately USD 25/month with Micro covered by the organization compute credit. Native daily backup cannot satisfy 15-, 30- or 60-minute RPO.
+
+### Supabase PITR
+
+PITR restores a physical base and replays provider-managed WAL to a selected point within the retained window. It requires a paid plan and at least Small compute. Seven-day PITR gives the lowest currently documented cost path in the existing stack for all three targets, at a provider floor of USD 130/month before independent backup, taxes and operations. Selection granularity does not by itself prove operational RPO; lag/window monitoring and restore testing remain mandatory.
+
+### Customer-Managed External WAL Archive
+
+Supabase documentation exposes logical replication slots but does not document customer access to configure physical `archive_command`, copy provider WAL archive files, run `pg_basebackup`, or build a customer-managed physical WAL archive from the managed primary. Key WAL retention settings such as `wal_keep_size` and `max_slot_wal_keep_size` are described as non-user-facing. The provider uses physical WAL internally for PITR/read replicas; that does not grant the customer an external archive interface.
+
+**Verdict:** customer-managed external physical WAL archiving is **NOT SUPPORTED BY AVAILABLE DOCUMENTATION** and cannot be costed or treated as a PITR substitute. Logical decoding is not a physical WAL archive.
+
+### Logical Replication To External PostgreSQL
+
+Supabase officially supports publications/replication slots and an external PostgreSQL subscriber over a direct connection. It also recommends XL or larger for manual replication tooling and may require paid IPv4. Current Supabase XL compute is about USD 210/month; with Pro and one USD 10 credit, the source alone is roughly USD 225/month before the destination, IPv4, storage, monitoring and backups.
+
+Logical replication can provide low replication lag, but it normally propagates accidental updates/deletes and logical corruption. It does not preserve arbitrary historical points, all DDL/roles/extensions/sequences/large objects/provider settings/Storage are not automatically equivalent, and slot loss/WAL growth require operations. To become a recovery system, the destination needs its own point-in-time history or delayed/versioned backup and a tested promotion process.
+
+**Verdict:** supported for data movement/read models, **not equivalent to PITR**, operationally more expensive than seven-day Supabase PITR under current guidance, and not recommended as the low-cost recovery mechanism.
+
+### Supabase Read Replica
+
+Managed read replicas require Pro, Small or larger compute, PostgreSQL 15+ and physical backups; they inherit the primary compute size. A Small primary plus one Small replica would have a provider floor near USD 45/month after one USD 10 compute credit, excluding other usage. However, the replica follows the primary, is positioned for read scaling/latency, and must be removed for restoration operations. It does not provide a historical point before logical corruption and remains within Supabase's control plane.
+
+**Verdict:** useful for availability/read scale, not an independent backup or a PITR replacement.
+
+### Supabase Pipelines
+
+Pipelines is public alpha and the documented managed destination is BigQuery. It is CDC for analytics/integration, not a complete PostgreSQL recovery target. `TRUNCATE`/resets can propagate. It is excluded from the recovery shortlist.
+
+### Independent Object Storage
+
+Object storage is suitable for encrypted logical artifacts, manifests and restore evidence. Cloudflare R2 publishes 10 GB-month of Standard storage and one million Class A writes per month free, then USD 0.015/GB-month, with no egress fee. Backblaze B2 publishes USD 6.95/TB-month, first 10 GB free and egress up to three times average storage free. Security/region/account suitability still requires owner review.
+
+For a policy retaining 96 half-hourly snapshots (48 hours), 14 daily, 8 weekly and 12 monthly full dumps, approximate stored volume is `130 x D` GB where `D` is compressed dump size in GB. Illustrative R2 storage cost after the 10 GB free tier is:
+
+| Compressed dump D | Approx. retained | Approx. R2 storage/month |
+| ---: | ---: | ---: |
+| 0.1 GB | 13 GB | USD 0.05 |
+| 1 GB | 130 GB | USD 1.80 |
+| 5 GB | 650 GB | USD 9.60 |
+
+These are ESTIMATES based on full dumps and current list prices, excluding execution, encryption/key management, source egress, operations and taxes. Actual database/dump size is UNKNOWN.
+
+### Managed PostgreSQL Alternatives
+
+Neon Launch documents usage-based compute at USD 0.14/CU-hour, storage at USD 0.35/GB-month and seven-day instant-restore history priced by retained changes (USD 0.20/GB-month in its current pricing explanation). This can make database-only PITR inexpensive for a small/quiet workload. AWS RDS also provides automated backups/PITR with instance, storage and transfer billing.
+
+Neither is economically comparable to GSBC end-to-end from current evidence. Supabase also supplies Auth, Storage, APIs, Realtime, extensions/configuration and current RLS integration. Migration, dual run, connection/network changes, service replacement and regression testing are unpriced. Neon/RDS usage volumes are unknown, and no target architecture has been validated. They remain candidates for a separate platform TCO study, not low-cost recovery substitutions in this phase.
+
 ## Scenario D - Alternative Managed PostgreSQL/Recovery Architecture
 
 No concrete lower-cost equivalent can be recommended from current evidence. Moving the operational database away from Supabase would require migration of Postgres plus analysis/replacement of Auth, Storage, Realtime, APIs, secrets, extensions, RLS behavior and operational tooling. Dual-provider or self-managed WAL archiving can meet short RPO in principle, but adds migration risk, on-call burden and a new restore architecture.
@@ -130,7 +196,7 @@ Scenario D remains an architectural study, not a costed alternative.
 Two temporary states must not be conflated:
 
 1. **Remain Free with current JSON export:** effective RPO/RTO UNKNOWN because production execution continuity, completeness and restore are unproven. This is not an acceptable financial-production protection level.
-2. **Upgrade to Pro without PITR:** daily native backup allows a nominal RPO up to 24 hours; effective RTO remains UNKNOWN until drill. Independent backup improves failure domain/retention but not 15-minute granularity.
+2. **Upgrade to Pro without PITR:** daily native backup allows a nominal RPO up to 24 hours. Adding complete encrypted logical snapshots every 30 minutes creates a candidate <=1-hour RPO, but only after dump-duration/coverage benchmarks, monitoring and an isolated restore PASS. Effective RTO remains UNKNOWN until that drill.
 
 Deferral is defensible only for a tightly controlled pre-revenue pilot with no live payment collection, no authoritative financial reconciliation, no irreplaceable legal/delivery evidence, synthetic or deliberately disposable data, named expiry and a release control that blocks live financial operation.
 
@@ -145,6 +211,7 @@ Mandatory trigger: **before any live financial operation or storage of irreconst
 | C. Logical every 15 min | UNKNOWN | UNKNOWN | no | yes | discrete completed dumps only | NOT ACHIEVABLE/UNPROVEN for approved objectives |
 | D. Alternative managed design | UNKNOWN | UNKNOWN | design-dependent | design-dependent | design-dependent | UNKNOWN |
 | E1. Free + current JSON | UNKNOWN | UNKNOWN | no | no | incomplete daily artifact | NOT ACHIEVABLE |
+| E2. Pro + logical every 30 min | <=1 h candidate | UNKNOWN, target <=4-8 h only after drill | no | yes | discrete snapshots; up to retention cadence | DEFENSIBLE ESTIMATE only after benchmark/drill |
 
 No architecture in this table is VERIFIED because no complete isolated restore has been executed.
 
@@ -197,12 +264,16 @@ The economy of B is explicit: about USD 1,260/year before independent components
 
 ### Pre-Revenue / Controlled Pilot
 
-A temporary Pro-without-PITR state can be considered only if all of the following are enforced:
+A temporary **Pro + independent encrypted logical backup every 30 minutes** state can be considered only if all of the following are enforced:
 
 - no live payment collection, receivable settlement or authoritative reconciliation;
 - no irreplaceable customer, legal, delivery or audit evidence;
 - data is synthetic/disposable or independently reconstructible;
-- daily native backup and an independent complete backup are actually configured;
+- daily native backup and complete half-hourly independent backup are actually configured;
+- benchmark proves dump+encrypt+upload <=30 minutes with no overlap at peak load;
+- backup coverage includes schema, data and roles plus separate Auth/Storage/provider-configuration recovery procedures;
+- monitoring blocks the pilot when the latest valid independent recovery point exceeds 60 minutes;
+- an isolated restore passes before this target is relied upon;
 - pilot has an owner, expiry and release gate;
 - recovery limitation is visible in the risk register.
 
@@ -230,16 +301,35 @@ This is not the all-in drill price. Disk/IOPS, egress, PITR source, object resto
 | --- | ---: | ---: | ---: | ---: | --- | --- | --- |
 | A. Balanced + PITR 7d | USD 130 floor + unknowns/tax | USD 1,560 floor + unknowns/tax | <=15 min target | <=4 h target | Baseline recommendation; still requires proof | Restore drill target/effort UNKNOWN | PITR can be disabled; lost coverage cannot be recreated |
 | B. Pro daily + independent | USD 25 floor + independent unknowns/tax | USD 300 floor + unknowns/tax | <=24 h nominal | UNKNOWN | Saves ~USD 105/month; accepts up to one-day loss | Two restore paths need drills | PITR can be added later; prior fine-grained history unavailable |
-| C. Deferred PITR | Free or Pro state selected explicitly | USD 0 or 300 floor + unknowns | Free/current UNKNOWN; Pro <=24 h nominal | UNKNOWN | Temporary high risk; prohibited for live financial operation | Future remediation/drill | Reversible prospectively only |
+| C. Temporary 1 h candidate | USD 25 provider floor + backup execution/storage/monitoring/tax | USD 300 floor + unknowns/tax | <=1 h only after benchmark/restore PASS | UNKNOWN; measure in drill | Saves ~USD 105/month; discrete points and custom pipeline risk | Benchmark plus both restore paths | PITR can be added later; prior fine-grained history unavailable |
 | D. Other architecture | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | Migration/platform risk not costed | Migration and dual-run UNKNOWN | Potentially difficult |
 
 ## Technical Recommendation
 
-**Recommendation A - PROCEED WITH BALANCED + PITR 7D**, subject to owner approval of the reconciled budget and a separate controlled implementation phase.
+### A) RPO <=15 Minutes
+
+**Recommend Supabase Pro + Small + PITR 7 days + independent encrypted backup.** Provider floor: USD 130/month, USD 1,560/year, plus independent storage/automation/taxes. Frequent dumps cannot currently guarantee the target; logical replication and read replicas propagate corruption and need their own history.
+
+### B) RPO <=30 Minutes
+
+**Recommend the same Supabase PITR architecture.** It has the same documented fixed PITR price as the 15-minute target and materially lower operational risk than 15-minute logical dumps. A dump every 15 minutes is only a future benchmark candidate, not a defensible production commitment.
+
+### C) RPO <=1 Hour
+
+**For the current controlled pre-revenue phase, recommend a temporary modified Balanced architecture:** Pro native daily backups plus complete encrypted logical backups started every 30 minutes to independent object storage, monitored and restore-tested. Provider floor is USD 25/month plus backup execution/storage/monitoring/taxes. R2 storage may be near zero for a small database, but execution and completeness remain UNKNOWN.
+
+This C architecture earns an RPO <=1 hour only after all benchmark and restore conditions pass. Before that, its effective RPO/RTO are UNKNOWN. PITR 7 days becomes a mandatory gate before live or scaled financial operations, authoritative reconciliation, or irreplaceable legal/delivery/audit evidence.
+
+### Best Fit For Current GSBC Phase
+
+**C - temporary <=1-hour candidate** has the best prospective cost/security/complexity ratio for a genuinely controlled pre-revenue phase because it can reduce the provider floor from USD 130 to USD 25/month while adding an independent failure domain. The saving is approximately USD 105/month before custom backup costs.
+
+This recommendation is conditional, not a readiness claim. If the benchmark cannot keep a complete encrypted recovery point under 60 minutes, if full Auth/configuration/Storage recovery is not covered, or if the restore drill fails, select PITR immediately rather than weakening the gate.
 
 Reasons:
 
-- It is the lowest-cost architecture in current evidence with a defensible path to RPO <=15 minutes.
+- PITR is the lowest-cost architecture in current evidence with a defensible path to RPO <=15 or <=30 minutes.
+- The temporary half-hourly logical design is the lowest-cost candidate for <=1 hour, subject to proof.
 - Scenario B's USD 105/month saving changes RPO to up to 24 hours and is not equivalent.
 - Frequent `pg_dump` is unbenchmarked custom infrastructure and cannot be presumed cheaper or reliable.
 - Provider migration has unknown TCO and disproportionate near-term risk.
@@ -263,8 +353,10 @@ RPO/RTO: <=24 h nominal / UNKNOWN
 Explicitly accepts degradation; not PITR-equivalent
 
 OPTION C - TEMPORARILY DEFER PITR
+Use Pro daily + complete encrypted logical backup every 30 min
+Provider floor: USD 25/month + execution/storage/monitoring/taxes
+RPO <=1 h only after benchmark and restore PASS; RTO remains measured by drill
 Allowed only under controlled pre-revenue constraints and expiry
-Free/current RPO/RTO: UNKNOWN; Pro daily: <=24 h / UNKNOWN
 Must block live financial operation until protection and drill pass
 
 OPTION D - REASSESS PROVIDER/ARCHITECTURE
