@@ -24,8 +24,16 @@ PITR e retencao elevam custo, mas reduzem perda de decisoes, links e eventos. Ba
 
 ## Status
 
-PROPOSED — OWNER APPROVAL REQUIRED
+ACCEPTED — OWNER APPROVED PACKAGE, IMPLEMENTATION PENDING
 
-O pacote e a politica detalhada estao em `docs/rf-03a2b1/RECOVERY_ARCHITECTURE_OWNER_DECISION.md`. Este ADR registra uma proposta, nao uma autorizacao de compra, enablement ou restore.
+O pacote e a politica detalhada estao em `docs/rf-03a2b1/RECOVERY_ARCHITECTURE_OWNER_DECISION.md`.
 
-O ADR pode ser aceito arquiteturalmente apos as cinco decisoes explicitas do owner. O gate de readiness somente pode fechar apos habilitacao controlada, evidencia de recovery point, backup independente e restore isolado bem-sucedido com RPO/RTO medidos. Habilitar PITR, mudar plano ou criar clone de restore continuam acoes pagas/substanciais com autorizacao separada.
+## Owner Decision (2026-09-17)
+
+O owner aprovou o pacote Balanced completo (Decisoes 1-5 do decision pack): RPO <=15 min, RTO <=4 h, PITR de 7 dias, backup logico independente criptografado fora do failure domain principal, e autorizou a fase seguinte (restore drill) sujeita a um preflight de custo/escopo separado antes da execucao.
+
+Isso autoriza a arquitetura e a implementacao de PITR/backup independente. Isso NAO autoriza ainda: (1) o restore drill em si, que exige preflight de custo/escopo proprio antes de qualquer clone/restore pago ser criado; (2) qualquer escolha de provedor/conta especifica para o backup independente ainda nao decidida.
+
+Enablement de PITR e upgrade de plano Supabase sao acoes de billing feitas via dashboard (Supabase Studio), fora do alcance do CLI (`supabase backups` so lista/restaura PITR ja habilitado, nao o habilita). Essa etapa depende de acesso direto do owner ao dashboard ou de execucao assistida por navegador com a sessao do owner.
+
+O gate de readiness (RF-03A.2B) so pode fechar apos habilitacao real, evidencia de recovery point, backup independente configurado e restore isolado bem-sucedido com RPO/RTO medidos — nao apenas esta aprovacao arquitetural.

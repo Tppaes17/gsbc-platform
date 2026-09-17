@@ -20,6 +20,8 @@ RPO curto requer PITR ou protecao equivalente e aumenta custo. RTO de 4 h exige 
 
 ## Status
 
-PROPOSED — OWNER APPROVAL REQUIRED
+ACCEPTED — TARGET APPROVED, NOT YET DEMONSTRATED
 
-Os objetivos aguardam escolha explicita do owner e nao estao atualmente demonstrados. Aprovacao define o target; somente implementacao e teste podem provar readiness.
+O owner aprovou RPO <=15 min e RTO <=4 h para o operational core em 2026-09-17 (decision pack RF-03A.2B.1). Esses valores sao o target aprovado, nao uma capacidade comprovada: RPO exige PITR habilitado e monitorado; RTO exige um restore drill completo, que continua nao autorizado nesta rodada e depende de preflight de custo/escopo separado.
+
+Objetivos de RF permanecem fora desta decisao e conservam a proposta anterior para avaliacao futura: manifests/proveniencia RPO <=1 h/RTO <=8 h; RF raw/canonical RPO <=24 h/RTO <=24-48 h; derivados sem RPO e RTO <=72 h.
