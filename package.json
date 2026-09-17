@@ -12,6 +12,7 @@
     "test:e2e:reset": "supabase db reset && playwright test",
     "test:rf-poc": "node --test scripts/rf-poc/*.test.mjs",
     "test:rf-source-probe": "node --test scripts/rf-source-probe/*.test.mjs",
+    "test:recovery-poc": "node --test scripts/recovery-poc/*.test.mjs",
     "test:phase0": "playwright test e2e/phase0-security.spec.ts e2e/phase0-backup-restore.spec.ts",
     "check:phase0": "npm run lint && npx tsc --noEmit && npx supabase migration list --local && npm run test:phase0 && git diff --check",
     "test:revenue-core": "playwright test e2e/revenue-core.spec.ts e2e/financial-contracts.spec.ts e2e/reconciliation-center.spec.ts",
