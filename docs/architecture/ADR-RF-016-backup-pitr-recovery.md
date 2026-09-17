@@ -6,7 +6,7 @@ Como recuperar o banco operacional GSBC, o canonical RF e os dados derivados nao
 
 ## Evidence
 
-O projeto Supabase vinculado informou `walg_enabled=true`, `pitr_enabled=false`, `backups=null` e nenhum dado de backup fisico. O backup logico atual cobre o fluxo operacional existente, mas nao comprova restore dos schemas RF. Nenhum restore isolado com RPO/RTO medido foi executado.
+Em 2026-09-17, o projeto Supabase vinculado informou `walg_enabled=true`, `pitr_enabled=false`, `backups=null`, regiao `eu-west-1` e nenhum backup fisico enumerado. O backup logico atual e uma exportacao JSON nao transacional do schema `public` e de usuarios Auth para bucket no mesmo provider. O smoke local valida leitura do JSON, nao restaura banco, schemas, constraints, indexes, RLS, grants, functions, triggers ou Storage. Nenhum restore isolado de backup produtivo com RPO/RTO medido foi executado.
 
 ## Alternatives
 
@@ -25,3 +25,5 @@ PITR e retencao elevam custo, mas reduzem perda de decisoes, links e eventos. Re
 BLOCKED — INSUFFICIENT EVIDENCE
 
 O ADR pode ser aceito somente apos aprovacao de RPO/RTO/retencao, habilitacao da protecao e restore isolado bem-sucedido.
+
+RF-03A.2B manteve o bloqueio. Habilitar PITR, mudar plano ou criar clone de restore sao acoes pagas/substanciais e exigem autorizacao humana previa.
