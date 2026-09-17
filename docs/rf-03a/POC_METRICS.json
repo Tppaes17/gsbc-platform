@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-17T11:44:32.040Z",
+  "started_at": "2026-09-17T11:44:21.760Z",
+  "source_authority": "UNVERIFIED MIRROR - NOT ACCEPTABLE FOR PRODUCTION",
+  "official_source_direct_validation": "FAILED_FROM_EXECUTION_ENVIRONMENT",
+  "dataset_version": "2026-04-12",
+  "guardrails": {
+    "maxFiles": 1,
+    "maxCompressedBytes": 2097152,
+    "maxExtractedBytes": 10485760,
+    "maxRows": 50000,
+    "maxRuntimeMs": 300000,
+    "maxDbRows": 50000
+  },
+  "source": {
+    "url": "https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/2026-04-12/Cnaes.zip",
+    "compressed_bytes": 22078,
+    "extracted_bytes": 88215,
+    "archive_entries": [
+      "F.K03200$Z.D60411.CNAECSV"
+    ],
+    "sha256": "5c20d0c74a39b764af47ff76de36b063a14955ed3107f13c66c8ddfbca8026c2",
+    "etag": "\"563e-64fad527b1b00\"",
+    "last_modified": "Fri, 17 Apr 2026 19:54:52 GMT",
+    "official_checksum_available": false
+  },
+  "storage_contract": {
+    "raw": "rfb-cnpj/2026-04-12/raw/Cnaes.zip",
+    "extracted": "rfb-cnpj/2026-04-12/extracted/Cnaes.csv",
+    "manifest": "rfb-cnpj/2026-04-12/manifest/manifest.json",
+    "logs": "rfb-cnpj/2026-04-12/logs/poc.json"
+  },
+  "manifest": {
+    "dataset_version": "2026-04-12",
+    "source": "UNVERIFIED_CASA_DOS_DADOS_MIRROR_POC",
+    "files": [
+      {
+        "identifier": "Cnaes.zip",
+        "type": "CNAE",
+        "source_url": "https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/2026-04-12/Cnaes.zip",
+        "size_bytes": 22078,
+        "etag": "\"563e-64fad527b1b00\"",
+        "last_modified": "Fri, 17 Apr 2026 19:54:52 GMT",
+        "checksum_sha256": "5c20d0c74a39b764af47ff76de36b063a14955ed3107f13c66c8ddfbca8026c2",
+        "integrity_source": "local-sha256-no-official-checksum"
+      }
+    ],
+    "discovered_at": "2026-09-17T11:44:22.062Z",
+    "manifest_hash": "829e671b2ee735b75f0ab070b3a9e74da9c4a02d48480121f2411a360a2e64a8"
+  },
+  "quality": {
+    "source_rows": 1359,
+    "parsed_rows": 1359,
+    "rejected_rows": 0,
+    "rejection_categories": {},
+    "duplicate_keys": 0,
+    "checksum": "PASS_LOCAL_ONLY",
+    "row_reconciliation": "PASS"
+  },
+  "timings_ms": {
+    "download": 243.362,
+    "extract": 8.451,
+    "parse": 13.986,
+    "database": 9958.389,
+    "total": 10266.376
+  },
+  "throughput": {
+    "download_bytes_per_second": 90721,
+    "extract_bytes_per_second": 10438925,
+    "parse_rows_per_second": 97168
+  },
+  "database": {
+    "first_staging_rows": 50000,
+    "first_canonical_rows": 1359,
+    "second_staging_rows": 50000,
+    "second_canonical_rows": 1359,
+    "copy_ms": 343.031,
+    "batch_insert_ms": 432.305,
+    "normalize_ms": 5851.957,
+    "rf_relation_bytes_during": 82821120,
+    "constraint_failure_injection": "PASS",
+    "post_rollback_dataset_rows": 0,
+    "post_rollback_staging_rows": 0,
+    "post_rollback_canonical_rows": 0,
+    "interrupted_dataset_rows": 0,
+    "interrupted_staging_rows": 0,
+    "copy_rows_per_second": 145759,
+    "idempotency": "PASS",
+    "rollback_cleanup": "PASS",
+    "load_interruption_failure_injection": "PASS"
+  },
+  "idempotency": {
+    "download_second_run_reused_marker": true,
+    "manifest_hash_stable": true,
+    "database": "PASS"
+  },
+  "cleanup": {
+    "logical_rows_after_rollback": 0,
+    "relation_bytes_after_rollback": 44097536,
+    "relation_bytes_after_local_vacuum_full": 925696,
+    "logical": "PASS",
+    "physical": "PASS AFTER LOCAL VACUUM FULL",
+    "note": "Rollback removed all POC rows but PostgreSQL retained allocated relation pages until local-only VACUUM FULL."
+  }
+}
