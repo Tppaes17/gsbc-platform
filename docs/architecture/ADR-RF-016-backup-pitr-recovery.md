@@ -24,7 +24,7 @@ PITR e retencao elevam custo, mas reduzem perda de decisoes, links e eventos. Ba
 
 ## Status
 
-ACCEPTED — TEMPORARY OPTION C FOR PRE-REVENUE PHASE, PITR MANDATORY BEFORE LIVE FINANCIAL OPERATION
+OPTION C POC FAILED — PITR REVERT PENDING OWNER CONFIRMATION
 
 O pacote e a politica detalhada estao em `docs/rf-03a2b1/RECOVERY_ARCHITECTURE_OWNER_DECISION.md` (pacote Balanced/PITR original) e `docs/rf-03a2b1a/RECOVERY_COST_RECONCILIATION.md` (reconciliacao de custo e opcoes por RPO).
 
@@ -39,3 +39,9 @@ Isso substitui a decisao anterior: a arquitetura-alvo imediata passa a ser Pro +
 **Gatilho obrigatorio, nao um alvo de calendario:** antes de qualquer operacao financeira ao vivo (cobranca/pagamento real, conciliacao autoritativa) ou armazenamento de evidencia legal/auditoria irreconstruivel, o GSBC DEVE migrar para PITR de 7 dias (~USD 130/mes) e passar por um restore drill isolado antes de operar. Esta migracao nao e opcional quando a condicao de gatilho for atingida.
 
 O gate de readiness (RF-03A.2B) so pode fechar apos habilitacao real (Opcao C ou PITR), evidencia de recovery point, backup independente configurado e restore isolado bem-sucedido com RPO/RTO medidos — nao apenas esta aprovacao arquitetural.
+
+## POC Result (2026-09-17, RF-03A.2B.1B)
+
+O POC local da Opcao C (`scripts/recovery-poc/`, `docs/rf-03a2b1b/INDEPENDENT_BACKUP_POC_REPORT.md`) testou de verdade dump+criptografia+copia+restore isolado e retornou **Gate: FAIL — USE PITR**. Quatro P1 bloqueantes: copia independente nunca saiu de `/tmp` do mesmo host (sem failure domain real), objetos fisicos de Storage nao sao protegidos pelo dump, reconstrucao completa de Auth/config permanece manual, e RPO<=1h/escala de producao nao foram provados (execucao unica local contra 17,8 MB, sem scheduler de 30min real).
+
+Isso nao reverte automaticamente a decisao do owner — a opcao C continua a escolha registrada ate o owner confirmar o proximo passo com esta evidencia em maos. A recomendacao tecnica do POC e retornar ao pacote Balanced/PITR ja aprovado anteriormente.
