@@ -29,7 +29,9 @@ No production secrets are required by the new tooling.
 
 Local measurement on 2026-09-18: database 246,025,363 bytes; user indexes 231,424,000 bytes; RF schemas 229,187,584 bytes; local filesystem about 68% used with ~137 GiB available. This is development evidence only.
 
-Cloud DB size, provisioned capacity, index size and safe headroom were **not measured in this stage**. Therefore cloud expansion status is `STOP EXPANSION` until those four values are supplied to the capacity gate. No curated load was performed.
+Remote read-only `table-stats` on 2026-09-18 showed zero rows in every `rf_raw`/`rf_canonical` table and approximately 632 KiB allocated to those RF relations (~696 KiB including tenant-scoped `public.rf_company_links`). The largest existing application relations were still below 1 MiB each. These values are **MEASURED current use**, not provisioned capacity.
+
+The remote provisioned disk limit did not return from the available inspection command and is **UNKNOWN**. Consequently safe cloud headroom and a numeric cloud controlled-dataset limit are also **UNKNOWN**. Cloud expansion remains `STOP EXPANSION` until capacity, current total DB bytes, RF bytes and estimated delta are all supplied to the gate. No remote load was performed.
 
 ## 6. MODE A — Zero-Cost Architecture
 
@@ -83,9 +85,13 @@ No automatic upgrade follows a stop.
 
 PostgreSQL remains the only search engine. Validate exact CNPJ, name, CNAE, UF, municipality, Simples/MEI and joins against the curated package. Preserve the RF-03B.2 internal targets as diagnostics, not SLA. Query regression pauses expansion.
 
+Local transactional fixture validation passed exact CNPJ (including `00ABC000E08G12`), company-name prefix, CNAE, UF+municipality, Simples/MEI, Company-Establishment and Company-Simples queries. This proves behavior against the real schema with two sanitized rows; it does not establish national latency.
+
 ## 14. Prospect Integration
 
 Intended flow: Prospect -> relevance event -> curated RF evidence -> qualification -> optional Company promotion. RF factual data, enrichment, inferred territorial/activity signal, opportunity score and human decision remain separate. No score creates legal or union classification.
+
+The local validation created a temporary prospect evidence record, retained `source=RF`, required `HUMAN_REVIEW`, linked it to the matching company and rolled the entire transaction back. No production prospect or company was changed.
 
 ## 15. Opportunity Engine Readiness
 
@@ -106,6 +112,8 @@ Baseline and delta are compared locally when safe. The source does not provide a
 
 For small controlled loads, use one DB transaction and a versioned package identity. A failed transaction publishes nothing. Preserve the immediately previous curated package/metadata for rebuild or pointer rollback. This is proportional MODE A recovery and is **not** national production rollback or DR.
 
+Verified support: transaction rollback, idempotent retry by unique dataset keys, deterministic rebuild from a validated package and preservation of an earlier curated package outside the transaction. Change-set reversal and national pointer rollback were not implemented in MODE A.
+
 ## 18. Duplicate-Run Protection
 
 `scripts/rf-controlled/controlled-lib.mjs` creates an atomic `0600` local lock per dataset version. It records lock ID, executor, acquisition and heartbeat; rejects an active second executor; permits stale recovery after an explicit TTL; and verifies ownership on heartbeat/release. A future cloud importer must add a PostgreSQL lease before any cloud write.
@@ -117,6 +125,8 @@ No service role is needed to build packages. Any future import is server-side on
 ## 20. Observability
 
 Use structured local logs and existing platform telemetry: dataset/run/phase, bytes, rows, rejection, duration, DB/index growth and errors. Preserve manifest and aggregate metrics; remove heavy temporary data. Paid observability is deferred.
+
+Direct post-test queries independently returned `0,0,0,0` for dataset, company, establishment and Simples fixture residue. A filesystem search found no controlled scratch directory or lock. Cleanup tooling now rejects targets outside its controlled root and verifies absence after removal.
 
 ## 21. Pilot Operating Model
 
@@ -165,6 +175,34 @@ RF-03B.3 Readiness: READY FOR CONTROLLED PRE-REVENUE IMPLEMENTATION
 National Production Ingestion: DEFERRED — BUDGET GATE REQUIRED
 
 This readiness does not mean production-ready, national-ingestion-ready, national-rollback-ready or monthly-automation-ready.
+
+## Implementation Audit
+
+| Capability | Classification | Evidence |
+| --- | --- | --- |
+| deterministic selector / package manifest / provenance | READY | stable package and record hashes; tamper rejection |
+| capacity guardrail | READY | explicit evidence required; 30% reserve; 10%/500 MiB cap |
+| local duplicate-run lock | READY | active exclusion, heartbeat, stale recovery, ownership checks |
+| local curated import and idempotency | READY | real RF schema, conflict-safe retry inside transaction |
+| local search, joins and prospect flow | READY | sanitized transactional fixture validation |
+| MODE A rollback and zero residue | READY | rollback plus direct DB/filesystem checks |
+| cleanup verification | READY | bounded-root deletion and negative path test |
+| cloud capacity/headroom | GAP | provisioned limit UNKNOWN; real load blocked |
+| cloud lease/import/RLS regression | PARTIAL | design exists; implementation deferred to separately authorized RF-03B.3 |
+| national pipeline/procurement | UNNECESSARY | MODE B deferred behind Budget Gate |
+
+## Tests Executed
+
+- `test:rf-controlled`: 5/5 PASS.
+- `test:rf-controlled-db`: PASS, 14 assertions including idempotency, searches, joins, prospect flow, failed load and residue.
+- RF PoC: 12/12 PASS.
+- RF lifecycle: 9/9 PASS.
+- RF source probe: 14/14 PASS.
+- TypeScript: PASS.
+- ESLint: zero errors; one pre-existing TanStack Table compiler warning.
+- `git diff --check`: PASS.
+
+No national benchmark, heavy download, remote write, migration, deployment or paid action was executed.
 
 ## Assumptions Register
 
