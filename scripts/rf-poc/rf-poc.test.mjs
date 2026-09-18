@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Readable } from "node:stream";
 import test from "node:test";
 
-import { validateArchiveEntries } from "./archive.mjs";
+import { inspectZip, validateArchiveEntries } from "./archive.mjs";
 import { downloadFile } from "./downloader.mjs";
 import { createManifest } from "./manifest.mjs";
 import {
@@ -14,6 +14,7 @@ import {
 } from "./parser.mjs";
 import { storagePath } from "./storage.mjs";
 import { reconcileQuality } from "./quality.mjs";
+import { assertWithinGuardrail } from "./guardrails.mjs";
 
 test("manifest hash is deterministic and ignores discovery timestamp", () => {
   const input = {
@@ -102,4 +103,72 @@ test("downloader fails closed on checksum mismatch and can retry interrupted res
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test("downloader enforces official host, redirects and declared length", async () => {
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "rf-poc-bounds-"));
+  try {
+    await assert.rejects(
+      downloadFile({ url: "https://evil.test/file.zip", destination: join(dir, "host.zip"), maxBytes: 32, allowedHosts: ["official.test"] }),
+      /not allowlisted/,
+    );
+    await assert.rejects(
+      downloadFile({
+        url: "https://official.test/file.zip", destination: join(dir, "redirect.zip"), maxBytes: 32,
+        allowedHosts: ["official.test"], attempts: 1,
+        fetchImpl: async () => new Response(null, { status: 302, headers: { location: "https://evil.test/file.zip" } }),
+      }),
+      /Unsafe download redirect/,
+    );
+    await assert.rejects(
+      downloadFile({
+        url: "https://official.test/file.zip", destination: join(dir, "length.zip"), maxBytes: 32,
+        expectedBytes: 12, allowedHosts: ["official.test"], attempts: 1,
+        fetchImpl: async () => new Response("elevenbytes", { headers: { "content-length": "11" } }),
+      }),
+      /Content-Length mismatch/,
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("archive inspection rejects corruption, truncation and symlinks", async () => {
+  const { mkdtemp, writeFile, truncate, symlink, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { spawnSync } = await import("node:child_process");
+  const dir = await mkdtemp(join(tmpdir(), "rf-poc-archives-"));
+  try {
+    const corrupted = join(dir, "corrupted.zip");
+    await writeFile(corrupted, "not-a-zip");
+    await assert.rejects(inspectZip(corrupted, { maxFiles: 1, maxExtractedBytes: 1024, maxExpansionRatio: 10 }));
+
+    await writeFile(join(dir, "data.csv"), "a;b\n");
+    const valid = join(dir, "valid.zip");
+    assert.equal(spawnSync("zip", ["-q", valid, "data.csv"], { cwd: dir }).status, 0);
+    const truncated = join(dir, "truncated.zip");
+    await writeFile(truncated, await (await import("node:fs/promises")).readFile(valid));
+    await truncate(truncated, 24);
+    await assert.rejects(inspectZip(truncated, { maxFiles: 1, maxExtractedBytes: 1024, maxExpansionRatio: 10 }));
+
+    await symlink(join(dir, "data.csv"), join(dir, "link.csv"));
+    const linked = join(dir, "linked.zip");
+    assert.equal(spawnSync("zip", ["-qy", linked, "link.csv"], { cwd: dir }).status, 0);
+    await assert.rejects(inspectZip(linked, { maxFiles: 1, maxExtractedBytes: 1024, maxExpansionRatio: 10 }), /symbolic link/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("malformed streaming input and simulated insufficient capacity fail closed", async () => {
+  await assert.rejects(async () => {
+    for await (const row of parseDelimited(Readable.from([Buffer.from('"unterminated')]), { encoding: "utf8" })) {
+      assert.fail(`Malformed input unexpectedly produced ${JSON.stringify(row)}`);
+    }
+  }, /Unterminated quoted field/);
+  assert.throws(() => assertWithinGuardrail("available disk", 101, 100), /Guardrail exceeded/);
 });

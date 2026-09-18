@@ -40,6 +40,23 @@ export async function listZipEntries(archivePath) {
   return entries;
 }
 
+export async function inspectZip(archivePath, { maxFiles, maxExtractedBytes, maxExpansionRatio }) {
+  const entries = await listZipEntries(archivePath);
+  assertWithinGuardrail("files", entries.length, maxFiles);
+  const listing = await run("zipinfo", ["-l", archivePath]);
+  const entryLines = listing.split(/\r?\n/).filter((line) => /^[dl-][rwx-]{9}/.test(line));
+  if (entryLines.some((line) => line.startsWith("l"))) throw new Error("Archive contains a symbolic link");
+  const summary = listing.match(/(\d+) files?, (\d+) bytes uncompressed, (\d+) bytes compressed/);
+  if (!summary) throw new Error("Unable to read ZIP central-directory size summary");
+  const extractedBytes = Number(summary[2]);
+  const compressedBytes = Number(summary[3]);
+  assertWithinGuardrail("extracted bytes", extractedBytes, maxExtractedBytes);
+  const expansionRatio = compressedBytes === 0 ? Number.POSITIVE_INFINITY : extractedBytes / compressedBytes;
+  assertWithinGuardrail("ZIP expansion ratio", expansionRatio, maxExpansionRatio);
+  await run("unzip", ["-t", archivePath]);
+  return { entries, extractedBytes, compressedBytes, expansionRatio };
+}
+
 export async function extractZipEntry({ archivePath, entry, destination, maxBytes }) {
   validateArchiveEntries([entry]);
   await mkdir(path.dirname(destination), { recursive: true });

@@ -37,6 +37,9 @@ export async function downloadFile({
   timeoutMs = 30_000,
   attempts = 3,
   expectedSha256,
+  expectedBytes,
+  allowedHosts,
+  maxRedirects = 3,
   fetchImpl = fetch,
 }) {
   const markerPath = `${destination}.complete.json`;
@@ -58,7 +61,19 @@ export async function downloadFile({
       assertWithinGuardrail("partial compressed bytes", offset, maxBytes);
 
       const headers = offset > 0 ? { Range: `bytes=${offset}-` } : {};
-      const response = await fetchImpl(url, { headers, signal: controller.signal });
+      let currentUrl = new URL(url);
+      if (allowedHosts && !allowedHosts.includes(currentUrl.hostname)) throw new Error(`Download host is not allowlisted: ${currentUrl.hostname}`);
+      let response;
+      for (let redirect = 0; redirect <= maxRedirects; redirect += 1) {
+        response = await fetchImpl(currentUrl, { headers, signal: controller.signal, redirect: "manual" });
+        if (![301, 302, 303, 307, 308].includes(response.status)) break;
+        const location = response.headers.get("location");
+        if (!location || redirect === maxRedirects) throw new Error("Download redirect limit exceeded");
+        currentUrl = new URL(location, currentUrl);
+        if (currentUrl.protocol !== "https:" || (allowedHosts && !allowedHosts.includes(currentUrl.hostname))) {
+          throw new Error(`Unsafe download redirect: ${currentUrl.href}`);
+        }
+      }
       if (!response.ok || !response.body) {
         throw new Error(`Download failed with HTTP ${response.status}`);
       }
@@ -68,6 +83,9 @@ export async function downloadFile({
       const contentLength = Number(response.headers.get("content-length") ?? 0);
       if (contentLength > 0) {
         assertWithinGuardrail("compressed bytes", offset + contentLength, maxBytes);
+        if (expectedBytes && !append && contentLength !== expectedBytes) {
+          throw new Error(`Content-Length mismatch: expected ${expectedBytes}, got ${contentLength}`);
+        }
       }
 
       let bytes = offset;
@@ -90,6 +108,7 @@ export async function downloadFile({
       );
 
       const checksum = await fileHash(partPath);
+      if (expectedBytes && bytes !== expectedBytes) throw new Error(`Downloaded size mismatch: expected ${expectedBytes}, got ${bytes}`);
       if (expectedSha256 && checksum !== expectedSha256) {
         throw new Error(`Checksum mismatch: expected ${expectedSha256}, got ${checksum}`);
       }

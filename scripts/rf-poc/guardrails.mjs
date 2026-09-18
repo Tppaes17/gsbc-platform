@@ -7,6 +7,16 @@ export const DEFAULT_GUARDRAILS = Object.freeze({
   maxDbRows: 50_000,
 });
 
+export const BOUNDED_REAL_GUARDRAILS = Object.freeze({
+  maxFiles: 1,
+  maxCompressedBytes: 80 * 1024 * 1024,
+  maxExtractedBytes: 1024 * 1024 * 1024,
+  maxExpansionRatio: 20,
+  maxRows: 10_000_000,
+  maxDbRows: 100_000,
+  maxRuntimeMs: 30 * 60 * 1000,
+});
+
 export function assertWithinGuardrail(name, actual, maximum) {
   if (!Number.isFinite(actual) || actual < 0) {
     throw new Error(`Invalid ${name}: ${actual}`);
