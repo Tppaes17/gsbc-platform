@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
@@ -11,9 +11,13 @@ const root = process.cwd();
 const mode = process.argv[2] ?? "run";
 const container = process.env.RECOVERY_POC_DB_CONTAINER ?? "supabase_db_GSBC_2_-_Claude";
 const output = resolve(process.env.RECOVERY_POC_OUTPUT ?? join(root, ".recovery-poc"));
-const independent = join(output, "independent-copy");
+const independent = resolve(process.env.RECOVERY_POC_INDEPENDENT_DIR ?? join(output, "independent-copy"));
 const lock = join(output, "backup.lock");
-const key = decodeKey(process.env.RECOVERY_POC_KEY_BASE64);
+const failurePath = join(output, "last-failure.json");
+
+function recoveryKey() {
+  return decodeKey(process.env.RECOVERY_POC_KEY_BASE64);
+}
 
 function run(command, args, options = {}) {
   return new Promise((resolvePromise, reject) => {
@@ -79,11 +83,12 @@ async function backup() {
       bundlePath: bundle,
       independentDir: independent,
       lockDir: lock,
-      key,
+      key: recoveryKey(),
       id,
       sourceMetadata: metadata,
       injectFailureAt: process.env.RECOVERY_POC_INJECT_FAILURE,
     });
+    await rm(failurePath, { force: true });
     return { ...result, backupTotalMs: Math.round(performance.now() - started) };
   } finally {
     await rm(work, { recursive: true, force: true });
@@ -102,7 +107,7 @@ async function restore() {
   try {
     const bundle = join(work, "backup.tar");
     const decryptStarted = performance.now();
-    await decryptFile(point.backupPath, bundle, key);
+    await decryptFile(point.backupPath, bundle, recoveryKey());
     const decryptMs = performance.now() - decryptStarted;
     await run("tar", ["-xf", bundle, "-C", work]);
     const dbDump = join(work, "database.dump");
@@ -118,6 +123,7 @@ async function restore() {
       "select json_build_object(",
       "'public_tables',(select count(*) from pg_tables where schemaname='public'),",
       "'rls_tables',(select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relrowsecurity),",
+      "'rls_policies',(select count(*) from pg_policies where schemaname='public'),",
       "'functions',(select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'),",
       "'auth_users',(select count(*) from auth.users),",
       "'storage_metadata',(select count(*) from storage.objects),",
@@ -126,7 +132,16 @@ async function restore() {
       ");",
     ].join("");
     const validation = JSON.parse((await run("docker", ["exec", container, "psql", "-U", "postgres", "-d", database, "-Atc", validationSql])).trim());
-    if (validation.public_tables < 1 || validation.rls_tables < 1 || validation.functions < 1 || validation.application_grants < 1 || validation.migrations < 46) {
+    const tenantProbeSql = [
+      "begin; set local role authenticated;",
+      "select set_config('request.jwt.claims','{\"sub\":\"30000000-0000-0000-0000-000000000002\",\"role\":\"authenticated\"}',true);",
+      "select json_build_object('visible_tenants',(select count(*) from public.tenants),'foreign_tenants',(select count(*) from public.tenants where id <> '00000000-0000-0000-0000-000000000002'));",
+      "rollback;",
+    ].join(" ");
+    const tenantProbeOutput = await run("docker", ["exec", container, "psql", "-U", "postgres", "-d", database, "-Atc", tenantProbeSql]);
+    const tenantIsolation = JSON.parse(tenantProbeOutput.split("\n").findLast((line) => line.startsWith("{")) ?? "{}");
+    validation.tenant_isolation = tenantIsolation;
+    if (validation.public_tables < 1 || validation.rls_tables < 1 || validation.rls_policies < 1 || validation.functions < 1 || validation.application_grants < 1 || validation.migrations < 46 || tenantIsolation.visible_tenants !== 1 || tenantIsolation.foreign_tenants !== 0) {
       throw new Error(`Restore validation failed: ${JSON.stringify(validation)}`);
     }
     return {
@@ -144,13 +159,34 @@ async function restore() {
   }
 }
 
+async function status() {
+  const points = await verifiedRecoveryPoints(independent);
+  const last = points[0] ?? null;
+  let lastFailure = null;
+  try { lastFailure = JSON.parse(await readFile(failurePath, "utf8")); } catch {}
+  return {
+    independentDirectory: independent,
+    verifiedRecoveryPoints: points.length,
+    lastSuccessAt: last?.marker.completedAt ?? null,
+    backupAgeMs: last ? Date.now() - new Date(last.marker.completedAt).getTime() : null,
+    encryptedBytes: last?.manifest.files[0].bytes ?? null,
+    checksumVerified: Boolean(last),
+    copyVerified: Boolean(last),
+    lastFailure,
+  };
+}
+
 try {
   await mkdir(output, { recursive: true });
   const results = {};
   if (mode === "backup" || mode === "run") results.backup = await backup();
   if (mode === "restore" || mode === "run") results.restore = await restore();
+  if (mode === "status") results.status = await status();
   console.log(JSON.stringify(results, null, 2));
 } catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
+  const message = error instanceof Error ? error.message : String(error);
+  await mkdir(output, { recursive: true }).catch(() => {});
+  await writeFile(failurePath, `${JSON.stringify({ at: new Date().toISOString(), mode, message })}\n`).catch(() => {});
+  console.error(message);
   process.exitCode = 1;
 }

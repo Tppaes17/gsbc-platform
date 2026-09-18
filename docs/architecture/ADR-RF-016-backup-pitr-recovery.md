@@ -24,7 +24,7 @@ PITR e retencao elevam custo, mas reduzem perda de decisoes, links e eventos. Ba
 
 ## Status
 
-OPTION C POC FAILED — PITR REVERT PENDING OWNER CONFIRMATION
+PRE-PRODUCTION DAILY BASELINE — OWNER APPROVED; PRODUCTION RECOVERY DEFERRED
 
 O pacote e a politica detalhada estao em `docs/rf-03a2b1/RECOVERY_ARCHITECTURE_OWNER_DECISION.md` (pacote Balanced/PITR original) e `docs/rf-03a2b1a/RECOVERY_COST_RECONCILIATION.md` (reconciliacao de custo e opcoes por RPO).
 
@@ -45,3 +45,11 @@ O gate de readiness (RF-03A.2B) so pode fechar apos habilitacao real (Opcao C ou
 O POC local da Opcao C (`scripts/recovery-poc/`, `docs/rf-03a2b1b/INDEPENDENT_BACKUP_POC_REPORT.md`) testou de verdade dump+criptografia+copia+restore isolado e retornou **Gate: FAIL — USE PITR**. Quatro P1 bloqueantes: copia independente nunca saiu de `/tmp` do mesmo host (sem failure domain real), objetos fisicos de Storage nao sao protegidos pelo dump, reconstrucao completa de Auth/config permanece manual, e RPO<=1h/escala de producao nao foram provados (execucao unica local contra 17,8 MB, sem scheduler de 30min real).
 
 Isso nao reverte automaticamente a decisao do owner — a opcao C continua a escolha registrada ate o owner confirmar o proximo passo com esta evidencia em maos. A recomendacao tecnica do POC e retornar ao pacote Balanced/PITR ja aprovado anteriormente.
+
+## Owner Decision (2026-09-18) — Pre-Production Baseline
+
+O owner confirmou o estagio `development / pre-revenue / no clients onboarded`, rejeitou a Opcao C de alta frequencia apos o POC e aprovou uma protecao temporaria simples: backup logico diario criptografado, copia independente, verificacao de integridade e restore isolado, com RPO/RTO alvo <=24 h ainda sujeitos a prova operacional.
+
+O plano Supabase atual e mantido e PITR fica adiado apenas para esta fase. Nenhum cliente pode ser embarcado em producao, nenhuma operacao financeira relevante pode iniciar e nenhuma evidencia legal/auditoria irreconstruivel pode ser confiada ao ambiente antes de uma nova revisao formal aprovar plano, PITR/equivalente, backup independente, restore, Auth, Storage, observabilidade, capacity e failure domains.
+
+O baseline local de 2026-09-18 produziu copia AES-256-GCM em pasta OneDrive existente, validou checksum/marker e restaurou em DB descartavel com RLS, policies, grants e isolamento de tenant. A sincronizacao remota do OneDrive, scheduler diario e gestao persistente da chave nao foram comprovados; portanto o baseline e CONDITIONAL e nao constitui recovery produtivo.
