@@ -14,6 +14,8 @@ const output = resolve(process.env.RECOVERY_POC_OUTPUT ?? join(root, ".recovery-
 const independent = resolve(process.env.RECOVERY_POC_INDEPENDENT_DIR ?? join(output, "independent-copy"));
 const lock = join(output, "backup.lock");
 const failurePath = join(output, "last-failure.json");
+const backupPath = join(output, "last-backup.json");
+const restorePath = join(output, "last-restore.json");
 
 function recoveryKey() {
   return decodeKey(process.env.RECOVERY_POC_KEY_BASE64);
@@ -88,8 +90,10 @@ async function backup() {
       sourceMetadata: metadata,
       injectFailureAt: process.env.RECOVERY_POC_INJECT_FAILURE,
     });
+    const completed = { ...result, backupTotalMs: Math.round(performance.now() - started) };
+    await writeFile(backupPath, `${JSON.stringify({ at: new Date().toISOString(), result: completed })}\n`);
     await rm(failurePath, { force: true });
-    return { ...result, backupTotalMs: Math.round(performance.now() - started) };
+    return completed;
   } finally {
     await rm(work, { recursive: true, force: true });
   }
@@ -122,9 +126,14 @@ async function restore() {
     const validationSql = [
       "select json_build_object(",
       "'public_tables',(select count(*) from pg_tables where schemaname='public'),",
+      "'public_rows',(select coalesce(sum(n_live_tup),0)::bigint from pg_stat_user_tables where schemaname in ('public','rf_raw','rf_canonical')),",
       "'rls_tables',(select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relrowsecurity),",
       "'rls_policies',(select count(*) from pg_policies where schemaname='public'),",
+      "'constraints',(select count(*) from pg_constraint c join pg_namespace n on n.oid=c.connamespace where n.nspname in ('public','rf_raw','rf_canonical')),",
+      "'indexes',(select count(*) from pg_indexes where schemaname in ('public','rf_raw','rf_canonical')),",
       "'functions',(select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'),",
+      "'triggers',(select count(*) from information_schema.triggers where trigger_schema in ('public','rf_raw','rf_canonical')),",
+      "'extensions',(select count(*) from pg_extension),",
       "'auth_users',(select count(*) from auth.users),",
       "'storage_metadata',(select count(*) from storage.objects),",
       "'application_grants',(select count(*) from information_schema.table_privileges where table_schema='public' and grantee in ('anon','authenticated','service_role')),",
@@ -141,10 +150,10 @@ async function restore() {
     const tenantProbeOutput = await run("docker", ["exec", container, "psql", "-U", "postgres", "-d", database, "-Atc", tenantProbeSql]);
     const tenantIsolation = JSON.parse(tenantProbeOutput.split("\n").findLast((line) => line.startsWith("{")) ?? "{}");
     validation.tenant_isolation = tenantIsolation;
-    if (validation.public_tables < 1 || validation.rls_tables < 1 || validation.rls_policies < 1 || validation.functions < 1 || validation.application_grants < 1 || validation.migrations < 46 || tenantIsolation.visible_tenants !== 1 || tenantIsolation.foreign_tenants !== 0) {
+    if (validation.public_tables < 1 || validation.public_rows < 1 || validation.rls_tables < 1 || validation.rls_policies < 1 || validation.constraints < 1 || validation.indexes < 1 || validation.functions < 1 || validation.triggers < 1 || validation.extensions < 1 || validation.application_grants < 1 || validation.migrations < 46 || tenantIsolation.visible_tenants !== 1 || tenantIsolation.foreign_tenants !== 0) {
       throw new Error(`Restore validation failed: ${JSON.stringify(validation)}`);
     }
-    return {
+    const result = {
       recoveryPoint: point.marker.id,
       validation,
       decryptMs: Math.round(decryptMs),
@@ -152,6 +161,8 @@ async function restore() {
       restoreTotalMs: Math.round(performance.now() - started),
       externalSideEffects: "LOCAL_SUPABASE_ONLY",
     };
+    await writeFile(restorePath, `${JSON.stringify({ at: new Date().toISOString(), result })}\n`);
+    return result;
   } finally {
     await run("docker", ["exec", container, "dropdb", "-U", "postgres", "--if-exists", database]).catch(() => {});
     await run("docker", ["exec", container, "rm", "-f", containerDump, containerAcl]).catch(() => {});
@@ -163,16 +174,24 @@ async function status() {
   const points = await verifiedRecoveryPoints(independent);
   const last = points[0] ?? null;
   let lastFailure = null;
+  let lastBackup = null;
+  let lastRestore = null;
   try { lastFailure = JSON.parse(await readFile(failurePath, "utf8")); } catch {}
+  try { lastBackup = JSON.parse(await readFile(backupPath, "utf8")); } catch {}
+  try { lastRestore = JSON.parse(await readFile(restorePath, "utf8")); } catch {}
   return {
     independentDirectory: independent,
     verifiedRecoveryPoints: points.length,
     lastSuccessAt: last?.marker.completedAt ?? null,
     backupAgeMs: last ? Date.now() - new Date(last.marker.completedAt).getTime() : null,
     encryptedBytes: last?.manifest.files[0].bytes ?? null,
+    backupDurationMs: lastBackup?.result?.backupTotalMs ?? null,
     checksumVerified: Boolean(last),
     copyVerified: Boolean(last),
     lastFailure,
+    lastRestoreAt: lastRestore?.at ?? null,
+    lastRestoreDurationMs: lastRestore?.result?.restoreTotalMs ?? null,
+    lastRestoreResult: lastRestore?.result ? "PASS" : null,
   };
 }
 

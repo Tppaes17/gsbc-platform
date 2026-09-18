@@ -29,12 +29,14 @@ An encrypted local-development backup was written to the existing OneDrive File 
 | Source database | 17,796,243 bytes |
 | Dump | 823,235 bytes |
 | Encrypted artifact | 853,028 bytes |
-| Dump duration | 591 ms |
-| Full backup duration | 941 ms |
-| PostgreSQL restore | 1,472 ms |
-| Full restore/validation | 2,321 ms |
+| Dump duration | 2,008 ms |
+| Full backup duration | 2,732 ms |
+| PostgreSQL restore | 2,149 ms |
+| Full restore/validation | 3,308 ms |
 
-Validated: 56 public tables with RLS, 140 policies, 52 functions, 1,163 application grants, 2 Auth users, 2 Storage metadata rows, migration baseline 46 and tenant isolation (one own tenant, zero foreign tenants).
+Validated: 56 public tables with RLS, 95 estimated rows across application/RF schemas, 140 policies, 418 constraints, 216 indexes, 52 functions, 48 triggers, 4 extensions, 1,163 application grants, 2 Auth users, 2 Storage metadata rows, migration baseline 46 and tenant isolation (one own tenant, zero foreign tenants).
+
+Minimum observability now reports the last successful backup, age, complete pipeline duration, encrypted size, checksum/copy state, last safe failure and the last isolated restore date, duration and result. No scheduler or alert delivery was installed.
 
 The dataset is small and synthetic/local. One successful run proves the pipeline, not a daily service level. Filesystem placement proves a copy in OneDrive's local File Provider directory; remote cloud-sync completion was not independently observed.
 

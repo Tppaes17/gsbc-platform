@@ -25,7 +25,7 @@ Success requires exit code zero and a verified `.success.json` marker. The marke
 npm run recovery:status
 ```
 
-Review `lastSuccessAt`, `backupAgeMs`, encrypted size, checksum/copy verification and `lastFailure`. Future alert thresholds: warning at 20 hours; critical/block onboarding at more than 24 hours or any invalid copy/checksum.
+Review `lastSuccessAt`, `backupAgeMs`, `backupDurationMs`, encrypted size, checksum/copy verification, `lastFailure`, `lastRestoreAt`, `lastRestoreDurationMs` and `lastRestoreResult`. Future alert thresholds: warning at 20 hours; critical/block onboarding at more than 24 hours or any invalid copy/checksum.
 
 ## Failure
 

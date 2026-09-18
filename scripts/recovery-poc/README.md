@@ -13,6 +13,6 @@ Modes are `backup`, `restore`, `status`, and `run`. The default local DB contain
 
 Failure injection stages: `dump`, `encryption`, `copy`, `checksum-mismatch`, and `marker` through `RECOVERY_POC_INJECT_FAILURE`.
 
-The independent directory contains an encrypted tar, canonical manifest and success marker. Only points whose marker, manifest and encrypted file hashes verify are selectable. `npm run recovery:status` reports last success, age, sizes, verification and the last safe failure record. No scheduler is installed by this tooling.
+The independent directory contains an encrypted tar, canonical manifest and success marker. Only points whose marker, manifest and encrypted file hashes verify are selectable. `npm run recovery:status` reports last success, age, duration, size, verification, last safe failure and the last isolated restore result. No scheduler is installed by this tooling.
 
 Run tests with `npm run test:recovery-poc`.

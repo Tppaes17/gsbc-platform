@@ -12,15 +12,21 @@ Database restore and validation: **PASS**. Full platform restore: **PARTIAL**.
 | Validation | Result |
 | --- | ---: |
 | Public tables / RLS tables | 56 / 56 |
+| Estimated application/RF rows | 95 |
 | RLS policies | 140 |
+| Constraints | 418 |
+| Indexes | 216 |
 | Functions | 52 |
+| Triggers | 48 |
+| Extensions | 4 |
 | Application grants | 1,163 |
 | Auth users | 2 |
 | Storage metadata rows | 2 |
 | Migration records | 46 |
 | Tenant-visible own tenants | 1 |
 | Tenant-visible foreign tenants | 0 |
-| Full restore time | 2,321 ms |
+| PostgreSQL restore | 2,149 ms |
+| Full restore/validation | 3,308 ms |
 
 The target used no production URL, secret, email, PSP, webhook or Storage destination. It was dropped after validation.
 
@@ -33,3 +39,5 @@ The target used no production URL, secret, email, PSP, webhook or Storage destin
 - Small local data cannot establish production restore duration.
 
 Therefore RTO <=24 hours is **PARTIAL**, not proven end-to-end.
+
+The successful recovery point was completed at `2026-09-18T10:09:45.230Z`; isolated validation completed at `2026-09-18T10:09:48.542Z`. The ephemeral test key was not persisted, so this point is execution evidence rather than an operationally retained recovery point.
