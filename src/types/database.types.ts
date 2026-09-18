@@ -2792,6 +2792,10 @@ export interface Database {
         Args: { p_negociacao_id: string; p_aprovado: boolean; p_motivo: string };
         Returns: undefined;
       };
+      rf_controlled_company_lookup: {
+        Args: { p_cnpj: string };
+        Returns: Record<string, unknown>;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

@@ -10,8 +10,10 @@ import {
 } from "@/components/design-system/entity-workspace";
 import type { TimelineItem } from "@/components/design-system/timeline";
 import { formatBrl } from "@/components/design-system/financial-cell";
+import { RfIntelligencePanel } from "@/components/rf/rf-intelligence-panel";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { valorReferenciaCobranca } from "@/lib/finance/referencia";
+import { lookupControlledRfCnpj } from "@/lib/rf/intelligence";
 import { createClient } from "@/lib/supabase/server";
 import { formaPagamentoOptions } from "@/lib/validation/pagamento";
 import { negociacaoEventoTipoOptions } from "@/lib/validation/negociacao";
@@ -69,6 +71,8 @@ export default async function EmpresaDetailPage({
   if (!empresa) {
     notFound();
   }
+
+  const rfIntelligence = await lookupControlledRfCnpj(empresa.cnpj);
 
   const [
     { data: contatos },
@@ -454,6 +458,7 @@ export default async function EmpresaDetailPage({
       </EntityWorkspaceSection>
 
       <EntityWorkspaceSection id="compliance" title="Compliance">
+        <RfIntelligencePanel result={rfIntelligence} />
         {user.isOwner ? (
           <DossieCadastralSection
             empresaId={empresa.id}

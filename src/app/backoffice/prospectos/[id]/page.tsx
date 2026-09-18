@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/design-system/page-header";
+import { RfIntelligencePanel } from "@/components/rf/rf-intelligence-panel";
 import type { TimelineItem } from "@/components/design-system/timeline";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { lookupControlledRfCnpj } from "@/lib/rf/intelligence";
 import { OportunidadeSection } from "./oportunidade-section";
 import { PromoverProspectoDialog } from "./promover-dialog";
 import { ProspectoDossieSection } from "./prospecto-dossie-section";
@@ -59,6 +61,7 @@ export default async function ProspectoDetailPage({
 
   const enriquecimentoWebConfigurado = Boolean(process.env.LEADCNPJ_API_KEY);
   const dadosOficiais = prospecto.dados_oficiais as { cnaePrincipalCodigo?: string } | null;
+  const rfIntelligence = await lookupControlledRfCnpj(prospecto.cnpj_consultado);
 
   const { data: oportunidadeRow } = await supabase
     .from("oportunidades")
@@ -156,6 +159,8 @@ export default async function ProspectoDetailPage({
         evidencias={evidencias ?? []}
         enriquecimentoWebConfigurado={enriquecimentoWebConfigurado}
       />
+
+      <RfIntelligencePanel result={rfIntelligence} />
 
       <OportunidadeSection
         dossieId={prospecto.id}
