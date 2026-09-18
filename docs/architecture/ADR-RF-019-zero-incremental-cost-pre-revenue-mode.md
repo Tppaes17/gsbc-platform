@@ -55,3 +55,7 @@ RF-03B.2B Gate: PASS — ZERO-INCREMENTAL-COST ARCHITECTURE APPROVED
 RF-03B.3 Readiness: READY FOR CONTROLLED PRE-REVENUE IMPLEMENTATION
 National Production Ingestion: DEFERRED — BUDGET GATE REQUIRED
 ```
+
+## Owner Confirmation (2026-09-18, this conversation)
+
+The "no budget available" premise in the Decision Sequence above was recorded before this session reviewed it. Asked directly whether that statement was accurate, the owner confirmed: "Sim, foi decisão minha — confirmo." This closes the provenance question for the budget constraint; MODE A / Zero-Incremental-Cost stands as the owner's confirmed governing decision, not an unverified claim.
