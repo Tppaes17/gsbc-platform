@@ -238,3 +238,13 @@ No national benchmark, heavy download, remote write, migration, deployment or pa
 ## Authorization Requested
 
 Approve the first fixture-only RF-03B.3 validation and designate the pilot relevance policy. Do not yet authorize any real cloud load or national ingestion.
+
+## Git And Review Gate
+
+The mandatory delivery sequence is:
+
+```text
+implementation -> tests -> diff/local commit -> review -> owner approval -> push
+```
+
+Default status is `NO PUSH — AWAITING REVIEW`. This applies to RF code and documentation. No previous authorization is reusable for a later push; authorization must be explicit and scope-specific.
