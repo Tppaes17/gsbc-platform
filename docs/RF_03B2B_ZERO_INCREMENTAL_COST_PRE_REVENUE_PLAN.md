@@ -248,3 +248,27 @@ implementation -> tests -> diff/local commit -> review -> owner approval -> push
 ```
 
 Default status is `NO PUSH — AWAITING REVIEW`. This applies to RF code and documentation. No previous authorization is reusable for a later push; authorization must be explicit and scope-specific.
+
+## Uncommitted Review Execution — 2026-09-18
+
+The owner requested a fresh validation with all resulting changes left in the working tree. The controlled dataset, local transactional database, RF PoC, lifecycle and source-probe suites passed again: 40 Node tests plus 14 database assertions. TypeScript and `git diff --check` passed; ESLint reported zero errors and only the pre-existing TanStack Table compiler warning.
+
+The local database transaction proved idempotency, alphanumeric CNPJ, searches, joins, Simples/MEI, prospect flow, failed-load isolation and rollback. Direct residue checks remained zero. No download, cloud write, migration, infrastructure action, commit or push was performed for this execution.
+
+Review state: `NO PUSH — AWAITING REVIEW`.
+
+## Claude Adversarial Review — 2026-09-18
+
+Independent adversarial review of `scripts/rf-controlled/` beyond passing tests, per explicit owner instruction not to assume correctness from a green suite alone.
+
+**Finding — real, reproduced bug (fixed):** `acquireDatasetLock`'s stale-lock reclaim path (`rm()` + `open(wx)` recreate) had a TOCTOU race: two concurrent reclaimers could both evaluate the same stale lock, both proceed to replace it, and the loser would return believing it held a lock it no longer controlled on disk — silently defeating the duplicate-run protection the whole controlled-dataset pipeline depends on. Reproduced deterministically with a standalone harness before touching source (10 inconsistent outcomes across 20×25 concurrent trials against the pre-fix code). A first attempted fix (atomic `rename` plus pre/post readback) narrowed but did not close the race — the same stress harness still found inconsistencies after that attempt, so it was replaced with a proper mutual-exclusion primitive: a short-lived `open(path, "wx")`-guarded steal-mutex around the critical section, with its own bounded staleness recovery so a crashed reclaimer can never deadlock future acquisitions. Verified with 60 trials × 50 concurrent racers (3,000 attempts, zero inconsistencies), plus explicit tests for abandoned-mutex recovery and correct blocking against a genuinely in-progress steal. Regression tests for all three properties are now permanent in `controlled.test.mjs`.
+
+**Hardening added (not bugs, defense-in-depth):**
+- `validateCuratedPackage` now accepts an optional `expectedDatasetVersion` and rejects a package that is internally valid but built for the wrong competence — integrity alone does not protect against importing the right-looking, wrong-dataset package.
+- Added explicit boundary tests for `evaluateCapacity`: negative/NaN/Infinity inputs, `reserveRatio` exactly at 0.25/0.5, zero `capacityBytes`, and the operational-reserve and RF-specific-cap boundaries tested in isolation from each other (a delta large enough to probe the 70% overall reserve always also trips the 10% RF-specific cap unless `currentDatabaseBytes` carries the non-RF portion — confirmed intentional, not a bug, but worth making explicit).
+
+**Categories checked with no defect found:** idempotency (package hashing excludes `generated_at` by design, tested; DB-side `on conflict do nothing` retry proven), duplicate import (covered by the fixed lock plus DB-side conflict handling), invalid/tampered manifest (any added or altered field breaks the hash chain, tested), alphanumeric CNPJ (delegates entirely to the shared, already-tested `src/lib/cnpj/cnpj.ts`, including root-derivation from an already-canonical CNPJ), partial failure and rollback (deliberate constraint-violation injection correctly caught, zero residue confirmed both by the script and independently by direct `docker exec` queries), cleanup-on-error (`cleanupControlledArtifacts` checks the path boundary before every removal, so a mid-list failure can never delete outside its root — though it does not report which artifacts succeeded before an error, noted as a residual risk, not fixed).
+
+All fixes and new tests were re-verified: `test:rf-controlled` 9/9, `test:rf-controlled-db` 14/14 assertions, `test:rf-poc` 12/12, `test:rf-lifecycle` 9/9, `test:rf-source-probe` 14/14, `test:recovery-poc` 14/14 (72 Node tests total), `tsc --noEmit` clean, `eslint` zero errors (one pre-existing unrelated warning), `git diff --check` clean. No download, cloud write, migration, infrastructure action, billing change or push was performed.
+
+Review state: `NO PUSH — AWAITING REVIEW`.

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { canonicalizeCnpjInput } from "../../src/lib/cnpj/cnpj.ts";
@@ -50,11 +50,18 @@ export function createCuratedPackage({ datasetVersion, sourceReferenceDate, sour
   return { manifest: { ...identity, generated_at: generatedAt, package_sha256: sha256(stableJson(identity)) }, records: selected };
 }
 
-export function validateCuratedPackage(curated) {
+export function validateCuratedPackage(curated, { expectedDatasetVersion } = {}) {
   if (!curated?.manifest || !Array.isArray(curated.records)) throw new Error("CURATED_PACKAGE_INVALID");
   const packageSha256 = curated.manifest.package_sha256;
   const identity = Object.fromEntries(Object.entries(curated.manifest).filter(([key]) => !["generated_at", "package_sha256"].includes(key)));
   if (curated.records.length !== identity.record_count || sha256(stableJson(curated.records)) !== identity.records_sha256 || sha256(stableJson(identity)) !== packageSha256) throw new Error("CURATED_MANIFEST_INTEGRITY_FAILED");
+  // Integrity alone only proves the package was not tampered with; it says nothing about whether
+  // it is the package the operator actually meant to import. Without this, a genuinely valid
+  // package for the wrong competence (e.g. importing 2026-08 while intending 2026-09) would pass
+  // silently. Require the caller to state which dataset version it expects whenever one is known.
+  if (expectedDatasetVersion && curated.manifest.dataset_version !== expectedDatasetVersion) {
+    throw new Error(`CURATED_DATASET_VERSION_MISMATCH:expected=${expectedDatasetVersion}:actual=${curated.manifest.dataset_version}`);
+  }
   return true;
 }
 
@@ -80,7 +87,47 @@ export async function acquireDatasetLock(lockRoot, datasetVersion, { executor, s
     if (error.code !== "EEXIST") throw error;
     const existing = JSON.parse(await readFile(lockPath, "utf8"));
     if (now - Date.parse(existing.heartbeat_at) <= staleAfterMs) throw new Error(`DATASET_VERSION_LOCKED:${existing.executor}`);
-    await rm(lockPath); return acquireDatasetLock(lockRoot, datasetVersion, { executor, staleAfterMs, now });
+    // Stale-lock reclaim is a steal, not a fresh create, and a plain read-then-rm-then-recreate (or
+    // even a check-then-rename) leaves a window where two concurrent reclaimers can both believe
+    // they won: rename() only guarantees the destination is never briefly absent, not that we are
+    // the only writer racing to occupy it. The one primitive that IS a true atomic mutual-exclusion
+    // gate here is open(path, "wx"): it already proved race-free for the fresh-lock case above.
+    // Reuse it to guard the steal itself via a short-lived, dedicated mutex file, so exactly one
+    // reclaimer ever performs the swap; every other concurrent reclaimer fails closed instead of
+    // silently believing it holds a lock it does not.
+    const stealMutexPath = `${lockPath}.steal-mutex`;
+    const stealMutexMaxAgeMs = 30_000; // the critical section below is a handful of local fs calls
+    let mutexHandle;
+    try {
+      mutexHandle = await open(stealMutexPath, "wx", 0o600);
+    } catch (mutexError) {
+      if (mutexError.code !== "EEXIST") throw mutexError;
+      // The mutex itself can be abandoned if its holder crashed mid-steal. It must never require
+      // manual intervention to recover from, but reclaiming it needs the same atomicity discipline
+      // as the primary lock: verify age, then remove-and-recreate, and let a genuine EEXIST loss
+      // here simply mean another reclaimer is legitimately active right now.
+      const mutexStat = await stat(stealMutexPath).catch(() => null);
+      if (!mutexStat || now - mutexStat.mtimeMs <= stealMutexMaxAgeMs) throw new Error(`DATASET_VERSION_LOCKED:${existing.executor}`);
+      await rm(stealMutexPath, { force: true });
+      try {
+        mutexHandle = await open(stealMutexPath, "wx", 0o600);
+      } catch (retryError) {
+        if (retryError.code === "EEXIST") throw new Error(`DATASET_VERSION_LOCKED:${existing.executor}`);
+        throw retryError;
+      }
+    }
+    try {
+      await mutexHandle.close();
+      // Re-read inside the mutex: the lock may have been reclaimed by someone else between our
+      // initial read and winning the mutex.
+      const recheck = JSON.parse(await readFile(lockPath, "utf8"));
+      if (now - Date.parse(recheck.heartbeat_at) <= staleAfterMs) throw new Error(`DATASET_VERSION_LOCKED:${recheck.executor}`);
+      const tempPath = `${lockPath}.steal-${payload.lock_id}`;
+      await writeFile(tempPath, `${JSON.stringify(payload)}\n`, { mode: 0o600 });
+      await rename(tempPath, lockPath);
+    } finally {
+      await rm(stealMutexPath, { force: true });
+    }
   }
   return { ...payload, lock_path: lockPath };
 }
