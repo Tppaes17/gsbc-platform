@@ -13,6 +13,7 @@
     "test:rf-poc": "node --test scripts/rf-poc/*.test.mjs",
     "benchmark:rf-bounded": "node scripts/rf-poc/bounded-run.mjs",
     "test:rf-source-probe": "node --test scripts/rf-source-probe/*.test.mjs",
+    "test:rf-lifecycle": "node --test scripts/rf-lifecycle/*.test.mjs",
     "test:recovery-poc": "node --test scripts/recovery-poc/*.test.mjs",
     "recovery:daily": "node scripts/recovery-poc/recovery-poc.mjs backup",
     "recovery:status": "node scripts/recovery-poc/recovery-poc.mjs status",
