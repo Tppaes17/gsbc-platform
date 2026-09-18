@@ -65,6 +65,24 @@ test("manifest, quality and anomaly gates block unsafe diff/publish", () => {
   assert.deepEqual(anomaly.reasons, ["REMOVAL_SPIKE", "RECORD_COUNT_DELTA"]);
 });
 
+test("establishment diff covers location, CNAE, address, trade name and lifecycle", () => {
+  const before = snapshot("a", "2026-08", [record("00000000000191", "ACTIVE", { cnae: "6201501", address: "RUA A", municipality: "3550308", state: "SP", trade_name: "ALFA" })]);
+  const after = snapshot("b", "2026-09", [record("00000000000191", "INACTIVE", { cnae: "6202300", address: "RUA B", municipality: "3304557", state: "RJ", trade_name: "BETA" }), record("00000000000272", "ACTIVE")]);
+  const changes = diffSnapshots({ previous: before, candidate: after, entityType: "ESTABLISHMENT" });
+  for (const type of ["REGISTRATION_STATUS_CHANGED", "CNAE_CHANGED", "ADDRESS_CHANGED", "MUNICIPALITY_CHANGED", "STATE_CHANGED", "TRADE_NAME_CHANGED", "ESTABLISHMENT_FIRST_SEEN"]) assert(changes.some((event) => event.change_type === type));
+  const removed = diffSnapshots({ previous: after, candidate: snapshot("c", "2026-10", []), entityType: "ESTABLISHMENT" });
+  assert(removed.every((event) => event.change_type === "ESTABLISHMENT_REMOVED_FROM_SNAPSHOT" && event.metadata.legal_conclusion === false));
+});
+
+test("Simples and MEI diff covers status, dates, reversal and snapshot lifecycle", () => {
+  const before = snapshot("a", "2026-08", [record("00000000", null, { simples_status: false, simples_date: "2020-01-01", mei_status: false, mei_date: null })]);
+  const after = snapshot("b", "2026-09", [record("00000000", null, { simples_status: true, simples_date: "2026-09-01", mei_status: true, mei_date: "2026-09-01" }), record("00000001", null)]);
+  const changes = diffSnapshots({ previous: before, candidate: after, entityType: "SIMPLES" });
+  for (const type of ["SIMPLES_STATUS_CHANGED", "SIMPLES_DATE_CHANGED", "MEI_STATUS_CHANGED", "MEI_DATE_CHANGED", "SIMPLES_FIRST_SEEN"]) assert(changes.some((event) => event.change_type === type));
+  const reversal = diffSnapshots({ previous: after, candidate: before, entityType: "SIMPLES" });
+  assert(reversal.some((event) => event.change_type === "SIMPLES_STATUS_CHANGED" && event.old_value === true && event.new_value === false));
+});
+
 test("double-check history preserves alpha CNPJ and three competencies", () => {
   const key = "00ABC000E08G12";
   const snapshots = [snapshot("jul", "2026-07", [record(key, "ACTIVE")]), snapshot("aug", "2026-08", [record(key, "INACTIVE")]), snapshot("sep", "2026-09", [record(key, "ACTIVE")])];

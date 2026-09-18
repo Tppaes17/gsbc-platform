@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-18T16:13:15.168Z",
+  "finished_at": "2026-09-18T16:45:52.300Z",
+  "environment": "LOCAL_MACOS_DOCKER_POSTGRES_DISPOSABLE_TRANSACTION",
+  "limits": {
+    "maxCompressedBytes": 419430400,
+    "maxExtractedBytes": 5368709120,
+    "maxExpansionRatio": 15,
+    "maxFiles": 1,
+    "maxRows": 100000000,
+    "maxDbRows": 50000,
+    "maxRuntimeMs": 2700000,
+    "minimumFreeBytes": 21474836480
+  },
+  "available_disk_bytes_preflight": 149742112768,
+  "establishment": {
+    "selection": {
+      "filename": "Estabelecimentos7.zip",
+      "datasetGroup": "ESTABELECIMENTOS",
+      "expectedBytes": 339164748,
+      "lastModified": "Mon, 14 Sep 2026 15:05:50 GMT",
+      "etag": "\"21b95fd5a24b5078a2372a9d105a1b1b\"",
+      "referencePeriod": "2026-09",
+      "url": "https://arquivos.receitafederal.gov.br/public.php/dav/files/YggdBLfdninEJX9/2026-09/Estabelecimentos7.zip"
+    },
+    "source": {
+      "compressed_bytes": 339164748,
+      "extracted_bytes": 1079385539,
+      "expansion_ratio": 3.1824815089568212,
+      "archive_entry": "K3241.K03200Y7.D60912.ESTABELE",
+      "sha256_local": "07868cda860215dca2368afce06d117b27a6756a8b33ffd0ed562432dfef5f62",
+      "official_checksum_available": false,
+      "etag": "\"21b95fd5a24b5078a2372a9d105a1b1b\"",
+      "last_modified": "Mon, 14 Sep 2026 15:05:50 GMT"
+    },
+    "quality": {
+      "source_rows": 4753435,
+      "parsed_rows": 4753435,
+      "rejected_rows": 0,
+      "staged_sample_rows": 50000,
+      "intentionally_not_staged_rows": 4703435,
+      "rejection_categories": {},
+      "reconciliation": "PASS"
+    },
+    "timings_ms": {
+      "download": 783502.449,
+      "extract": 8195.044709000038,
+      "parse": 53190.187000000034,
+      "total_without_db": 853287.492458
+    },
+    "throughput": {
+      "download_bytes_per_second": 432882.81795785425,
+      "extract_bytes_per_second": 131711976.85042366,
+      "parse_rows_per_second": 89366.76609164763
+    },
+    "resources": {
+      "peak_rss_bytes": 309673984,
+      "scratch_bytes": 1418550287
+    }
+  },
+  "simples": {
+    "selection": {
+      "filename": "Simples.zip",
+      "datasetGroup": "SIMPLES",
+      "expectedBytes": 308027792,
+      "lastModified": "Mon, 14 Sep 2026 15:07:06 GMT",
+      "etag": "\"b9cc6da9c805ce33dcb7209895aafe4f\"",
+      "referencePeriod": "2026-09",
+      "url": "https://arquivos.receitafederal.gov.br/public.php/dav/files/YggdBLfdninEJX9/2026-09/Simples.zip"
+    },
+    "source": {
+      "compressed_bytes": 308027792,
+      "extracted_bytes": 3174996384,
+      "expansion_ratio": 10.307499733660396,
+      "archive_entry": "F.K03200$W.SIMPLES.CSV.D60912",
+      "sha256_local": "d17992372f1576ca9c9c5e0696e7c92f8dbb58d3b9ad6c5482c7dcbfc04e3090",
+      "official_checksum_available": false,
+      "etag": "\"b9cc6da9c805ce33dcb7209895aafe4f\"",
+      "last_modified": "Mon, 14 Sep 2026 15:07:06 GMT"
+    },
+    "quality": {
+      "source_rows": 50396768,
+      "parsed_rows": 50396768,
+      "rejected_rows": 0,
+      "staged_sample_rows": 50000,
+      "intentionally_not_staged_rows": 50346768,
+      "rejection_categories": {},
+      "reconciliation": "PASS"
+    },
+    "timings_ms": {
+      "download": 693376.715542,
+      "extract": 15572.895291000139,
+      "parse": 301104.100292,
+      "total_without_db": 1026043.0515000001
+    },
+    "throughput": {
+      "download_bytes_per_second": 444243.0573389247,
+      "extract_bytes_per_second": 203879646.31309688,
+      "parse_rows_per_second": 167373.23719978245
+    },
+    "resources": {
+      "peak_rss_bytes": 386957312,
+      "scratch_bytes": 3483024176
+    }
+  },
+  "database": {
+    "first_est_staged": 50000,
+    "first_simples_staged": 50000,
+    "first_est_canonical": 50000,
+    "first_simples_canonical": 50000,
+    "secondary_cnaes": 103085,
+    "second_est_staged": 50000,
+    "second_simples_staged": 50000,
+    "second_est_canonical": 50000,
+    "second_simples_canonical": 50000,
+    "est_query_p50_ms": 0.007,
+    "est_query_p95_ms": 0.06105,
+    "est_query_max_ms": 9.716,
+    "simples_query_p50_ms": 0.007,
+    "simples_query_p95_ms": 0.0325,
+    "simples_query_max_ms": 0.222,
+    "copy_ms": 1772.569,
+    "est_normalize_ms": 14960.469,
+    "simples_normalize_ms": 21397.77,
+    "relation_bytes_before": 178913280,
+    "relation_bytes_during": 427057152,
+    "est_table_bytes": 52191232,
+    "est_index_bytes": 37478400,
+    "secondary_table_bytes": 40394752,
+    "simples_table_bytes": 39157760,
+    "simples_index_bytes": 28049408,
+    "staging_est_payload_bytes": 28417639,
+    "staging_simples_payload_bytes": 14994920,
+    "wal_bytes": 616978400,
+    "company_est_join_rows": 50000,
+    "company_simples_join_rows": 50000,
+    "normalization_failure": "PASS",
+    "residue_dataset": 0,
+    "residue_staging": 0,
+    "residue_est": 0,
+    "residue_simples": 0,
+    "idempotency": "PASS",
+    "cleanup": "PASS",
+    "load_failure": "PASS_BY_TRANSACTION_TEST",
+    "load_rows_per_second": 56415,
+    "est_normalization_rows_per_second": 3342,
+    "simples_normalization_rows_per_second": 2337,
+    "establishment_explain_analyze": "Nested Loop  (cost=5.51..21.54 rows=1 width=96) (actual time=2.965..2.970 rows=1 loops=1)\n  Buffers: shared hit=9 read=3\n  InitPlan 1\n    ->  Limit  (cost=0.41..4.68 rows=1 width=32) (actual time=0.255..0.256 rows=1 loops=1)\n          Buffers: shared hit=4\n          ->  Index Only Scan using rf_establishments_unique_cnpj on rf_establishments  (cost=0.41..269.51 rows=63 width=32) (actual time=0.252..0.253 rows=1 loops=1)\n                Index Cond: (dataset_version_id = '03b2a000-0000-4000-8000-000000000001'::uuid)\n                Heap Fetches: 1\n                Buffers: shared hit=4\n  ->  Index Scan using rf_establishments_unique_cnpj on rf_establishments e  (cost=0.41..8.43 rows=1 width=80) (actual time=0.474..0.477 rows=1 loops=1)\n        Index Cond: ((dataset_version_id = '03b2a000-0000-4000-8000-000000000001'::uuid) AND (cnpj_canonical = (InitPlan 1).col1))\n        Buffers: shared hit=8\n  ->  Index Scan using rf_companies_pkey on rf_companies c  (cost=0.41..8.43 rows=1 width=48) (actual time=2.484..2.484 rows=1 loops=1)\n        Index Cond: (id = e.rf_company_id)\n        Buffers: shared hit=1 read=3\nPlanning Time: 0.705 ms\nExecution Time: 3.050 ms",
+    "simples_explain_analyze": "Nested Loop  (cost=8.81..24.73 rows=2 width=34) (actual time=1.515..1.519 rows=1 loops=1)\n  Buffers: shared hit=8 read=3\n  InitPlan 1\n    ->  Limit  (cost=0.29..3.97 rows=1 width=32) (actual time=0.020..0.020 rows=1 loops=1)\n          Buffers: shared hit=3\n          ->  Index Scan using rf_simples_mei_dataset_idx on rf_simples_mei  (cost=0.29..972.91 rows=264 width=32) (actual time=0.019..0.019 rows=1 loops=1)\n                Index Cond: (dataset_version_id = '03b2a000-0000-4000-8000-000000000001'::uuid)\n                Buffers: shared hit=3\n  ->  Index Scan using rf_simples_mei_unique_root on rf_simples_mei s  (cost=0.41..8.43 rows=1 width=50) (actual time=0.062..0.064 rows=1 loops=1)\n        Index Cond: ((dataset_version_id = '03b2a000-0000-4000-8000-000000000001'::uuid) AND (cnpj_root = (InitPlan 1).col1))\n        Buffers: shared hit=7\n  ->  Bitmap Heap Scan on rf_companies c  (cost=4.43..12.30 rows=2 width=80) (actual time=1.449..1.450 rows=1 loops=1)\n        Recheck Cond: ((dataset_version_id = '03b2a000-0000-4000-8000-000000000001'::uuid) AND (cnpj_root = (InitPlan 1).col1))\n        Heap Blocks: exact=1\n        Buffers: shared hit=1 read=3\n        ->  Bitmap Index Scan on rf_companies_unique_root  (cost=0.00..4.42 rows=2 width=0) (actual time=1.442..1.442 rows=1 loops=1)\n              Index Cond: ((dataset_version_id = '03b2a000-0000-4000-8000-000000000001'::uuid) AND (cnpj_root = (InitPlan 1).col1))\n              Buffers: shared read=3\nPlanning Time: 0.163 ms\nExecution Time: 1.576 ms"
+  },
+  "database_ms": 77795.63404199993,
+  "total_ms": 1957128.7855409998,
+  "cnpj_alphanumeric_path": "CENTRAL_HELPER_AND_SYNTHETIC_TEST_PASS",
+  "production_worker_reachability": "NOT_PROVEN",
+  "production_changed": false,
+  "billing_changed": false,
+  "national_ingestion": false,
+  "cleanup": "GUARANTEED_BY_FINALLY_AND_EXTERNALLY_VERIFIED"
+}

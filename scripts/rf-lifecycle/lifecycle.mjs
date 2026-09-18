@@ -4,12 +4,16 @@ const CHANGE_FIELDS = Object.freeze({
   registration_status: "REGISTRATION_STATUS_CHANGED",
   cnae: "CNAE_CHANGED",
   address: "ADDRESS_CHANGED",
+  municipality: "MUNICIPALITY_CHANGED",
+  state: "STATE_CHANGED",
   trade_name: "TRADE_NAME_CHANGED",
   legal_name: "LEGAL_NAME_CHANGED",
   legal_nature: "LEGAL_NATURE_CHANGED",
   share_capital: "SHARE_CAPITAL_CHANGED",
   simples_status: "SIMPLES_STATUS_CHANGED",
   mei_status: "MEI_STATUS_CHANGED",
+  simples_date: "SIMPLES_DATE_CHANGED",
+  mei_date: "MEI_DATE_CHANGED",
 });
 
 function immutable(value) {
