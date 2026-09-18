@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
+import { canonicalizeCnpjInput, parseCnpj } from "../../src/lib/cnpj/cnpj.ts";
 
 function decodeDate(value) {
   if (!value || !/^\d{8}$/.test(value)) return null;
-  return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+  const iso = `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+  const parsed = new Date(`${iso}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== iso ? null : iso;
 }
 
 function nullable(value) {
@@ -86,13 +89,14 @@ export function parseCnae(fields) {
 }
 
 export function parseCompany(fields) {
-  if (fields.length < 7 || !/^[A-Z0-9]{8}$/.test(fields[0].toUpperCase())) {
+  const root = canonicalizeCnpjInput(fields[0]);
+  if (fields.length < 7 || !/^[A-Z0-9]{8}$/.test(root)) {
     throw new Error("Invalid company row");
   }
   const capital = fields[4] ? Number(fields[4].replace(",", ".")) : null;
   if (capital !== null && !Number.isFinite(capital)) throw new Error("Invalid share capital");
   return {
-    cnpj_root: fields[0].toUpperCase(),
+    cnpj_root: root,
     legal_name: fields[1].trim(),
     legal_nature_code: nullable(fields[2]),
     responsible_qualification_code: nullable(fields[3]),
@@ -105,11 +109,11 @@ export function parseCompany(fields) {
 
 export function parseEstablishment(fields) {
   if (fields.length < 30) throw new Error("Invalid establishment row length");
-  const root = fields[0].toUpperCase();
-  const order = fields[1].toUpperCase();
+  const root = canonicalizeCnpjInput(fields[0]);
+  const order = canonicalizeCnpjInput(fields[1]);
   const dv = fields[2];
   const cnpj = `${root}${order}${dv}`;
-  if (!/^[A-Z0-9]{12}[0-9]{2}$/.test(cnpj)) throw new Error("Invalid canonical CNPJ");
+  if (!parseCnpj(cnpj).ok) throw new Error("Invalid canonical CNPJ");
   return {
     cnpj_root: root,
     cnpj_order: order,
@@ -152,11 +156,12 @@ export function parsePartner(fields) {
 }
 
 export function parseSimples(fields) {
-  if (fields.length < 7 || !/^[A-Z0-9]{8}$/.test(fields[0].toUpperCase())) {
+  const root = canonicalizeCnpjInput(fields[0]);
+  if (fields.length < 7 || !/^[A-Z0-9]{8}$/.test(root)) {
     throw new Error("Invalid Simples/MEI row");
   }
   return {
-    cnpj_root: fields[0].toUpperCase(),
+    cnpj_root: root,
     simples_option: yesNo(fields[1]),
     simples_option_start_date: decodeDate(fields[2]),
     simples_option_end_date: decodeDate(fields[3]),

@@ -116,10 +116,13 @@ export async function downloadFile({
       await rename(partPath, destination);
       const marker = {
         source_url: url,
+        final_url: currentUrl.href,
+        http_status: response.status,
         size_bytes: bytes,
         checksum_sha256: checksum,
         etag: response.headers.get("etag"),
         last_modified: response.headers.get("last-modified"),
+        content_type: response.headers.get("content-type"),
         completed_at: new Date().toISOString(),
         attempts: attempt,
         reused: false,

@@ -15,6 +15,8 @@ import {
 import { storagePath } from "./storage.mjs";
 import { reconcileQuality } from "./quality.mjs";
 import { assertWithinGuardrail } from "./guardrails.mjs";
+import { assertAuthorizedGroups } from "./group-guardrails.mjs";
+import { calculateCnpjCheckDigits } from "../../src/lib/cnpj/cnpj.ts";
 
 test("manifest hash is deterministic and ignores discovery timestamp", () => {
   const input = {
@@ -41,9 +43,10 @@ test("CNPJ parsing preserves numeric zeros and alphanumeric characters", () => {
   assert.equal(alpha.cnpj_root, "00ABC000");
 
   const fields = Array(30).fill("");
-  Object.assign(fields, { 0: "00ABC000", 1: "E08G", 2: "12", 3: "1", 4: "MATRIZ", 5: "02", 6: "20260731", 10: "20260731", 11: "6201501", 12: "6202300,6203100", 19: "SP", 20: "7107" });
+  const alphaBase = "00ABC000E08G";
+  Object.assign(fields, { 0: alphaBase.slice(0, 8), 1: alphaBase.slice(8), 2: calculateCnpjCheckDigits(alphaBase), 3: "1", 4: "MATRIZ", 5: "02", 6: "20260731", 10: "20260731", 11: "6201501", 12: "6202300,6203100", 19: "SP", 20: "7107" });
   const establishment = parseEstablishment(fields);
-  assert.equal(establishment.cnpj_canonical, "00ABC000E08G12");
+  assert.equal(establishment.cnpj_canonical, `${alphaBase}${calculateCnpjCheckDigits(alphaBase)}`);
   assert.deepEqual(establishment.secondary_cnae_codes, ["6202300", "6203100"]);
 });
 
@@ -171,4 +174,12 @@ test("malformed streaming input and simulated insufficient capacity fail closed"
     }
   }, /Unterminated quoted field/);
   assert.throws(() => assertWithinGuardrail("available disk", 101, 100), /Guardrail exceeded/);
+});
+
+test("bounded group authorization permits one Establishments and one Simples ZIP only", () => {
+  const valid = [{ datasetGroup: "ESTABELECIMENTOS", filename: "Estabelecimentos7.zip" }, { datasetGroup: "SIMPLES", filename: "Simples.zip" }];
+  assert.doesNotThrow(() => assertAuthorizedGroups(valid));
+  assert.throws(() => assertAuthorizedGroups([...valid, { datasetGroup: "SIMPLES", filename: "Simples2.zip" }]), /Exactly two/);
+  assert.throws(() => assertAuthorizedGroups([{ datasetGroup: "ESTABELECIMENTOS", filename: "Estabelecimentos7.zip" }, { datasetGroup: "ESTABELECIMENTOS", filename: "Estabelecimentos8.zip" }]), /Single-ZIP/);
+  assert.throws(() => assertAuthorizedGroups([{ datasetGroup: "ESTABELECIMENTOS", filename: "Estabelecimentos7.zip" }, { datasetGroup: "SIMPLES", filename: "Socios0.zip" }]), /QSA/);
 });
