@@ -17,6 +17,7 @@
     "test:rf-lifecycle": "node --test scripts/rf-lifecycle/*.test.mjs",
     "test:rf-controlled": "node --test scripts/rf-controlled/*.test.mjs",
     "rf:controlled-package": "node scripts/rf-controlled/build-package.mjs",
+    "test:rf-controlled-db": "node scripts/rf-controlled/local-db-validation.mjs",
     "test:recovery-poc": "node --test scripts/recovery-poc/*.test.mjs",
     "recovery:daily": "node scripts/recovery-poc/recovery-poc.mjs backup",
     "recovery:status": "node scripts/recovery-poc/recovery-poc.mjs status",

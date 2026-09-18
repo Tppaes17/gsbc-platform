@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { acquireDatasetLock, createCuratedPackage, evaluateCapacity, heartbeatDatasetLock, releaseDatasetLock, selectControlledRecords } from "./controlled-lib.mjs";
+import { acquireDatasetLock, cleanupControlledArtifacts, createCuratedPackage, evaluateCapacity, heartbeatDatasetLock, releaseDatasetLock, selectControlledRecords, validateCuratedPackage } from "./controlled-lib.mjs";
 
 const records = [
   { cnpj_canonical: "00000000000191", cnpj_root: "00000000", state: "SP", municipality_code: "3550308", main_cnae_code: "6201501", simples_option: true, mei_option: false },
@@ -24,6 +24,18 @@ test("curated package is idempotent apart from generation time and preserves pro
   const retry = createCuratedPackage({ ...input, generatedAt: "2026-09-19T00:00:00Z" });
   assert.equal(first.manifest.package_sha256, retry.manifest.package_sha256);
   assert.equal(first.manifest.records_sha256, retry.manifest.records_sha256);
+  assert.equal(validateCuratedPackage(first), true);
+  assert.throws(() => validateCuratedPackage({ ...first, records: [...first.records, records[0]] }), /MANIFEST_INTEGRITY/);
+});
+
+test("cleanup is bounded, verified and fails closed outside its root", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "rf-controlled-cleanup-"));
+  const scratch = path.join(root, "scratch");
+  try {
+    await mkdir(scratch); await writeFile(path.join(scratch, "temporary.json"), "{}\n");
+    assert.deepEqual(await cleanupControlledArtifacts(root, [scratch]), { status: "PASS", removed: 1 });
+    await assert.rejects(cleanupControlledArtifacts(root, [path.dirname(root)]), /OUTSIDE_CONTROLLED_ROOT/);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("capacity guard reserves headroom and stops uncontrolled RF growth", () => {

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { canonicalizeCnpjInput } from "../../src/lib/cnpj/cnpj.ts";
@@ -50,6 +50,14 @@ export function createCuratedPackage({ datasetVersion, sourceReferenceDate, sour
   return { manifest: { ...identity, generated_at: generatedAt, package_sha256: sha256(stableJson(identity)) }, records: selected };
 }
 
+export function validateCuratedPackage(curated) {
+  if (!curated?.manifest || !Array.isArray(curated.records)) throw new Error("CURATED_PACKAGE_INVALID");
+  const packageSha256 = curated.manifest.package_sha256;
+  const identity = Object.fromEntries(Object.entries(curated.manifest).filter(([key]) => !["generated_at", "package_sha256"].includes(key)));
+  if (curated.records.length !== identity.record_count || sha256(stableJson(curated.records)) !== identity.records_sha256 || sha256(stableJson(identity)) !== packageSha256) throw new Error("CURATED_MANIFEST_INTEGRITY_FAILED");
+  return true;
+}
+
 export function evaluateCapacity({ capacityBytes, currentDatabaseBytes, currentRfBytes, estimatedAdditionalBytes, reserveRatio = 0.30 }) {
   for (const value of [capacityBytes, currentDatabaseBytes, currentRfBytes, estimatedAdditionalBytes]) if (!Number.isFinite(value) || value < 0) throw new Error("CAPACITY_EVIDENCE_REQUIRED");
   if (reserveRatio < 0.25 || reserveRatio > 0.5) throw new Error("CAPACITY_RESERVE_INVALID");
@@ -88,4 +96,15 @@ export async function releaseDatasetLock(lock) {
   const existing = JSON.parse(await readFile(lock.lock_path, "utf8"));
   if (existing.lock_id !== lock.lock_id) throw new Error("LOCK_OWNERSHIP_LOST");
   await rm(lock.lock_path);
+}
+
+export async function cleanupControlledArtifacts(root, artifacts) {
+  const canonicalRoot = path.resolve(root);
+  for (const artifact of artifacts) {
+    const target = path.resolve(artifact);
+    if (target === canonicalRoot || !target.startsWith(`${canonicalRoot}${path.sep}`)) throw new Error("CLEANUP_PATH_OUTSIDE_CONTROLLED_ROOT");
+    await rm(target, { recursive: true, force: true });
+    await lstat(target).then(() => { throw new Error("CLEANUP_VERIFICATION_FAILED"); }, (error) => { if (error.code !== "ENOENT") throw error; });
+  }
+  return { status: "PASS", removed: artifacts.length };
 }
