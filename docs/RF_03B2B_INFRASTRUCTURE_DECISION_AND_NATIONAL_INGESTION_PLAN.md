@@ -1,5 +1,7 @@
 # RF-03B.2B — Infrastructure Decision & National Ingestion Plan
 
+> **TARGET DEFERRED — NATIONAL PRODUCTION BUDGET GATE REQUIRED.** For the current pre-revenue phase, the governing decision is `RF_03B2B_ZERO_INCREMENTAL_COST_PRE_REVENUE_PLAN.md`. Nothing in this target plan authorizes purchase, provisioning or national ingestion.
+
 Date: 2026-09-18  
 Scope: architecture and decision package only. No provisioning, purchase, production change, national ingestion or publish was performed.
 
